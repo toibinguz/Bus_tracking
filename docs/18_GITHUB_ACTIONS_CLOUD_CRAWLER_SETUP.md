@@ -48,7 +48,7 @@ git push -u origin main
 3. Bấm nút xanh **New repository secret**, lần lượt tạo 3 biến:
    * **Secret 1:**
      * Name: `HF_TOKEN`
-     * Secret: `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`
+     * Secret: *(Dán mã Token Hugging Face loại Write bạn vừa tạo)*
    * **Secret 2:**
      * Name: `HF_DATASET_ID`
      * Secret: `Toibinguz/hust-bus-data`
