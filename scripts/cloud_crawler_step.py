@@ -112,6 +112,7 @@ def main():
         round_bus_records = []
         active_count = 0
         depot_count = 0
+        stale_count = 0
 
         for batch in micro_batches:
             with ThreadPoolExecutor(max_workers=BUS_MICRO_BATCH_SIZE) as executor:
@@ -125,10 +126,13 @@ def main():
                         )
                         if clean_rec:
                             round_bus_records.append(clean_rec)
-                            if clean_rec["quality_status"] == "ACTIVE_VALID":
+                            st = clean_rec["quality_status"]
+                            if st == "ACTIVE_VALID":
                                 active_count += 1
-                            elif clean_rec["quality_status"] == "IDLE_DEPOT":
+                            elif st == "IDLE_DEPOT":
                                 depot_count += 1
+                            elif st == "STALE_PING":
+                                stale_count += 1
 
             if not single_test:
                 time.sleep(BUS_MICRO_BATCH_DELAY_SEC)
@@ -136,7 +140,7 @@ def main():
         all_session_bus_records.extend(round_bus_records)
         round_elapsed = time.time() - round_start
         print(f"[{round_ts}] [Vòng {round_no:02d}] 🚌 {len(round_bus_records)}/{len(v_ids)} xe buýt "
-              f"({active_count} lăn bánh, {depot_count} đỗ bãi) | {round_elapsed:.1f}s", flush=True)
+              f"({active_count} lăn bánh mới, {stale_count} chờ nhịp GPS, {depot_count} đỗ bãi) | {round_elapsed:.1f}s", flush=True)
 
         # Watchdog: Cảnh báo nếu tỷ lệ phản hồi < ngưỡng an toàn
         total_vids = len(v_ids)

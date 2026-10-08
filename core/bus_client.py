@@ -42,6 +42,32 @@ def fetch_single_bus_raw(v_id):
                     resp += d
                 header, _, body = resp.partition(b"\r\n\r\n")
                 if not body: return None
+                if b"429 Too Many Requests" in header or b"LOCKED" in body:
+                    new_dev_id = get_busmap_device_id(force_rotate=True)
+                    # Thử lại 1 lần với device ID mới vừa cấp
+                    retry_req = (
+                        f"GET /v2/public/busmap/vehicle_hn/get?id={v_id} HTTP/1.1\r\n"
+                        "Host: api.busmap.city\r\n"
+                        "language: vi\r\n"
+                        "client-version: android|20600\r\n"
+                        f"device-id: {new_dev_id}\r\n"
+                        "package-name: com.t7.busmaphn\r\n"
+                        "Connection: close\r\n\r\n"
+                    )
+                    with socket.create_connection(("api.busmap.city", 443), timeout=3.5) as s2:
+                        with ssl_context.wrap_socket(s2, server_hostname="api.busmap.city") as ss2:
+                            ss2.sendall(retry_req.encode("utf-8"))
+                            resp2 = b""
+                            while True:
+                                d2 = ss2.recv(4096)
+                                if not d2: break
+                                resp2 += d2
+                            _, _, body2 = resp2.partition(b"\r\n\r\n")
+                            if body2:
+                                data2 = json.loads(body2.decode("utf-8", errors="ignore"))
+                                if data2 and isinstance(data2, list) and len(data2) > 0:
+                                    return data2[0]
+                    return None
                 data = json.loads(body.decode("utf-8", errors="ignore"))
                 if data and isinstance(data, list) and len(data) > 0:
                     return data[0]

@@ -235,7 +235,7 @@ def main():
             
             print(f"[{now.strftime('%H:%M:%S')}] [Vòng {round_no:03d}] "
                   f"🚌 Xe buýt: {len(bus_records)}/{len(v_ids)} phản hồi "
-                  f"({active_count} lăn bánh, {depot_count} đỗ bãi, {stale_count} lặp) | "
+                  f"({active_count} lăn bánh mới, {stale_count} chờ nhịp GPS, {depot_count} đỗ bãi) | "
                   f"{elapsed:.1f}s", flush=True)
             print(f"   {tt_dashboard}", flush=True)
             round_no += 1
