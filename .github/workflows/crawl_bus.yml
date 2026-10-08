@@ -9,7 +9,7 @@ on:
 jobs:
   crawl_and_sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     steps:
       - name: Checkout Code

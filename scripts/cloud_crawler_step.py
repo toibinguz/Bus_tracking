@@ -112,10 +112,10 @@ def fetch_tomtom_flow(lat, lon, api_key):
 def main():
     hn_time = get_hanoi_time()
     ts_str = hn_time.strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{ts_str}] Khoi chay Cloud Crawler Step tren GitHub Actions...")
+    print(f"[{ts_str}] Khoi chay Cloud Crawler Phien 9 Phut tren GitHub Actions...")
 
     if not is_operating_hours(hn_time) and "--force" not in sys.argv:
-        print(f"[{ts_str}] NGoai khung gio xe buyt (22:00 - 05:00). Ket thuc som de tiet kiem runner.")
+        print(f"[{ts_str}] Ngoai khung gio xe buyt (22:00 - 05:00). Ket thuc som de tiet kiem runner.")
         return
 
     if not os.path.exists(CONFIG_FILE):
@@ -126,78 +126,110 @@ def main():
         config = json.load(f)
     v_ids = [v["id"] for v in config.get("vehicles", []) if "id" in v]
 
-    # 1. Thu thap GPS 52 xe buyt
-    bus_records = []
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        futures = {executor.submit(fetch_single_bus, vid): vid for vid in v_ids}
-        for fut in futures:
-            res = fut.result()
-            if res:
-                res["crawled_at"] = hn_time.isoformat()
-                bus_records.append(res)
-            time.sleep(0.02)
-
-    # 2. Thu thap TomTom 19 nut giao
+    # Phien chay 9 phut (540s) de dat do phan giai cap do phut (moi 60s / vong)
+    SESSION_DURATION = 540 # 9 phut
+    session_start = time.time()
+    round_no = 1
+    
+    all_session_bus_records = []
     traffic_records = []
-    if TOMTOM_KEY:
-        for node in HUST_BOTTLENECK_NODES:
-            res = fetch_tomtom_flow(node["lat"], node["lon"], TOMTOM_KEY)
-            if res:
-                traffic_records.append({
-                    "timestamp": hn_time.isoformat(),
-                    "node_name": node["name"],
-                    "current_speed": res.get("currentSpeed"),
-                    "free_flow_speed": res.get("freeFlowSpeed"),
-                    "travel_time": res.get("currentTravelTime")
-                })
-            time.sleep(0.08)
+    last_tomtom_time = 0
 
-    print(f"[{ts_str}] Thu thap thanh cong: {len(bus_records)}/{len(v_ids)} xe buyt | {len(traffic_records)}/{len(HUST_BOTTLENECK_NODES)} nut giao TomTom")
+    while (time.time() - session_start) < SESSION_DURATION:
+        round_start = time.time()
+        cur_hn_time = get_hanoi_time()
+        round_ts = cur_hn_time.strftime("%H:%M:%S")
 
-    # 3. Luu file tam de day len Hugging Face Dataset
+        # 1. Thu thap GPS 52 xe buyt cap do phut
+        round_bus_records = []
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            futures = {executor.submit(fetch_single_bus, vid): vid for vid in v_ids}
+            for fut in futures:
+                res = fut.result()
+                if res:
+                    res["crawled_at"] = cur_hn_time.isoformat()
+                    round_bus_records.append(res)
+                time.sleep(0.02)
+
+        all_session_bus_records.extend(round_bus_records)
+
+        # 2. Thu thap TomTom (1 lan dau phien va cach nhau it nhat 360s gio cao diem / 720s gio thuong)
+        hour_val = cur_hn_time.hour + cur_hn_time.minute / 60.0
+        is_peak = (6.5 <= hour_val <= 9.0) or (16.5 <= hour_val <= 19.5)
+        tt_interval = 360 if is_peak else 720
+
+        tomtom_sampled = 0
+        if TOMTOM_KEY and (time.time() - last_tomtom_time >= tt_interval):
+            for node in HUST_BOTTLENECK_NODES:
+                res = fetch_tomtom_flow(node["lat"], node["lon"], TOMTOM_KEY)
+                if res:
+                    tomtom_sampled += 1
+                    traffic_records.append({
+                        "timestamp": cur_hn_time.isoformat(),
+                        "node_name": node["name"],
+                        "current_speed": res.get("currentSpeed"),
+                        "free_flow_speed": res.get("freeFlowSpeed"),
+                        "travel_time": res.get("currentTravelTime")
+                    })
+                time.sleep(0.08)
+            last_tomtom_time = time.time()
+
+        round_elapsed = time.time() - round_start
+        print(f"[{round_ts}] [Vong {round_no:02d}] 🚌 {len(round_bus_records)}/{len(v_ids)} xe buyt | TomTom: {tomtom_sampled} nut | {round_elapsed:.1f}s")
+        round_no += 1
+
+        # Neu la test run hoac con duoi 60s la het phien thi break
+        if "--test" in sys.argv or (SESSION_DURATION - (time.time() - session_start)) < 60:
+            break
+
+        sleep_wait = max(5, 60 - round_elapsed)
+        time.sleep(sleep_wait)
+
+    print(f"\n[SUMMARY] Ket thuc phien: Thu duoc {len(all_session_bus_records)} pings xe buyt ({round_no-1} vong) va {len(traffic_records)} ban ghi TomTom.")
+
+    # 3. Luu file batch va day len Hugging Face Dataset
     tmp_dir = "temp_cloud_output"
     os.makedirs(tmp_dir, exist_ok=True)
     date_tag = hn_time.strftime("%Y-%m-%d")
     time_tag = hn_time.strftime("%H%M%S")
 
-    bus_chunk = os.path.join(tmp_dir, f"bus_{time_tag}.jsonl")
+    bus_chunk = os.path.join(tmp_dir, f"bus_batch_{time_tag}.jsonl")
     with open(bus_chunk, "w", encoding="utf-8") as f:
-        for r in bus_records:
+        for r in all_session_bus_records:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    traffic_chunk = os.path.join(tmp_dir, f"traffic_{time_tag}.jsonl")
-    with open(traffic_chunk, "w", encoding="utf-8") as f:
-        for r in traffic_records:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    traffic_chunk = os.path.join(tmp_dir, f"traffic_batch_{time_tag}.jsonl")
+    if traffic_records:
+        with open(traffic_chunk, "w", encoding="utf-8") as f:
+            for r in traffic_records:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    # 4. Day len Hugging Face Dataset (neu co HF_TOKEN)
+    # 4. Day len Hugging Face Dataset
     if HF_TOKEN and HF_DATASET_ID:
         try:
             from huggingface_hub import HfApi
             api = HfApi(token=HF_TOKEN)
             
-            # Upload bus chunk
-            repo_bus_path = f"raw_data/{date_tag}/bus/chunk_{time_tag}.jsonl"
+            repo_bus_path = f"raw_data/{date_tag}/bus/batch_{time_tag}.jsonl"
             api.upload_file(
                 path_or_fileobj=bus_chunk,
                 path_in_repo=repo_bus_path,
                 repo_id=HF_DATASET_ID,
                 repo_type="dataset",
-                commit_message=f"Ping {len(bus_records)} buses at {ts_str}"
+                commit_message=f"Minute-level batch: {len(all_session_bus_records)} pings ({date_tag} {time_tag})"
             )
-            print(f"[OK] Da day bus chunk len HF Dataset: {repo_bus_path}")
+            print(f"[OK] Da day bus batch len HF Dataset: {repo_bus_path}")
 
-            # Upload traffic chunk
-            if traffic_records:
-                repo_traffic_path = f"raw_data/{date_tag}/traffic/chunk_{time_tag}.jsonl"
+            if traffic_records and os.path.exists(traffic_chunk):
+                repo_traffic_path = f"raw_data/{date_tag}/traffic/batch_{time_tag}.jsonl"
                 api.upload_file(
                     path_or_fileobj=traffic_chunk,
                     path_in_repo=repo_traffic_path,
                     repo_id=HF_DATASET_ID,
                     repo_type="dataset",
-                    commit_message=f"Ping {len(traffic_records)} traffic nodes at {ts_str}"
+                    commit_message=f"Traffic batch: {len(traffic_records)} nodes ({date_tag} {time_tag})"
                 )
-                print(f"[OK] Da day traffic chunk len HF Dataset: {repo_traffic_path}")
+                print(f"[OK] Da day traffic batch len HF Dataset: {repo_traffic_path}")
 
         except Exception as e:
             print(f"[WARN] Loi upload HF Dataset: {e}")
