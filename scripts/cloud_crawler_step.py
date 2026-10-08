@@ -206,17 +206,19 @@ def upload_batches_to_hf_native(bus_chunk, traffic_chunk, date_tag, time_tag, to
         return
 
     commit_url = f"https://huggingface.co/api/datasets/{HF_DATASET_ID}/commit/main"
-    payload = {
-        "operations": operations,
-        "summary": f"Cloud Relay Batch ({date_tag} {time_tag}): {len(operations)} files"
-    }
-    data = json.dumps(payload).encode("utf-8")
+    ndjson_lines = [
+        json.dumps({"key": "header", "value": {"summary": f"Cloud Relay Batch ({date_tag} {time_tag}): {len(operations)} files", "description": ""}}).encode("utf-8")
+    ]
+    for op in operations:
+        ndjson_lines.append(json.dumps(op).encode("utf-8"))
+    data = b"\n".join(ndjson_lines) + b"\n"
+
     req = urllib.request.Request(
         commit_url,
         data=data,
         headers={
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/x-ndjson"
         },
         method="POST"
     )

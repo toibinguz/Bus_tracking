@@ -183,17 +183,19 @@ def sync_to_hf(local_bus_file, local_traffic_file, date_str, token):
         return
 
     commit_url = f"https://huggingface.co/api/datasets/{HF_DATASET_ID}/commit/main"
-    payload = {
-        "operations": operations,
-        "summary": f"Native Auto-sync {len(operations)} files ({date_str})"
-    }
-    data = json.dumps(payload).encode("utf-8")
+    ndjson_lines = [
+        json.dumps({"key": "header", "value": {"summary": f"Native Auto-sync {len(operations)} files ({date_str})", "description": ""}}).encode("utf-8")
+    ]
+    for op in operations:
+        ndjson_lines.append(json.dumps(op).encode("utf-8"))
+    data = b"\n".join(ndjson_lines) + b"\n"
+    
     req = urllib.request.Request(
         commit_url,
         data=data,
         headers={
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/x-ndjson"
         },
         method="POST"
     )
