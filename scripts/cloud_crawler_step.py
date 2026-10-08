@@ -17,6 +17,7 @@ import ssl
 import base64
 import urllib.request
 import urllib.parse
+import urllib.error
 import math
 from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor
@@ -52,26 +53,28 @@ HANOI_BBOX = {
 
 # Top 19 critical bottlenecks for HUST cluster routes
 HUST_BOTTLENECK_NODES = [
-    {"name": "Kim_Lien_Ham_Chui", "lat": 21.0084, "lon": 105.8427},
-    {"name": "Dai_Co_Viet_Pho_Hue", "lat": 21.0092, "lon": 105.8503},
-    {"name": "Nga_Tu_Vong", "lat": 20.9987, "lon": 105.8415},
-    {"name": "Le_Thanh_Nghi_Bach_Mai", "lat": 21.0028, "lon": 105.8497},
-    {"name": "Nga_Tu_Cau_Giay", "lat": 21.0315, "lon": 105.8016},
-    {"name": "Nga_Tu_Mai_Dich", "lat": 21.0378, "lon": 105.7788},
-    {"name": "Cau_Dien_QL32", "lat": 21.0422, "lon": 105.7582},
-    {"name": "Nhon_DH_Cong_Nghiep", "lat": 21.0543, "lon": 105.7351},
-    {"name": "Pham_Ngoc_Thach_DH_Y", "lat": 21.0089, "lon": 105.8324},
-    {"name": "Chua_Boc_Tay_Son", "lat": 21.0097, "lon": 105.8239},
-    {"name": "Huynh_Thuc_Khang_NCT", "lat": 21.0211, "lon": 105.8118},
-    {"name": "Nga_Tu_So", "lat": 21.0012, "lon": 105.8197},
-    {"name": "Nguyen_Trai_Khuat_Duy_Tien", "lat": 20.9922, "lon": 105.8005},
-    {"name": "Nguyen_Trai_Cau_Trang", "lat": 20.9765, "lon": 105.7832},
-    {"name": "Trang_Tien_Bo_Ho", "lat": 21.0251, "lon": 105.8542},
-    {"name": "Yen_Phu_Cau_Chuong_Duong", "lat": 21.0415, "lon": 105.8552},
-    {"name": "Nghi_Tam_Au_Co", "lat": 21.0665, "lon": 105.8285},
-    {"name": "Giai_Phong_Kim_Dong_Giap_Bat", "lat": 20.9812, "lon": 105.8422},
-    {"name": "Ngoc_Hoi_Phan_Trong_Tue", "lat": 20.9498, "lon": 105.8451}
+    {"name": "Kim_Lien_Ham_Chui", "lat": 21.0084, "lon": 105.8427, "is_core": True},
+    {"name": "Dai_Co_Viet_Pho_Hue", "lat": 21.0092, "lon": 105.8503, "is_core": True},
+    {"name": "Nga_Tu_Vong", "lat": 20.9987, "lon": 105.8415, "is_core": True},
+    {"name": "Le_Thanh_Nghi_Bach_Mai", "lat": 21.0028, "lon": 105.8497, "is_core": True},
+    {"name": "Nga_Tu_Cau_Giay", "lat": 21.0315, "lon": 105.8016, "is_core": False},
+    {"name": "Nga_Tu_Mai_Dich", "lat": 21.0378, "lon": 105.7788, "is_core": False},
+    {"name": "Cau_Dien_QL32", "lat": 21.0422, "lon": 105.7582, "is_core": False},
+    {"name": "Nhon_DH_Cong_Nghiep", "lat": 21.0543, "lon": 105.7351, "is_core": False},
+    {"name": "Pham_Ngoc_Thach_DH_Y", "lat": 21.0089, "lon": 105.8324, "is_core": False},
+    {"name": "Chua_Boc_Tay_Son", "lat": 21.0097, "lon": 105.8239, "is_core": False},
+    {"name": "Huynh_Thuc_Khang_NCT", "lat": 21.0211, "lon": 105.8118, "is_core": False},
+    {"name": "Nga_Tu_So", "lat": 21.0012, "lon": 105.8197, "is_core": False},
+    {"name": "Nguyen_Trai_Khuat_Duy_Tien", "lat": 20.9922, "lon": 105.8005, "is_core": False},
+    {"name": "Nguyen_Trai_Cau_Trang", "lat": 20.9765, "lon": 105.7832, "is_core": False},
+    {"name": "Trang_Tien_Bo_Ho", "lat": 21.0251, "lon": 105.8542, "is_core": False},
+    {"name": "Yen_Phu_Cau_Chuong_Duong", "lat": 21.0415, "lon": 105.8552, "is_core": False},
+    {"name": "Nghi_Tam_Au_Co", "lat": 21.0665, "lon": 105.8285, "is_core": False},
+    {"name": "Giai_Phong_Kim_Dong_Giap_Bat", "lat": 20.9812, "lon": 105.8422, "is_core": False},
+    {"name": "Ngoc_Hoi_Phan_Trong_Tue", "lat": 20.9498, "lon": 105.8451, "is_core": False}
 ]
+
+TOMTOM_CIRCUIT_OPEN = False
 
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
@@ -226,16 +229,27 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
 HUST_CORRIDOR_BBOX = "105.7500,20.9500,105.9000,21.0800"
 
 def fetch_tomtom_flow(lat, lon, api_key):
+    global TOMTOM_CIRCUIT_OPEN
+    if TOMTOM_CIRCUIT_OPEN or not api_key:
+        return None
     url = f"https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/10/json?key={api_key}&point={lat},{lon}&unit=KMPH"
     req = urllib.request.Request(url, headers={"User-Agent": "GitHubActionsBusCrawler/2.0"})
     try:
         with urllib.request.urlopen(req, context=ssl_context, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data.get("flowSegmentData")
+    except urllib.error.HTTPError as e:
+        if e.code in (403, 429):
+            TOMTOM_CIRCUIT_OPEN = True
+            print(f"[CIRCUIT BREAKER] ⚠️ TomTom trả về HTTP {e.code} (Hết hạn mức hoặc bị giới hạn). Kích hoạt ngắt mạch, ngừng gọi TomTom!", flush=True)
+        return None
     except Exception:
         return None
 
 def fetch_tomtom_incidents(api_key, bbox=HUST_CORRIDOR_BBOX):
+    global TOMTOM_CIRCUIT_OPEN
+    if TOMTOM_CIRCUIT_OPEN or not api_key:
+        return []
     raw_url = f"https://api.tomtom.com/traffic/services/5/incidentDetails?key={api_key}&bbox={bbox}&language=en-GB&fields={{incidents{{type,geometry{{type,coordinates}},properties{{id,iconCategory,magnitudeOfDelay,delay,length,events{{description}}}}}}}}"
     url = urllib.parse.quote(raw_url, safe=':/?=&')
     req = urllib.request.Request(url, headers={"User-Agent": "GitHubActionsBusCrawler/2.0"})
@@ -243,8 +257,138 @@ def fetch_tomtom_incidents(api_key, bbox=HUST_CORRIDOR_BBOX):
         with urllib.request.urlopen(req, context=ssl_context, timeout=8) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data.get("incidents", [])
+    except urllib.error.HTTPError as e:
+        if e.code in (403, 429):
+            TOMTOM_CIRCUIT_OPEN = True
+            print(f"[CIRCUIT BREAKER] ⚠️ TomTom trả về HTTP {e.code} (Hết hạn mức hoặc bị giới hạn). Kích hoạt ngắt mạch, ngừng gọi TomTom!", flush=True)
+        return []
     except Exception:
         return []
+
+def get_hf_today_traffic_batch_count(date_tag, token):
+    """Truy vấn số lượng batch traffic đã tải lên Hugging Face hôm nay để kiểm soát hạn mức ngày."""
+    if not token or not HF_DATASET_ID:
+        return 0
+    url = f"https://huggingface.co/api/datasets/{HF_DATASET_ID}/tree/main/raw_data/{date_tag}/traffic"
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+    try:
+        with urllib.request.urlopen(req, context=ssl_context, timeout=6) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if isinstance(data, list):
+                return len(data)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return 0
+    except Exception:
+        pass
+    return 0
+
+def evaluate_hotspot_congestion(bus_records, bottleneck_nodes=HUST_BOTTLENECK_NODES, radius_meters=450.0):
+    """
+    Đo lường mật độ và vận tốc xe buýt xung quanh 19 điểm nghẽn trọng yếu.
+    Dùng 220 xe buýt làm cảm biến thăm dò (probe sensors) để phát hiện ùn tắc cục bộ mà không tốn request API bên ngoài.
+    """
+    if not bus_records:
+        return {"is_congested": False, "congested_nodes": [], "details": {}}
+
+    active_buses = [b for b in bus_records if b.get("quality_status") == "ACTIVE_VALID"]
+    if not active_buses:
+        return {"is_congested": False, "congested_nodes": [], "details": {}}
+
+    congested_nodes = []
+    details = {}
+    has_critical_core_congestion = False
+
+    for node in bottleneck_nodes:
+        n_lat, n_lon = node["lat"], node["lon"]
+        name = node["name"]
+        is_core = node.get("is_core", False)
+
+        nearby_speeds = []
+        for b in active_buses:
+            d = haversine_distance(n_lat, n_lon, b["lat"], b["lon"])
+            if d <= radius_meters:
+                nearby_speeds.append(b.get("speed", 0.0))
+
+        bus_count = len(nearby_speeds)
+        if bus_count >= 3:
+            avg_speed = sum(nearby_speeds) / bus_count
+            crawl_count = sum(1 for s in nearby_speeds if s < 5.0)
+            crawl_ratio = crawl_count / bus_count
+
+            # Tiêu chí ùn tắc:
+            # 1. Vận tốc trung bình < 13 km/h (khi có >= 3 xe), HOẶC
+            # 2. Tỷ lệ xe dừng/bò (v < 5 km/h) >= 35% (khi có >= 4 xe)
+            node_congested = (avg_speed < 13.0) or (bus_count >= 4 and crawl_ratio >= 0.35)
+
+            details[name] = {
+                "bus_count": bus_count,
+                "avg_speed": round(avg_speed, 1),
+                "crawl_ratio": round(crawl_ratio, 2),
+                "is_congested": node_congested
+            }
+
+            if node_congested:
+                congested_nodes.append(name)
+                if is_core and (avg_speed < 10.0 or crawl_ratio >= 0.50):
+                    has_critical_core_congestion = True
+
+    # Ùn tắc hành lang: Có từ 2 nút bị tắc trở lên hoặc có 1 nút lõi tắc nghiêm trọng
+    is_corridor_congested = (len(congested_nodes) >= 2) or has_critical_core_congestion
+
+    return {
+        "is_congested": is_corridor_congested,
+        "congested_nodes": congested_nodes,
+        "details": details
+    }
+
+def execute_tomtom_poll(cur_hn_time, api_key):
+    """Thực hiện một lượt quét đồng bộ 19 Flow Segments + 1 Incident BBox."""
+    flow_records = []
+    inc_records = []
+    if not api_key or TOMTOM_CIRCUIT_OPEN:
+        return flow_records, inc_records
+
+    # A. 19 Flow Segments
+    for node in HUST_BOTTLENECK_NODES:
+        res = fetch_tomtom_flow(node["lat"], node["lon"], api_key)
+        if res:
+            raw_coords = res.get("coordinates", {}).get("coordinate", [])
+            seg_coords = [[round(c["longitude"], 6), round(c["latitude"], 6)] for c in raw_coords if "longitude" in c and "latitude" in c]
+            flow_records.append({
+                "timestamp": cur_hn_time.isoformat(),
+                "node_name": node["name"],
+                "lat": node["lat"],
+                "lon": node["lon"],
+                "current_speed": res.get("currentSpeed"),
+                "free_flow_speed": res.get("freeFlowSpeed"),
+                "travel_time": res.get("currentTravelTime"),
+                "confidence": res.get("confidence"),
+                "road_closure": res.get("roadClosure", False),
+                "coordinates": seg_coords
+            })
+        time.sleep(0.08)
+
+    # B. Incident Details
+    raw_incidents = fetch_tomtom_incidents(api_key)
+    for inc in raw_incidents:
+        props = inc.get("properties", {})
+        geom = inc.get("geometry", {})
+        events = props.get("events", [])
+        desc = events[0].get("description", "") if events else ""
+        inc_records.append({
+            "timestamp": cur_hn_time.isoformat(),
+            "incident_id": props.get("id", ""),
+            "icon_category": props.get("iconCategory", 0),
+            "magnitude_of_delay": props.get("magnitudeOfDelay", 0),
+            "delay_seconds": props.get("delay", 0),
+            "length_meters": round(props.get("length", 0), 2),
+            "description": desc,
+            "geometry_type": geom.get("type", "LineString"),
+            "coordinates": geom.get("coordinates", [])
+        })
+
+    return flow_records, inc_records
 
 def upload_batches_to_hf_native(bus_chunk, traffic_chunk, incident_chunk, date_tag, time_tag, token):
     if not token or not HF_DATASET_ID:
@@ -360,61 +504,36 @@ def main():
     kinematic_cache = {}
 
     # Chinh sach TomTom chuan han muc thang (Monthly Freemium: 20k Flow, 2.5k Incident):
-    # Cao diem (06:30-09:00, 16:30-19:30): Moi 18 phut (moi 2 phien 9m) goi 1 lan
-    # Thap diem: Moi 54 phut (moi 6 phien 9m) goi 1 lan
-    # -> Tong cong ~31 lan/ngay * 19 flow = 589 flow/ngay (< 600 budget/ngay)
+    # Cao diem (06:30-09:00, 16:30-19:30): Moi 18 phut (step_9m % 2 == 0) goi 1 lan
+    # Thap diem binh thuong: Moi 54 phut (step_9m % 6 == 0) goi 1 lan
+    # Thap diem co UN TAC (xe buyt cham): Rut xuong moi 18 phut (step_9m % 2 == 0)
+    # -> Toi da <= 31 dot/ngay * 19 flow = 589 flow/ngay (< 600 budget/ngay)
+    date_tag = hn_time.strftime("%Y-%m-%d")
+    no_tomtom = "--no-tomtom" in sys.argv
+    today_traffic_batches = get_hf_today_traffic_batch_count(date_tag, HF_TOKEN) if (HF_TOKEN and not single_test) else 0
+    can_poll_tomtom = (today_traffic_batches < 31) and not TOMTOM_CIRCUIT_OPEN and not no_tomtom
+
+    if today_traffic_batches >= 31 and not single_test:
+        print(f"[{ts_str}] 🚦 [BUDGET GOVERNOR] Đã dùng {today_traffic_batches}/31 đợt TomTom hôm nay (~{today_traffic_batches*19}/600 flow). Đạt trần ngân sách ngày an toàn, bỏ qua TomTom.", flush=True)
+
+    total_mins = hn_time.hour * 60 + hn_time.minute
+    step_9m = total_mins // 9
     hour_val = hn_time.hour + hn_time.minute / 60.0
     is_peak = (6.5 <= hour_val <= 9.0) or (16.5 <= hour_val <= 19.5)
-    session_idx = hn_time.minute // 9
-    should_query_tomtom = single_test or (is_peak and session_idx % 2 == 0) or (not is_peak and session_idx % 6 == 0)
+    baseline_tomtom = single_test or (is_peak and step_9m % 2 == 0) or (not is_peak and step_9m % 6 == 0)
 
-    # 1. Thu thap TomTom o dau phien neu du dieu kien
-    if TOMTOM_KEY and should_query_tomtom:
+    tomtom_polled_in_session = False
+
+    # 1. Thu thap TomTom o dau phien neu dung lich baseline
+    if TOMTOM_KEY and can_poll_tomtom and baseline_tomtom:
         print(f"[{hn_time.strftime('%H:%M:%S')}] 🚦 Thu thap TomTom (19 Flow Segments + 1 Incident BBox, {'Cao diem' if is_peak else 'Thuong'})...", flush=True)
-        # A. Flow Segments
-        for node in HUST_BOTTLENECK_NODES:
-            res = fetch_tomtom_flow(node["lat"], node["lon"], TOMTOM_KEY)
-            if res:
-                raw_coords = res.get("coordinates", {}).get("coordinate", [])
-                seg_coords = [[round(c["longitude"], 6), round(c["latitude"], 6)] for c in raw_coords if "longitude" in c and "latitude" in c]
-                traffic_records.append({
-                    "timestamp": hn_time.isoformat(),
-                    "node_name": node["name"],
-                    "lat": node["lat"],
-                    "lon": node["lon"],
-                    "current_speed": res.get("currentSpeed"),
-                    "free_flow_speed": res.get("freeFlowSpeed"),
-                    "travel_time": res.get("currentTravelTime"),
-                    "confidence": res.get("confidence"),
-                    "road_closure": res.get("roadClosure", False),
-                    "coordinates": seg_coords
-                })
-            time.sleep(0.08)
-
-        # B. Incident Details (1 request cho ca BBox hanh lang Bach Khoa)
-        raw_incidents = fetch_tomtom_incidents(TOMTOM_KEY)
-        for inc in raw_incidents:
-            props = inc.get("properties", {})
-            geom = inc.get("geometry", {})
-            events = props.get("events", [])
-            desc = events[0].get("description", "") if events else ""
-            incident_records.append({
-                "timestamp": hn_time.isoformat(),
-                "incident_id": props.get("id", ""),
-                "icon_category": props.get("iconCategory", 0),
-                "magnitude_of_delay": props.get("magnitudeOfDelay", 0),
-                "delay_seconds": props.get("delay", 0),
-                "length_meters": round(props.get("length", 0), 2),
-                "description": desc,
-                "geometry_type": geom.get("type", "LineString"),
-                "coordinates": geom.get("coordinates", [])
-            })
+        traffic_records, incident_records = execute_tomtom_poll(hn_time, TOMTOM_KEY)
+        tomtom_polled_in_session = True
         print(f"   🚦 Hoan tat: {len(traffic_records)} flow segments (kem seg_line), {len(incident_records)} incidents.", flush=True)
 
     # 2. Vong lap cào GPS 220 xe buyt moi 60 giay voi Micro-batch Pacing
     batch_size = 8
     micro_batches = [v_ids[i:i + batch_size] for i in range(0, len(v_ids), batch_size)]
-    single_test = "--test" in sys.argv
 
     while (time.time() - session_start) < SESSION_DURATION:
         round_start = time.time()
@@ -450,6 +569,25 @@ def main():
         round_elapsed = time.time() - round_start
         print(f"[{round_ts}] [Vong {round_no:02d}] 🚌 {len(round_bus_records)}/{len(v_ids)} xe buyt "
               f"({active_count} lan banh, {depot_count} do bai) | {round_elapsed:.1f}s", flush=True)
+
+        # Watchdog: Kiem tra ty le phan hoi xe buyt
+        total_vids = len(v_ids)
+        resp_rate = (len(round_bus_records) / total_vids) if total_vids > 0 else 0
+        if resp_rate < 0.60:
+            print(f"   ⚠️ [WATCHDOG] Canh bao: Ty le xe buyt phan hoi thap ({len(round_bus_records)}/{total_vids} = {resp_rate*100:.1f}%).", flush=True)
+
+        # Dynamic Congestion Trigger: Neu chua goi TomTom dau phien, danh gia un tac sau vong 1
+        if round_no == 1 and not tomtom_polled_in_session and TOMTOM_KEY and can_poll_tomtom:
+            congestion_eval = evaluate_hotspot_congestion(round_bus_records, HUST_BOTTLENECK_NODES)
+            if congestion_eval["is_congested"]:
+                if (step_9m % 2 == 0):
+                    print(f"[{round_ts}] 🚨 [DYN-CONGESTION] Phat hien un tac tai {len(congestion_eval['congested_nodes'])} nut: {congestion_eval['congested_nodes']}. Kich hoat TomTom dong!", flush=True)
+                    dyn_flow, dyn_inc = execute_tomtom_poll(cur_hn_time, TOMTOM_KEY)
+                    traffic_records.extend(dyn_flow)
+                    incident_records.extend(dyn_inc)
+                    tomtom_polled_in_session = True
+                    print(f"   🚦 Hoan tat quet dong: {len(dyn_flow)} flow segments, {len(dyn_inc)} incidents.", flush=True)
+
         round_no += 1
 
         if single_test or (SESSION_DURATION - (time.time() - session_start)) < 60:
