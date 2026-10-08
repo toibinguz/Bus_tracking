@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
+      contents: write
       actions: write
 
     steps:
@@ -34,6 +35,17 @@ jobs:
           TOMTOM_KEY: ${{ secrets.TOMTOM_KEY }}
         run: |
           python scripts/cloud_crawler_step.py
+
+      - name: Sync Updated Catalog to Git if Changed
+        if: always()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/metadata/
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(catalog): daily auto-refresh vehicle catalog [skip ci]"
+            git push origin main || echo "Git push skipped/failed gracefully"
+          fi
 
       - name: Self-Trigger Next Run (Continuous Relay)
         if: success()

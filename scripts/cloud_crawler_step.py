@@ -59,6 +59,21 @@ def main():
         return
 
     config = load_cluster_config(CONFIG_FILE)
+    single_test = "--test" in sys.argv
+    today_str = hn_time.strftime("%Y-%m-%d")
+    last_refresh = config.get("last_catalog_refresh", "")
+
+    # 🌅 Tự động làm mới danh bạ đầu ngày: Kích hoạt ở phiên đầu tiên trong ngày (05:00 AM+)
+    if is_operating_hours(hn_time) and not last_refresh.startswith(today_str) and not single_test:
+        print(f"[{ts_str}] 🌅 Phiên đầu ngày ({today_str}): Tự động rà soát & làm mới danh mục 220 xe buýt...", flush=True)
+        try:
+            from scripts.daily_catalog_refresh import run_daily_catalog_refresh
+            run_daily_catalog_refresh()
+            config = load_cluster_config(CONFIG_FILE)
+            print(f"[{ts_str}] ✅ Hoàn tất làm mới danh mục! Cập nhật: {len(config.get('vehicles', []))} xe.", flush=True)
+        except Exception as e:
+            print(f"[{ts_str}] ⚠️ Lỗi khi làm mới danh mục đầu ngày: {e}. Dùng cấu hình hiện có.", flush=True)
+
     v_ids = [v["id"] for v in config.get("vehicles", []) if "id" in v]
     target_route_ids = set(config.get("target_route_ids", []))
     tomtom_key = get_tomtom_api_key()
@@ -67,7 +82,6 @@ def main():
     print(f"[INFO] Khởi động phiên cào {len(v_ids)} xe buýt ({len(target_route_ids)} tuyến hành lang)...", flush=True)
 
     session_start = time.time()
-    single_test = "--test" in sys.argv
     no_tomtom = "--no-tomtom" in sys.argv
     round_no = 1
 
