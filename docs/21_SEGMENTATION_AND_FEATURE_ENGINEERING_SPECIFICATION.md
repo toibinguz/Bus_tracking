@@ -121,7 +121,7 @@ Vector Đầu Vào X_k (Đúng 20 Chiều Tinh Nhuệ)
 ### Nhóm 2: Động Học Xe & Quán Tính Chuyến Đi — 3 Chiều
 6. `v_current_momentum` (float): Vận tốc EMA hiện tại của xe (km/h). Đại diện cho động lượng và trớn chạy tức thời của xe tại thời điểm xét chặng.
 7. `cumulative_trip_delay_sec` (float): **Độ trễ lũy kế của toàn chuyến xe từ đầu bến đến hiện tại** (giây). Phản ánh tải lượng khách trên xe (xe đã gom đầy khách suốt nửa tuyến) và tâm lý tài xế (nếu trễ nặng $\implies$ tài xế có xu hướng ép ga bù giờ; nếu chạy sớm $\implies$ tài xế câu giờ).
-8. `upstream_delay_last_segment` (float): Độ trễ $\Delta T_{delay}$ của chính chiếc xe này ở chặng vừa chạy qua (giây). Nắm bắt quán tính trễ lây lan giữa 2 chặng liên tiếp.
+8. `route_progress_ratio` (float: 0.0 - 1.0): **Vị trí tương đối của trạm/chặng trên toàn tuyến** ($s / L_{tổng}$). Phân định rõ 3 giai đoạn sinh học của chuyến đi: Đầu bến ($0.0 - 0.2$: xe vắng, ít khách xuống), Giữa tuyến ($0.2 - 0.8$: lõi xuyên tâm, xe đầy tải, đông khách), Cuối bến ($0.8 - 1.0$: khách chỉ xuống, không lên mới, xe chuẩn bị về bến quay đầu). (Thay thế cho biến `upstream_delay_last_segment` bị trùng lặp).
 
 ### Nhóm 3: Tương Tác Đội Xe & Cảm Biến Probe Đa Tuyến — 4 Chiều
 9. `headway_ratio` (float): **Tỷ lệ giãn cách thực tế / Giãn cách biểu đồ** ($H_{actual} / H_{scheduled}$). Nhận diện dính chùm (Bus bunching $< 0.5$) hoặc xe bị bỏ xa khách dồn ứ trạm ($> 1.5$).
