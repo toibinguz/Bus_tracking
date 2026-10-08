@@ -293,7 +293,7 @@ def main():
             time.sleep(0.08)
 
     # 2. Vong lap cào GPS 220 xe buyt moi 60 giay voi Micro-batch Pacing
-    batch_size = 4
+    batch_size = 8
     micro_batches = [v_ids[i:i + batch_size] for i in range(0, len(v_ids), batch_size)]
     single_test = "--test" in sys.argv
 
@@ -323,9 +323,9 @@ def main():
                             elif clean_rec["quality_status"] == "IDLE_DEPOT":
                                 depot_count += 1
 
-            # Micro-pacing delay (~0.85s giua cac micro-batch de trai deu trong 48s)
+            # Micro-pacing delay (~0.35s giua cac micro-batch de hoan thanh trong ~25-28s)
             if not single_test:
-                time.sleep(0.85)
+                time.sleep(0.35)
 
         all_session_bus_records.extend(round_bus_records)
         round_elapsed = time.time() - round_start

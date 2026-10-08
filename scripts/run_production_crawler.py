@@ -374,12 +374,12 @@ def main():
             depot_count = 0
             stale_count = 0
 
-            # Chia 220 xe thành các micro-batch 4 xe
-            batch_size = 4
+            # Chia 220 xe thành các micro-batch 8 xe
+            batch_size = 8
             micro_batches = [v_ids[i:i + batch_size] for i in range(0, len(v_ids), batch_size)]
             
-            # Pacing delay giữa các micro-batch (55 batches x ~0.95s ≈ 52 giây)
-            micro_delay = 0.05 if single_test else 0.95
+            # Pacing delay giữa các micro-batch (28 batches x ~0.85s ≈ 24-28 giây)
+            micro_delay = 0.05 if single_test else 0.35
 
             for b_idx, batch in enumerate(micro_batches):
                 with ThreadPoolExecutor(max_workers=batch_size) as executor:
