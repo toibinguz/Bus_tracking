@@ -106,8 +106,8 @@ Mô hình dự đoán: $\mathbf{\hat{\Delta T}_{delay}(k)} = f(X_k)$.
 1. `segment_length_m` (float): Chiều dài tim đường thực tế của chặng (mét).
 2. `road_quality_index` (float: 0.0 - 1.0): **Chỉ số Chất lượng Mặt đường & Ma sát Hạ tầng** ($Q_{road} = v_{base} / v_{limit}$, phản ánh đường gồ ghề, nắp cống, gờ giảm tốc).
 3. `road_class` (int: 1, 2, 3): Phân loại cấp đường (1: Phố hẹp hỗn hợp; 2: Đại lộ dải phân cách; 3: Cầu vượt/Hầm chui).
-4. `has_bottleneck_node` (binary: 0 hoặc 1): Chặng có chứa nút giao đèn tín hiệu lớn/TomTom không.
-5. `num_stops_in_segment` (int: 0, 1, 2): Số lượng trạm dừng trong chặng.
+4. `tomtom_coverage_ratio` (float: 0.0 - 1.0): **Tỷ lệ bao phủ của nút TomTom trên chặng** ($L_{overlap\_m} / L_{segment\_m}$). Đo mức độ chặng bị chiếm bởi nút giao nghẽn (thay thế cờ nhị phân thô thiển).
+5. `target_stop_historical_dwell_sec` (float): **Thời gian dừng đón khách lịch sử tại trạm đích** $S_{i+1}$ (giây, tính từ trung vị thời gian dừng thực tế của trạm đó). Phân biệt rành mạch giữa trạm trung chuyển lớn (ĐH Bách Khoa: 45s) và trạm nhỏ ven đường (12s). (Thay thế biến vô nghĩa `num_stops_in_segment` vốn luôn bằng 1).
 
 ### Nhóm 2: Động Học Xe & Vị Trí Hành Trình (Kinematics & Route) — 4 Chiều
 6. `route_progress_ratio` (float: 0.0 - 1.0): Tiến độ hoàn thành trên toàn tuyến ($s / L_{tổng}$).
