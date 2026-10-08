@@ -17,6 +17,7 @@ import socket
 import ssl
 import base64
 import urllib.request
+import urllib.parse
 from datetime import datetime, time as dtime
 from concurrent.futures import ThreadPoolExecutor
 
@@ -36,7 +37,12 @@ TOMTOM_QUOTA_FILE = "data/metadata/tomtom_quota_tracker.json"
 
 BUS_POLL_INTERVAL = 60  # seconds (target cycle)
 HF_SYNC_INTERVAL = 600  # seconds (sync to Cloud every 10 mins)
-MAX_TOMTOM_DAILY = 2200
+
+# TomTom Freemium Limits chuan theo Dashboard (Thang: 20k Flow, 2.5k Incident):
+# Phan bo an toan theo ngay (30 ngay/thang):
+MAX_TOMTOM_FLOW_DAILY = 600       # 18,000/thang (du 2,000 calls du phong)
+MAX_TOMTOM_INCIDENT_DAILY = 75    # 2,250/thang (du 250 calls du phong)
+HUST_CORRIDOR_BBOX = "105.7500,20.9500,105.9000,21.0800"
 
 # Geographic bounding box for Hanoi Urban Core
 HANOI_BBOX = {
@@ -100,19 +106,24 @@ def load_tomtom_quota_state():
             with open(TOMTOM_QUOTA_FILE, "r", encoding="utf-8") as f:
                 state = json.load(f)
                 if state.get("date") == today_str:
-                    return state.get("used_today", 0)
+                    return state.get("flow_used_today", state.get("used_today", 0)), state.get("incident_used_today", 0)
         except Exception:
             pass
-    return 0
+    return 0, 0
 
-def save_tomtom_quota_state(used_today):
+def save_tomtom_quota_state(flow_used, incident_used):
     today_str = datetime.now().strftime("%Y-%m-%d")
     os.makedirs(os.path.dirname(TOMTOM_QUOTA_FILE), exist_ok=True)
     state = {
         "date": today_str,
-        "daily_limit": MAX_TOMTOM_DAILY,
-        "used_today": used_today,
-        "remaining_today": max(0, MAX_TOMTOM_DAILY - used_today),
+        "flow_daily_budget": MAX_TOMTOM_FLOW_DAILY,
+        "flow_monthly_limit": 20000,
+        "flow_used_today": flow_used,
+        "flow_remaining_today": max(0, MAX_TOMTOM_FLOW_DAILY - flow_used),
+        "incident_daily_budget": MAX_TOMTOM_INCIDENT_DAILY,
+        "incident_monthly_limit": 2500,
+        "incident_used_today": incident_used,
+        "incident_remaining_today": max(0, MAX_TOMTOM_INCIDENT_DAILY - incident_used),
         "last_updated": datetime.now().strftime("%H:%M:%S")
     }
     try:
@@ -121,18 +132,15 @@ def save_tomtom_quota_state(used_today):
     except Exception:
         pass
 
-def render_tomtom_cli_bar(used, limit, next_poll_seconds):
-    percent = min(1.0, used / float(limit))
-    bar_width = 16
-    filled = int(percent * bar_width)
-    empty = bar_width - filled
-    bar_str = "█" * filled + "░" * empty
-    remaining = max(0, limit - used)
-    pct_str = f"{percent * 100:.1f}%"
+def render_tomtom_cli_bar(flow_used, incident_used, next_poll_seconds):
+    f_pct = min(1.0, flow_used / float(MAX_TOMTOM_FLOW_DAILY))
+    bar_width = 10
+    filled = int(f_pct * bar_width)
+    bar_str = "█" * filled + "░" * (bar_width - filled)
     countdown_str = f"{int(next_poll_seconds // 60):02d}:{int(next_poll_seconds % 60):02d}s" if next_poll_seconds > 0 else "Sẵn sàng"
-    return f"🚦 TomTom: [{bar_str}] {used}/{limit} ({pct_str}) | Còn: {remaining:,} reqs | Đợt tới: {countdown_str}"
+    return f"🚦 TomTom: Flow [{bar_str}] {flow_used}/{MAX_TOMTOM_FLOW_DAILY} ({f_pct*100:.1f}%) | Incidents {incident_used}/{MAX_TOMTOM_INCIDENT_DAILY} | Đợt tới: {countdown_str}"
 
-def sync_to_hf(local_bus_file, local_traffic_file, date_str, token):
+def sync_to_hf(local_bus_file, local_traffic_file, local_incident_file, date_str, token):
     """
     Đồng bộ dữ liệu lên Hugging Face Dataset hoàn toàn bằng thư viện chuẩn (Standard Library).
     Không cần pip, không cần huggingface_hub, không cần Rust hay compilation!
@@ -172,6 +180,24 @@ def sync_to_hf(local_bus_file, local_traffic_file, date_str, token):
                     "key": "file",
                     "value": {
                         "path": repo_traffic_path,
+                        "encoding": "base64",
+                        "content": b64_content
+                    }
+                })
+        except Exception:
+            pass
+
+    if local_incident_file and os.path.exists(local_incident_file):
+        try:
+            with open(local_incident_file, "rb") as f:
+                content_bytes = f.read()
+            if content_bytes:
+                b64_content = base64.b64encode(content_bytes).decode("ascii")
+                repo_incident_path = f"raw_data/{date_str}/incidents/{os.path.basename(local_incident_file)}"
+                operations.append({
+                    "key": "file",
+                    "value": {
+                        "path": repo_incident_path,
                         "encoding": "base64",
                         "content": b64_content
                     }
@@ -307,6 +333,17 @@ def fetch_tomtom_flow(lat, lon, api_key):
     except Exception:
         return None
 
+def fetch_tomtom_incidents(api_key, bbox=HUST_CORRIDOR_BBOX):
+    raw_url = f"https://api.tomtom.com/traffic/services/5/incidentDetails?key={api_key}&bbox={bbox}&language=en-GB&fields={{incidents{{type,geometry{{type,coordinates}},properties{{id,iconCategory,magnitudeOfDelay,delay,length,events{{description}}}}}}}}"
+    url = urllib.parse.quote(raw_url, safe=':/?=&')
+    req = urllib.request.Request(url, headers={"User-Agent": "HUSTBusCrawler/2.0"})
+    try:
+        with urllib.request.urlopen(req, context=ssl_context, timeout=8) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("incidents", [])
+    except Exception:
+        return []
+
 def main():
     run_24x7 = "--24x7" in sys.argv or "--always" in sys.argv
     single_test = "--test" in sys.argv
@@ -328,7 +365,7 @@ def main():
     tomtom_key = get_tomtom_api_key()
     hf_token = get_hf_token()
 
-    daily_tomtom_count = load_tomtom_quota_state()
+    daily_flow_count, daily_incident_count = load_tomtom_quota_state()
     current_day = datetime.now().day
     last_tomtom_poll = 0
     last_hf_sync = time.time()
@@ -338,8 +375,9 @@ def main():
     print("=" * 75, flush=True)
     print("🚀 HỆ THỐNG CRAWLER 24/7 - MẠNG LƯỚI HÀNH LANG BÁCH KHOA (220 XE BUÝT)", flush=True)
     print(f"📍 Quy mô theo dõi: {len(target_route_ids)} tuyến hành lang ({len(v_ids)} xe buýt probe)", flush=True)
-    print(f"🌊 Cơ chế Pacing: Trải đều 55 micro-batches (~4 req/s liên tục, không dồn burst)", flush=True)
-    print(f"🚦 Điểm nghẽn TomTom: {len(HUST_BOTTLENECK_NODES)} nút giao trọng yếu", flush=True)
+    print(f"🌊 Cơ chế Pacing: Trải đều micro-batches (~4 req/s liên tục, không dồn burst)", flush=True)
+    print(f"🚦 Điểm nghẽn TomTom: {len(HUST_BOTTLENECK_NODES)} nút giao + 1 Incident BBox hành lang", flush=True)
+    print(f"📊 Hạn mức TomTom: Flow {MAX_TOMTOM_FLOW_DAILY}/ngày (tháng 20k) | Incident {MAX_TOMTOM_INCIDENT_DAILY}/ngày (tháng 2.5k)", flush=True)
     print(f"⏰ Khung giờ hoạt động: {'24/7 (Bắt buộc)' if run_24x7 else '05:00 - 22:00 (Tự động ngủ ban đêm)'}", flush=True)
     print(f"🔑 TomTom API Key: {'Đã nạp' if tomtom_key else 'Thiếu key'}", flush=True)
     print(f"☁️ Cloud Sync (Hugging Face): {'Đã kích hoạt (Mỗi 10 phút)' if hf_token else 'Tắt (Lưu 100% trong máy)'}", flush=True)
@@ -350,8 +388,9 @@ def main():
             now = datetime.now()
             # Reset counter on new day
             if now.day != current_day:
-                daily_tomtom_count = 0
-                save_tomtom_quota_state(daily_tomtom_count)
+                daily_flow_count = 0
+                daily_incident_count = 0
+                save_tomtom_quota_state(daily_flow_count, daily_incident_count)
                 current_day = now.day
 
             # Check operating hours
@@ -365,6 +404,7 @@ def main():
             hour_str = now.strftime("%H")
             bus_out_file = os.path.join(BUS_OUTPUT_DIR, f"bus_telemetry_{date_str}_{hour_str}.jsonl")
             traffic_out_file = os.path.join(TOMTOM_OUTPUT_DIR, f"tomtom_flow_{date_str}.jsonl")
+            incident_out_file = os.path.join(TOMTOM_OUTPUT_DIR, f"tomtom_incidents_{date_str}.jsonl")
 
             # -------------------------------------------------------------
             # 1. CRAWL 220 BUSES VỚI CƠ CHẾ PACING TRẢI ĐỀU (MICRO-BATCHING)
@@ -411,22 +451,28 @@ def main():
                         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
             # -------------------------------------------------------------
-            # 2. CRAWL TOMTOM BOTTLENECKS (Theo lịch biểu đỉnh / ngoài đỉnh)
+            # 2. CRAWL TOMTOM (Theo ngân sách tháng: 18p cao điểm, 54p thấp điểm)
             # -------------------------------------------------------------
             hour_val = now.hour + now.minute / 60.0
             is_peak = (6.5 <= hour_val <= 9.0) or (16.5 <= hour_val <= 19.5)
-            tomtom_interval = 360 if is_peak else 720  # 6 phút hoặc 12 phút
+            tomtom_interval = 1080 if is_peak else 3240  # 18 phút hoặc 54 phút
             next_tomtom_in = max(0, tomtom_interval - (time.time() - last_tomtom_poll))
 
-            tomtom_sampled = 0
             if tomtom_key and (time.time() - last_tomtom_poll >= tomtom_interval or (single_test and round_no == 1)):
-                if daily_tomtom_count + len(HUST_BOTTLENECK_NODES) <= MAX_TOMTOM_DAILY:
-                    traffic_records = []
+                can_flow = (daily_flow_count + len(HUST_BOTTLENECK_NODES) <= MAX_TOMTOM_FLOW_DAILY)
+                can_incident = (daily_incident_count + 1 <= MAX_TOMTOM_INCIDENT_DAILY)
+
+                traffic_records = []
+                incident_records = []
+
+                # A. 19 Flow Segments (có coordinates polyline)
+                if can_flow:
                     for node in HUST_BOTTLENECK_NODES:
                         flow_res = fetch_tomtom_flow(node["lat"], node["lon"], tomtom_key)
-                        daily_tomtom_count += 1
-                        tomtom_sampled += 1
+                        daily_flow_count += 1
                         if flow_res:
+                            raw_coords = flow_res.get("coordinates", {}).get("coordinate", [])
+                            seg_coords = [[round(c["longitude"], 6), round(c["latitude"], 6)] for c in raw_coords if "longitude" in c and "latitude" in c]
                             traffic_records.append({
                                 "timestamp": now.isoformat(),
                                 "node_name": node["name"],
@@ -435,7 +481,9 @@ def main():
                                 "current_speed": flow_res.get("currentSpeed"),
                                 "free_flow_speed": flow_res.get("freeFlowSpeed"),
                                 "travel_time": flow_res.get("currentTravelTime"),
-                                "confidence": flow_res.get("confidence")
+                                "confidence": flow_res.get("confidence"),
+                                "road_closure": flow_res.get("roadClosure", False),
+                                "coordinates": seg_coords
                             })
                         time.sleep(0.08)  # 80ms throttle
 
@@ -444,15 +492,40 @@ def main():
                             for tr in traffic_records:
                                 f.write(json.dumps(tr, ensure_ascii=False) + "\n")
 
-                    last_tomtom_poll = time.time()
-                    save_tomtom_quota_state(daily_tomtom_count)
-                    next_tomtom_in = tomtom_interval
+                # B. 1 Incident BBox Request
+                if can_incident:
+                    raw_incidents = fetch_tomtom_incidents(tomtom_key)
+                    daily_incident_count += 1
+                    for inc in raw_incidents:
+                        props = inc.get("properties", {})
+                        geom = inc.get("geometry", {})
+                        events = props.get("events", [])
+                        desc = events[0].get("description", "") if events else ""
+                        incident_records.append({
+                            "timestamp": now.isoformat(),
+                            "incident_id": props.get("id", ""),
+                            "icon_category": props.get("iconCategory", 0),
+                            "magnitude_of_delay": props.get("magnitudeOfDelay", 0),
+                            "delay_seconds": props.get("delay", 0),
+                            "length_meters": round(props.get("length", 0), 2),
+                            "description": desc,
+                            "geometry_type": geom.get("type", "LineString"),
+                            "coordinates": geom.get("coordinates", [])
+                        })
+                    if incident_records:
+                        with open(incident_out_file, "a", encoding="utf-8") as f:
+                            for ir in incident_records:
+                                f.write(json.dumps(ir, ensure_ascii=False) + "\n")
+
+                last_tomtom_poll = time.time()
+                save_tomtom_quota_state(daily_flow_count, daily_incident_count)
+                next_tomtom_in = tomtom_interval
 
             # -------------------------------------------------------------
             # 3. TRÌNH DIỄN DASHBOARD CLI TRỰC QUAN
             # -------------------------------------------------------------
             elapsed = time.time() - round_start
-            tt_dashboard = render_tomtom_cli_bar(daily_tomtom_count, MAX_TOMTOM_DAILY, next_tomtom_in)
+            tt_dashboard = render_tomtom_cli_bar(daily_flow_count, daily_incident_count, next_tomtom_in)
             
             print(f"[{now.strftime('%H:%M:%S')}] [Vòng {round_no:03d}] "
                   f"🚌 Xe buýt: {len(bus_records)}/{len(v_ids)} phản hồi "
@@ -465,7 +538,7 @@ def main():
             # 4. ĐỒNG BỘ ĐỊNH KỲ LÊN HUGGING FACE DATASET
             # -------------------------------------------------------------
             if hf_token and (time.time() - last_hf_sync >= HF_SYNC_INTERVAL or single_test):
-                sync_to_hf(bus_out_file, traffic_out_file, date_str, hf_token)
+                sync_to_hf(bus_out_file, traffic_out_file, incident_out_file, date_str, hf_token)
                 last_hf_sync = time.time()
 
             if single_test:
@@ -477,7 +550,7 @@ def main():
 
         except KeyboardInterrupt:
             print("\n[INFO] Người dùng bấm Ctrl+C. Đang dừng Crawler an toàn...", flush=True)
-            save_tomtom_quota_state(daily_tomtom_count)
+            save_tomtom_quota_state(daily_flow_count, daily_incident_count)
             break
         except Exception as err:
             print(f"⚠️ [CẢNH BÁO] Có lỗi tạm thời trong vòng lặp ({err}). Tự động tiếp tục sau 5s...", flush=True)

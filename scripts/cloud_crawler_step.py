@@ -16,6 +16,7 @@ import socket
 import ssl
 import base64
 import urllib.request
+import urllib.parse
 from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
@@ -159,6 +160,8 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, last_updates_cac
         "quality_status": quality_status
     }
 
+HUST_CORRIDOR_BBOX = "105.7500,20.9500,105.9000,21.0800"
+
 def fetch_tomtom_flow(lat, lon, api_key):
     url = f"https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/10/json?key={api_key}&point={lat},{lon}&unit=KMPH"
     req = urllib.request.Request(url, headers={"User-Agent": "GitHubActionsBusCrawler/2.0"})
@@ -169,7 +172,18 @@ def fetch_tomtom_flow(lat, lon, api_key):
     except Exception:
         return None
 
-def upload_batches_to_hf_native(bus_chunk, traffic_chunk, date_tag, time_tag, token):
+def fetch_tomtom_incidents(api_key, bbox=HUST_CORRIDOR_BBOX):
+    raw_url = f"https://api.tomtom.com/traffic/services/5/incidentDetails?key={api_key}&bbox={bbox}&language=en-GB&fields={{incidents{{type,geometry{{type,coordinates}},properties{{id,iconCategory,magnitudeOfDelay,delay,length,events{{description}}}}}}}}"
+    url = urllib.parse.quote(raw_url, safe=':/?=&')
+    req = urllib.request.Request(url, headers={"User-Agent": "GitHubActionsBusCrawler/2.0"})
+    try:
+        with urllib.request.urlopen(req, context=ssl_context, timeout=8) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("incidents", [])
+    except Exception:
+        return []
+
+def upload_batches_to_hf_native(bus_chunk, traffic_chunk, incident_chunk, date_tag, time_tag, token):
     if not token or not HF_DATASET_ID:
         print("[INFO] Khong co HF_TOKEN hoac HF_DATASET_ID. Chi ghi file cuc bo.", flush=True)
         return
@@ -199,6 +213,19 @@ def upload_batches_to_hf_native(bus_chunk, traffic_chunk, date_tag, time_tag, to
                     "path": f"raw_data/{date_tag}/traffic/batch_{time_tag}.jsonl",
                     "encoding": "base64",
                     "content": base64.b64encode(t_bytes).decode("ascii")
+                }
+            })
+
+    if incident_chunk and os.path.exists(incident_chunk):
+        with open(incident_chunk, "rb") as f:
+            i_bytes = f.read()
+        if i_bytes:
+            operations.append({
+                "key": "file",
+                "value": {
+                    "path": f"raw_data/{date_tag}/incidents/batch_{time_tag}.jsonl",
+                    "encoding": "base64",
+                    "content": base64.b64encode(i_bytes).decode("ascii")
                 }
             })
 
@@ -261,25 +288,32 @@ def main():
 
     SESSION_DURATION = 540  # 9 phut
     session_start = time.time()
+    single_test = "--test" in sys.argv
     round_no = 1
     
     all_session_bus_records = []
     traffic_records = []
+    incident_records = []
     last_updates_cache = {}
 
-    # Chinh sach TomTom:
-    # Gio cao diem (06:30-09:00, 16:30-19:30): Moi phien 9 phut goi 1 lan
-    # Gio thap diem: Chi goi o phien chan de gioi han ~1,380 calls/ngay (< 2,200 quota)
+    # Chinh sach TomTom chuan han muc thang (Monthly Freemium: 20k Flow, 2.5k Incident):
+    # Cao diem (06:30-09:00, 16:30-19:30): Moi 18 phut (moi 2 phien 9m) goi 1 lan
+    # Thap diem: Moi 54 phut (moi 6 phien 9m) goi 1 lan
+    # -> Tong cong ~31 lan/ngay * 19 flow = 589 flow/ngay (< 600 budget/ngay)
     hour_val = hn_time.hour + hn_time.minute / 60.0
     is_peak = (6.5 <= hour_val <= 9.0) or (16.5 <= hour_val <= 19.5)
-    should_query_tomtom = is_peak or ((hn_time.minute // 9) % 2 == 0)
+    session_idx = hn_time.minute // 9
+    should_query_tomtom = single_test or (is_peak and session_idx % 2 == 0) or (not is_peak and session_idx % 6 == 0)
 
     # 1. Thu thap TomTom o dau phien neu du dieu kien
     if TOMTOM_KEY and should_query_tomtom:
-        print(f"[{hn_time.strftime('%H:%M:%S')}] 🚦 Thu thap 19 nut giao TomTom ({'Cao diem' if is_peak else 'Thuong'})...", flush=True)
+        print(f"[{hn_time.strftime('%H:%M:%S')}] 🚦 Thu thap TomTom (19 Flow Segments + 1 Incident BBox, {'Cao diem' if is_peak else 'Thuong'})...", flush=True)
+        # A. Flow Segments
         for node in HUST_BOTTLENECK_NODES:
             res = fetch_tomtom_flow(node["lat"], node["lon"], TOMTOM_KEY)
             if res:
+                raw_coords = res.get("coordinates", {}).get("coordinate", [])
+                seg_coords = [[round(c["longitude"], 6), round(c["latitude"], 6)] for c in raw_coords if "longitude" in c and "latitude" in c]
                 traffic_records.append({
                     "timestamp": hn_time.isoformat(),
                     "node_name": node["name"],
@@ -288,9 +322,31 @@ def main():
                     "current_speed": res.get("currentSpeed"),
                     "free_flow_speed": res.get("freeFlowSpeed"),
                     "travel_time": res.get("currentTravelTime"),
-                    "confidence": res.get("confidence")
+                    "confidence": res.get("confidence"),
+                    "road_closure": res.get("roadClosure", False),
+                    "coordinates": seg_coords
                 })
             time.sleep(0.08)
+
+        # B. Incident Details (1 request cho ca BBox hanh lang Bach Khoa)
+        raw_incidents = fetch_tomtom_incidents(TOMTOM_KEY)
+        for inc in raw_incidents:
+            props = inc.get("properties", {})
+            geom = inc.get("geometry", {})
+            events = props.get("events", [])
+            desc = events[0].get("description", "") if events else ""
+            incident_records.append({
+                "timestamp": hn_time.isoformat(),
+                "incident_id": props.get("id", ""),
+                "icon_category": props.get("iconCategory", 0),
+                "magnitude_of_delay": props.get("magnitudeOfDelay", 0),
+                "delay_seconds": props.get("delay", 0),
+                "length_meters": round(props.get("length", 0), 2),
+                "description": desc,
+                "geometry_type": geom.get("type", "LineString"),
+                "coordinates": geom.get("coordinates", [])
+            })
+        print(f"   🚦 Hoan tat: {len(traffic_records)} flow segments (kem seg_line), {len(incident_records)} incidents.", flush=True)
 
     # 2. Vong lap cào GPS 220 xe buyt moi 60 giay voi Micro-batch Pacing
     batch_size = 8
@@ -339,7 +395,7 @@ def main():
         sleep_wait = max(3, 60 - round_elapsed)
         time.sleep(sleep_wait)
 
-    print(f"\n[SUMMARY] Ket thuc phien: Thu duoc {len(all_session_bus_records)} pings ({round_no-1} vong) va {len(traffic_records)} ban ghi TomTom.", flush=True)
+    print(f"\n[SUMMARY] Ket thuc phien: Thu duoc {len(all_session_bus_records)} pings ({round_no-1} vong), {len(traffic_records)} TomTom flow va {len(incident_records)} TomTom incidents.", flush=True)
 
     # 3. Ghi file batch va day len Hugging Face Dataset qua Native Commit API
     tmp_dir = "temp_cloud_output"
@@ -358,7 +414,13 @@ def main():
             for r in traffic_records:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    upload_batches_to_hf_native(bus_chunk, traffic_chunk, date_tag, time_tag, HF_TOKEN)
+    incident_chunk = os.path.join(tmp_dir, f"incident_batch_{time_tag}.jsonl")
+    if incident_records:
+        with open(incident_chunk, "w", encoding="utf-8") as f:
+            for r in incident_records:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+    upload_batches_to_hf_native(bus_chunk, traffic_chunk, incident_chunk, date_tag, time_tag, HF_TOKEN)
 
 if __name__ == "__main__":
     main()
