@@ -135,7 +135,14 @@ def sync_to_hf(local_bus_file, local_traffic_file, date_str, token):
     if not token:
         return
     try:
-        from huggingface_hub import HfApi
+        try:
+            from huggingface_hub import HfApi
+        except ImportError:
+            print("   📦 [HF-Sync] Đang tự động cài thư viện huggingface_hub trong nền...", flush=True)
+            import subprocess
+            subprocess.run([sys.executable, "-m", "pip", "install", "huggingface_hub", "-q"], check=True)
+            from huggingface_hub import HfApi
+
         api = HfApi(token=token)
         
         if local_bus_file and os.path.exists(local_bus_file):
