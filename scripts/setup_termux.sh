@@ -11,7 +11,7 @@ echo "=========================================================="
 # 1. Kiem tra va cai dat goi he thong
 echo "[1/4] Kiem tra cac goi he thong (python, git, openssh)..."
 pkg update -y
-pkg install -y python git openssh termux-api
+pkg install -y python git openssh
 
 # 2. Cai dat thu vien phu tro cho Python
 echo "[2/4] Cai dat thu vien Python huggingface_hub (neu chua co)..."
@@ -58,3 +58,4 @@ if [ "$CHOICE" == "2" ]; then
 else
     python scripts/run_production_crawler.py
 fi
+

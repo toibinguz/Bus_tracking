@@ -49,10 +49,10 @@ Mở ứng dụng Termux trên điện thoại, copy và chạy lần lượt c�
 
 ### 3.1. Cài đặt môi trường cơ bản (Chỉ làm lần đầu)
 ```bash
-# Cập nhật kho gói và cài Python, Git, WakeLock
-pkg update -y && pkg install -y python git openssh termux-api
+# Cập nhật kho gói và cài Python, Git
+pkg update -y && pkg install -y python git openssh
 
-# Cài thư viện hỗ trợ đẩy dữ liệu lên Hugging Face Cloud
+# Cài thư viện hỗ trợ đẩy dữ liệu lên Hugging Face Cloud (tùy chọn)
 pip install huggingface_hub
 ```
 
@@ -136,3 +136,4 @@ Nếu bạn không muốn đẩy dữ liệu lên Internet:
 3. Mở trình duyệt trên máy tính cùng mạng Wi-Fi và truy cập:
    `http://192.168.1.X:8080`
    Bạn sẽ thấy danh sách toàn bộ các file `.jsonl` để tải trực tiếp về laptop trong tích tắc.
+
