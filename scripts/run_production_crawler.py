@@ -18,6 +18,7 @@ import ssl
 import base64
 import urllib.request
 import urllib.parse
+import math
 from datetime import datetime, time as dtime
 from concurrent.futures import ThreadPoolExecutor
 
@@ -263,10 +264,20 @@ def fetch_single_bus_raw(vehicle_id):
         return None
     return None
 
-def sanitize_and_validate_telemetry(raw, vid, target_route_ids, last_updates_cache, crawl_time_iso):
+def haversine_distance(lat1, lon1, lat2, lon2):
+    R = 6371000.0  # meters
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = math.sin(delta_phi / 2.0)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0)**2
+    c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+    return R * c
+
+def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache, crawl_time_iso):
     """
     Chuẩn hóa dữ liệu thực tế và gắn cờ kiểm soát chất lượng (Quality Status)
-    Xử lý: Đảo trục tọa độ BusMap, xe đỗ bãi, trôi GPS, xe đổi tuyến, ping đông cứng
+    Nội suy vận tốc thực tế v_calc và làm mịn EMA, tránh phụ thuộc vào speed rác của API.
     """
     if not raw:
         return None
@@ -278,33 +289,78 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, last_updates_cac
     except (ValueError, TypeError):
         return None
 
-    speed = float(raw.get("Speed", 0.0))
+    raw_speed = float(raw.get("Speed", 0.0))
     direction = int(raw.get("direction", 0))
     route_id = int(raw.get("RouteId", 0))
     last_update = raw.get("lastUpdateTime", "")
     station_id = raw.get("currentStationId", 0)
 
-    # 2. Đánh giá chất lượng thực tế
+    # 2. Parse device timestamp de noi suy van toc dong hoc
+    curr_epoch = time.time()
+    if last_update:
+        try:
+            curr_epoch = datetime.fromisoformat(last_update).timestamp()
+        except Exception:
+            pass
+
+    # 3. Noi suy van toc (Kinematic Velocity) & Lam min EMA
+    calc_speed = raw_speed
+    smoothed_speed = raw_speed
+    is_drift_jump = False
+    is_stale = False
+
+    if vid in kinematic_cache:
+        prev = kinematic_cache[vid]
+        prev_lat = prev["lat"]
+        prev_lon = prev["lon"]
+        prev_epoch = prev["epoch"]
+        prev_smoothed = prev["smoothed_speed"]
+        prev_update = prev.get("last_update", "")
+
+        delta_t = curr_epoch - prev_epoch
+        if prev_update and prev_update == last_update:
+            is_stale = True
+
+        if 3.0 <= delta_t <= 300.0:
+            dist = haversine_distance(prev_lat, prev_lon, std_lat, std_lon)
+            if dist < 5.0:
+                calc_speed = 0.0
+                smoothed_speed = 0.0
+            else:
+                v_derived = (dist / delta_t) * 3.6
+                if v_derived > 80.0:  # Xe buyt noi do Ha Noi khong the chay >80 km/h
+                    is_drift_jump = True
+                    calc_speed = prev_smoothed
+                    smoothed_speed = prev_smoothed
+                else:
+                    calc_speed = round(v_derived, 1)
+                    smoothed_speed = round(0.65 * calc_speed + 0.35 * prev_smoothed, 1)
+        elif delta_t > 300.0:
+            calc_speed = raw_speed
+            smoothed_speed = raw_speed
+
+    kinematic_cache[vid] = {
+        "lat": std_lat,
+        "lon": std_lon,
+        "epoch": curr_epoch,
+        "smoothed_speed": smoothed_speed,
+        "last_update": last_update
+    }
+
+    # 4. Danh gia chat luong du lieu
     quality_status = "ACTIVE_VALID"
 
-    # Edge Case A: Xe nằm bãi / Đỗ nghỉ đầu bến
-    if direction == -1 and speed == 0 and station_id == 0:
+    if direction == -1 and raw_speed == 0 and station_id == 0:
         quality_status = "IDLE_DEPOT"
-    # Edge Case B: Tọa độ nằm ngoài phạm vi đô thị Hà Nội (Geofence)
     elif not (HANOI_BBOX["min_lat"] <= std_lat <= HANOI_BBOX["max_lat"] and
               HANOI_BBOX["min_lon"] <= std_lon <= HANOI_BBOX["max_lon"]):
         quality_status = "OUT_OF_BOUNDS"
-    # Edge Case C: Xe bị điều động luân chuyển sang tuyến ngoài hành lang
     elif route_id not in target_route_ids:
         quality_status = "REASSIGNED_ROUTE"
-    # Edge Case D: Vận tốc dị thường (trôi GPS hầm chui / cầu vượt)
-    elif speed > 90.0:
-        quality_status = "SPEED_ANOMALY"
-    # Edge Case E: Ping đông cứng (mất sóng trên xe, server trả tọa độ cũ)
-    elif vid in last_updates_cache and last_updates_cache[vid] == last_update:
+    elif is_drift_jump:
+        quality_status = "GPS_DRIFT_JUMP"
+    elif is_stale:
         quality_status = "STALE_PING"
-
-    last_updates_cache[vid] = last_update
 
     clean_record = {
         "vehicle_id": vid,
@@ -312,7 +368,9 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, last_updates_cac
         "route_id": route_id,
         "lat": round(std_lat, 6),
         "lon": round(std_lon, 6),
-        "speed": speed,
+        "speed": smoothed_speed,
+        "raw_speed": raw_speed,
+        "calculated_speed": calc_speed,
         "direction": direction,
         "heading_deg": raw.get("Deg", 0),
         "current_station_id": station_id,
@@ -369,7 +427,7 @@ def main():
     current_day = datetime.now().day
     last_tomtom_poll = 0
     last_hf_sync = time.time()
-    last_updates_cache = {}  # {vid: lastUpdateTime}
+    kinematic_cache = {}  # {vid: {"lat": ..., "lon": ..., "epoch": ..., "smoothed_speed": ...}}
     round_no = 1
 
     print("=" * 75, flush=True)
@@ -429,7 +487,7 @@ def main():
                         raw_res = fut.result()
                         if raw_res:
                             clean_rec = sanitize_and_validate_telemetry(
-                                raw_res, vid, target_route_ids, last_updates_cache, now.isoformat()
+                                raw_res, vid, target_route_ids, kinematic_cache, now.isoformat()
                             )
                             if clean_rec:
                                 bus_records.append(clean_rec)
@@ -537,7 +595,7 @@ def main():
             # -------------------------------------------------------------
             # 4. ĐỒNG BỘ ĐỊNH KỲ LÊN HUGGING FACE DATASET
             # -------------------------------------------------------------
-            if hf_token and (time.time() - last_hf_sync >= HF_SYNC_INTERVAL or single_test):
+            if hf_token and not single_test and (time.time() - last_hf_sync >= HF_SYNC_INTERVAL):
                 sync_to_hf(bus_out_file, traffic_out_file, incident_out_file, date_str, hf_token)
                 last_hf_sync = time.time()
 

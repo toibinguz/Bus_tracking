@@ -105,3 +105,4 @@ $$\text{ETA}(v, S_k, t_{now}) = \Delta t_{current\_seg} + \sum_{m = i+1}^{k-1} \
    - Huấn luyện LightGBM Regressor dự đoán sai số thời gian chạy ($\Delta t$).
    - Đánh giá chỉ số MAE, RMSE so với thực nghiệm (kỳ vọng MAE $\le 1.5 - 2.0$ phút).
 4. **Tuần Trực Quan Hóa**: Đóng gói FastAPI + bản đồ Leaflet theo dõi thời gian thực.
+

@@ -17,6 +17,7 @@ import ssl
 import base64
 import urllib.request
 import urllib.parse
+import math
 from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
@@ -112,7 +113,17 @@ def fetch_single_bus_raw(v_id):
         return None
     return None
 
-def sanitize_and_validate_telemetry(raw, vid, target_route_ids, last_updates_cache, crawl_time_iso):
+def haversine_distance(lat1, lon1, lat2, lon2):
+    R = 6371000.0  # meters
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = math.sin(delta_phi / 2.0)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0)**2
+    c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+    return R * c
+
+def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache, crawl_time_iso):
     if not raw:
         return None
 
@@ -122,27 +133,77 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, last_updates_cac
     except (ValueError, TypeError):
         return None
 
-    speed = float(raw.get("Speed", 0.0))
+    raw_speed = float(raw.get("Speed", 0.0))
     direction = int(raw.get("direction", 0))
     route_id = int(raw.get("RouteId", 0))
     last_update = raw.get("lastUpdateTime", "")
     station_id = raw.get("currentStationId", 0)
 
+    # 1. Parse device timestamp for kinematic velocity
+    curr_epoch = time.time()
+    if last_update:
+        try:
+            curr_epoch = datetime.fromisoformat(last_update).timestamp()
+        except Exception:
+            pass
+
+    # 2. Kinematic Velocity & EMA Smoothing
+    calc_speed = raw_speed
+    smoothed_speed = raw_speed
+    is_drift_jump = False
+    is_stale = False
+
+    if vid in kinematic_cache:
+        prev = kinematic_cache[vid]
+        prev_lat = prev["lat"]
+        prev_lon = prev["lon"]
+        prev_epoch = prev["epoch"]
+        prev_smoothed = prev["smoothed_speed"]
+        prev_update = prev.get("last_update", "")
+
+        delta_t = curr_epoch - prev_epoch
+        if prev_update and prev_update == last_update:
+            is_stale = True
+
+        if 3.0 <= delta_t <= 300.0:
+            dist = haversine_distance(prev_lat, prev_lon, std_lat, std_lon)
+            if dist < 5.0:
+                calc_speed = 0.0
+                smoothed_speed = 0.0
+            else:
+                v_derived = (dist / delta_t) * 3.6
+                if v_derived > 80.0:  # City bus cannot exceed 80 km/h in Hanoi
+                    is_drift_jump = True
+                    calc_speed = prev_smoothed
+                    smoothed_speed = prev_smoothed
+                else:
+                    calc_speed = round(v_derived, 1)
+                    smoothed_speed = round(0.65 * calc_speed + 0.35 * prev_smoothed, 1)
+        elif delta_t > 300.0:
+            calc_speed = raw_speed
+            smoothed_speed = raw_speed
+
+    kinematic_cache[vid] = {
+        "lat": std_lat,
+        "lon": std_lon,
+        "epoch": curr_epoch,
+        "smoothed_speed": smoothed_speed,
+        "last_update": last_update
+    }
+
     quality_status = "ACTIVE_VALID"
 
-    if direction == -1 and speed == 0 and station_id == 0:
+    if direction == -1 and raw_speed == 0 and station_id == 0:
         quality_status = "IDLE_DEPOT"
     elif not (HANOI_BBOX["min_lat"] <= std_lat <= HANOI_BBOX["max_lat"] and
               HANOI_BBOX["min_lon"] <= std_lon <= HANOI_BBOX["max_lon"]):
         quality_status = "OUT_OF_BOUNDS"
     elif route_id not in target_route_ids:
         quality_status = "REASSIGNED_ROUTE"
-    elif speed > 90.0:
-        quality_status = "SPEED_ANOMALY"
-    elif vid in last_updates_cache and last_updates_cache[vid] == last_update:
+    elif is_drift_jump:
+        quality_status = "GPS_DRIFT_JUMP"
+    elif is_stale:
         quality_status = "STALE_PING"
-
-    last_updates_cache[vid] = last_update
 
     return {
         "vehicle_id": vid,
@@ -150,7 +211,9 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, last_updates_cac
         "route_id": route_id,
         "lat": round(std_lat, 6),
         "lon": round(std_lon, 6),
-        "speed": speed,
+        "speed": smoothed_speed,
+        "raw_speed": raw_speed,
+        "calculated_speed": calc_speed,
         "direction": direction,
         "heading_deg": raw.get("Deg", 0),
         "current_station_id": station_id,
@@ -294,7 +357,7 @@ def main():
     all_session_bus_records = []
     traffic_records = []
     incident_records = []
-    last_updates_cache = {}
+    kinematic_cache = {}
 
     # Chinh sach TomTom chuan han muc thang (Monthly Freemium: 20k Flow, 2.5k Incident):
     # Cao diem (06:30-09:00, 16:30-19:30): Moi 18 phut (moi 2 phien 9m) goi 1 lan
@@ -370,7 +433,7 @@ def main():
                     raw_res = fut.result()
                     if raw_res:
                         clean_rec = sanitize_and_validate_telemetry(
-                            raw_res, vid, target_route_ids, last_updates_cache, cur_hn_time.isoformat()
+                            raw_res, vid, target_route_ids, kinematic_cache, cur_hn_time.isoformat()
                         )
                         if clean_rec:
                             round_bus_records.append(clean_rec)
@@ -420,7 +483,10 @@ def main():
             for r in incident_records:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    upload_batches_to_hf_native(bus_chunk, traffic_chunk, incident_chunk, date_tag, time_tag, HF_TOKEN)
+    if single_test:
+        print("\n[INFO] Che do --test: Da ghi file batch cuc bo, KHONG day len Hugging Face de bao toan dataset.", flush=True)
+    else:
+        upload_batches_to_hf_native(bus_chunk, traffic_chunk, incident_chunk, date_tag, time_tag, HF_TOKEN)
 
 if __name__ == "__main__":
     main()
