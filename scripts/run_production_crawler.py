@@ -15,6 +15,7 @@ import json
 import time
 import socket
 import ssl
+import base64
 import urllib.request
 from datetime import datetime, time as dtime
 from concurrent.futures import ThreadPoolExecutor
@@ -132,39 +133,77 @@ def render_tomtom_cli_bar(used, limit, next_poll_seconds):
     return f"🚦 TomTom: [{bar_str}] {used}/{limit} ({pct_str}) | Còn: {remaining:,} reqs | Đợt tới: {countdown_str}"
 
 def sync_to_hf(local_bus_file, local_traffic_file, date_str, token):
+    """
+    Đồng bộ dữ liệu lên Hugging Face Dataset hoàn toàn bằng thư viện chuẩn (Standard Library).
+    Không cần pip, không cần huggingface_hub, không cần Rust hay compilation!
+    Chạy mượt mà 100% trên Termux Android và mọi môi trường Python.
+    """
     if not token:
         return
-    try:
+
+    operations = []
+
+    if local_bus_file and os.path.exists(local_bus_file):
         try:
-            from huggingface_hub import HfApi
-        except ImportError:
-            print("   📦 [HF-Sync] Đang tự động cài thư viện huggingface_hub trong nền...", flush=True)
-            import subprocess
-            subprocess.run([sys.executable, "-m", "pip", "install", "huggingface_hub", "-q"], check=True)
-            from huggingface_hub import HfApi
+            with open(local_bus_file, "rb") as f:
+                content_bytes = f.read()
+            if content_bytes:
+                b64_content = base64.b64encode(content_bytes).decode("ascii")
+                repo_bus_path = f"raw_data/{date_str}/bus/{os.path.basename(local_bus_file)}"
+                operations.append({
+                    "key": "file",
+                    "value": {
+                        "path": repo_bus_path,
+                        "encoding": "base64",
+                        "content": b64_content
+                    }
+                })
+        except Exception:
+            pass
 
-        api = HfApi(token=token)
-        
-        if local_bus_file and os.path.exists(local_bus_file):
-            repo_bus_path = f"raw_data/{date_str}/bus/{os.path.basename(local_bus_file)}"
-            api.upload_file(
-                path_or_fileobj=local_bus_file,
-                path_in_repo=repo_bus_path,
-                repo_id=HF_DATASET_ID,
-                repo_type="dataset",
-                commit_message=f"Sync {os.path.basename(local_bus_file)}"
-            )
+    if local_traffic_file and os.path.exists(local_traffic_file):
+        try:
+            with open(local_traffic_file, "rb") as f:
+                content_bytes = f.read()
+            if content_bytes:
+                b64_content = base64.b64encode(content_bytes).decode("ascii")
+                repo_traffic_path = f"raw_data/{date_str}/traffic/{os.path.basename(local_traffic_file)}"
+                operations.append({
+                    "key": "file",
+                    "value": {
+                        "path": repo_traffic_path,
+                        "encoding": "base64",
+                        "content": b64_content
+                    }
+                })
+        except Exception:
+            pass
 
-        if local_traffic_file and os.path.exists(local_traffic_file):
-            repo_traffic_path = f"raw_data/{date_str}/traffic/{os.path.basename(local_traffic_file)}"
-            api.upload_file(
-                path_or_fileobj=local_traffic_file,
-                path_in_repo=repo_traffic_path,
-                repo_id=HF_DATASET_ID,
-                repo_type="dataset",
-                commit_message=f"Sync {os.path.basename(local_traffic_file)}"
-            )
-        print(f"   ☁️ [HF-Sync] Đồng bộ thành công lên Dataset {HF_DATASET_ID}", flush=True)
+    if not operations:
+        return
+
+    commit_url = f"https://huggingface.co/api/datasets/{HF_DATASET_ID}/commit/main"
+    payload = {
+        "operations": operations,
+        "summary": f"Native Auto-sync {len(operations)} files ({date_str})"
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        commit_url,
+        data=data,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req, context=ssl_context, timeout=30) as resp:
+            if resp.getcode() == 200:
+                print(f"   ☁️ [HF-Sync] Đồng bộ thành công {len(operations)} files lên Dataset {HF_DATASET_ID}", flush=True)
+            else:
+                print(f"   ⚠️ [HF-Sync] Server trả về mã HTTP {resp.getcode()}. Dữ liệu đã lưu an toàn tại máy.", flush=True)
     except Exception as e:
         print(f"   ⚠️ [HF-Sync] Tạm thời chưa đẩy được lên Cloud ({e}). Dữ liệu đã lưu an toàn tại máy.", flush=True)
 

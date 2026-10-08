@@ -49,11 +49,8 @@ Mở ứng dụng Termux trên điện thoại, copy và chạy lần lượt c�
 
 ### 3.1. Cài đặt môi trường cơ bản (Chỉ làm lần đầu)
 ```bash
-# Cập nhật kho gói và cài Python, Git
+# Cập nhật kho gói và cài Python, Git (Zero-dependency, không cần pip hay Rust)
 pkg update -y && pkg install -y python git openssh
-
-# Cài thư viện hỗ trợ đẩy dữ liệu lên Hugging Face Cloud (tùy chọn)
-pip install huggingface_hub
 ```
 
 ### 3.2. Tải mã nguồn dự án

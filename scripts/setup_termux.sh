@@ -13,9 +13,8 @@ echo "[1/4] Kiem tra cac goi he thong (python, git, openssh)..."
 pkg update -y
 pkg install -y python git openssh
 
-# 2. Cai dat thu vien phu tro cho Python
-echo "[2/4] Cai dat thu vien Python huggingface_hub (neu chua co)..."
-pip install huggingface_hub --quiet 2>/dev/null || echo "   (Luu y: pip huggingface_hub bo qua neu co loi, se luu cuc bo)"
+# 2. He thong su dung 100% Native Standard Library (Khong can pip hay Rust)
+echo "[2/4] Kiem tra moi truong Python (Thiet ke Zero-dependency, khong can pip)..."
 
 # 3. Kiem tra WakeLock de khong bi Android tat ngam
 echo "[3/4] Yeu cau WakeLock de giu tien trinh chay ngam khi tat man hinh..."
