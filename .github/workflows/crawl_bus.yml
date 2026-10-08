@@ -2,11 +2,14 @@ name: HUST Bus Cluster 24x7 Cloud Crawler
 
 on:
   schedule:
-    # 22:00 UTC = 05:00 sáng Hà Nội (Kích hoạt phiên đầu tiên mỗi sáng)
+    # 22:00 UTC = 05:00 sáng Hà Nội (Đánh thức phiên tiếp sức đầu tiên mỗi sáng)
     - cron: '0 22 * * *'
-    # Lịch dự phòng mỗi 30 phút phòng khi chuỗi bị ngắt quãng
-    - cron: '*/30 * * * *'
-  workflow_dispatch: # Cho phép bấm nút 'Run workflow' thủ công bất cứ lúc nào
+  workflow_dispatch: # Cho phép kích hoạt thủ công khi cần
+
+# 🔒 KHÓA ĐƠN TIẾN TRÌNH: Chỉ cho phép tối đa 1 runner chạy tại một thời điểm
+concurrency:
+  group: hust-bus-crawler-relay
+  cancel-in-progress: false
 
 jobs:
   crawl_and_sync:
