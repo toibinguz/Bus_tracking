@@ -1,0 +1,282 @@
+GET /v2/route/public/timeline/list?regionCode=hn&routeId=3&time=1791384468952 HTTP/1.1
+language: vi
+client-version: android|20600
+device-id: 7ab54c3ba04cceac
+package-name: com.t7.busmaphn
+Host: api.busmap.city
+Connection: Keep-Alive
+Accept-Encoding: gzip
+User-Agent: okhttp/4.12.0
+
+HTTP/1.1 200 OK
+Server: nginx/1.30.2
+Date: Wed, 07 Oct 2026 14:47:49 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+Content-Encoding: gzip
+
+{
+  "forWardStationList": [
+    {
+      "stationId": 1673,
+      "stationOrder": 0,
+      "stationName": "(A) BX Giáp Bát",
+      "timeTableOut": "18180,18900,19680,20460,21240,22020,22800,23580,24360,25200,25980,26820,27600,28440,29220,30060,30840,31680,32520,33300,34140,34920,35760,36540,37380,38160,39000,39840,40620,41460,42240,43080,43860,44700,45480,46320,47160,47940,48780,49560,50400,51180,52020,52800,53640,54480,55260,56100,56880,57720,58500,59340,60120,60900,61680,62460,63240,64020,64800,65580,66360,67140,67920,68760,69600,70500,71400,72300,73200,74100,75000,75900"
+    },
+    {
+      "stationId": 166,
+      "stationOrder": 1,
+      "stationName": "Toyota Giải Phóng",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 167,
+      "stationOrder": 2,
+      "stationName": "649 Giải Phóng",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 168,
+      "stationOrder": 3,
+      "stationName": "487 Giải Phóng",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 169,
+      "stationOrder": 4,
+      "stationName": "ĐD Bệnh viện Bạch Mai",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 171,
+      "stationOrder": 5,
+      "stationName": "Đại học Bách Khoa Hà Nội",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 323,
+      "stationOrder": 6,
+      "stationName": "Đối diện 394 Lê Duẩn",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 324,
+      "stationOrder": 7,
+      "stationName": "Công viên Thống Nhất",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 730,
+      "stationOrder": 8,
+      "stationName": "Đối diện 28 Trần Bình Trọng",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 750,
+      "stationOrder": 9,
+      "stationName": "67 Trần Hưng Đạo",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 752,
+      "stationOrder": 10,
+      "stationName": "13A Trần Hưng Đạo",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 753,
+      "stationOrder": 11,
+      "stationName": "Cổng bệnh viện Quân y 108 - Đối diện 2E Trần Hưng Đạo",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 764,
+      "stationOrder": 12,
+      "stationName": "Đối diện khu tập thể 15C Trần Khánh Dư",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 777,
+      "stationOrder": 13,
+      "stationName": "Trước phố Chương Dương Độ",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 778,
+      "stationOrder": 14,
+      "stationName": "Cạnh phố Hàm Tử Quan",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 770,
+      "stationOrder": 15,
+      "stationName": "Đối diện Ô Quan Chưởng",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 555,
+      "stationOrder": 16,
+      "stationName": "Tổng cục Hải Quan",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 556,
+      "stationOrder": 17,
+      "stationName": "358 Nguyễn Văn Cừ",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 455,
+      "stationOrder": 18,
+      "stationName": "Đối diện 447 Ngọc Lâm",
+      "timeTableOut": ""
+    },
+    {
+      "stationId": 1740,
+      "stationOrder": 19,
+      "stationName": "(B) BX Gia Lâm",
+      "timeTableOut": ""
+    }
+  ],
+  "backWardStationList": [
+    {
+      "stationId": 1740,
+      "stationOrder": 0,
+      "stationName": "(B) BX Gia Lâm",
+      "timeTableIn": "18180,19020,19800,20640,21480,22260,23100,23880,24720,25500,26340,27120,27960,28800,29580,30420,31200,32040,32820,33660,34440,35280,36120,36900,37740,38520,39360,40140,40980,41760,42600,43440,44220,45060,45840,46680,47460,48300,49080,49920,50760,51540,52380,53160,54000,54780,55620,56400,57240,58080,58860,59640,60420,61200,61980,62760,63540,64320,65100,65880,66660,67440,68220,69000,69840,70680,71520,72300,73200,74100,75000,75900"
+    },
+    {
+      "stationId": 551,
+      "stationOrder": 1,
+      "stationName": "549 Nguyễn Văn Cừ (cột trước)",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 552,
+      "stationOrder": 2,
+      "stationName": "Trường THPT Nguyễn Gia Thiều",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 553,
+      "stationOrder": 3,
+      "stationName": "Trường tiểu học Ái Mộ - 135B Nguyễn Văn Cừ",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 769,
+      "stationOrder": 4,
+      "stationName": "Ô Quan Chưởng",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 779,
+      "stationOrder": 5,
+      "stationName": "162 Trần Quang Khải",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 780,
+      "stationOrder": 6,
+      "stationName": "Vườn hoa Trần Quang Khải",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 759,
+      "stationOrder": 7,
+      "stationName": "Trạm trung chuyển Trần Khánh Dư (Đảo đón khách)",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 754,
+      "stationOrder": 8,
+      "stationName": "Đối diện Bệnh Viện Trung ương Quân đội 108 - Trần Hưng Đạo",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 755,
+      "stationOrder": 9,
+      "stationName": "16 Trần Hưng Đạo",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 756,
+      "stationOrder": 10,
+      "stationName": "32 Trần Hưng Đạo",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 757,
+      "stationOrder": 11,
+      "stationName": "Thư viện Hà Nội",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 398,
+      "stationOrder": 12,
+      "stationName": "KS Melia",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 395,
+      "stationOrder": 13,
+      "stationName": "54 Lý Thường Kiệt",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 326,
+      "stationOrder": 14,
+      "stationName": "Ga Hà Nội",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 327,
+      "stationOrder": 15,
+      "stationName": "254-256 Lê Duẩn",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 328,
+      "stationOrder": 16,
+      "stationName": "358-360 Lê Duẩn",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 157,
+      "stationOrder": 17,
+      "stationName": "ĐD Đại học Bách Khoa HN - Giải phóng",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 158,
+      "stationOrder": 18,
+      "stationName": "Bệnh viện Bạch Mai - Giải Phóng",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 159,
+      "stationOrder": 19,
+      "stationName": "196 Giải Phóng",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 160,
+      "stationOrder": 20,
+      "stationName": "352 Giải Phóng",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 161,
+      "stationOrder": 21,
+      "stationName": "Đối diện 807 Giải Phóng",
+      "timeTableIn": ""
+    },
+    {
+      "stationId": 1673,
+      "stationOrder": 22,
+      "stationName": "(A) BX Giáp Bát",
+      "timeTableIn": ""
+    }
+  ]
+}

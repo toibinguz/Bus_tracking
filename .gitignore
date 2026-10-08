@@ -1,0 +1,11 @@
+# Secrets (Use GitHub Secrets instead)
+Test_tomtom/TOMTOM_API_KEY.txt
+access_token_hf.txt
+
+# Temp & Cache
+__pycache__/
+*.py[cod]
+.vscode/
+data/temp_hf_sync/
+temp_cloud_output/
+

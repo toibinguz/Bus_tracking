@@ -1,0 +1,161 @@
+GET /v2/public/busmap/search_vehicle_v2?regionCode=hn&limit=20&vehicleId=29&page=0 HTTP/1.1
+language: vi
+client-version: android|20600
+device-id: 7ab54c3ba04cceac
+package-name: com.t7.busmaphn
+Host: api.busmap.city
+Connection: Keep-Alive
+Accept-Encoding: gzip
+User-Agent: okhttp/4.12.0
+If-Modified-Since: Wed, 07 Oct 2026 14:45:05 GMT
+
+HTTP/1.1 200 OK
+Server: nginx/1.30.2
+Date: Wed, 07 Oct 2026 14:45:40 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+Content-Encoding: gzip
+
+[
+  {
+    "id": 8788668,
+    "busId": "29B00210",
+    "routeId": 47,
+    "title": "29B-002.10",
+    "description": "Tuyến 47A: Long Biên - Bát Tràng"
+  },
+  {
+    "id": 8788669,
+    "busId": "29B00212",
+    "routeId": 47,
+    "title": "29B-002.12",
+    "description": "Tuyến 47A: Long Biên - Bát Tràng"
+  },
+  {
+    "id": 8823750,
+    "busId": "29B02735",
+    "routeId": 34,
+    "title": "29B-027.35",
+    "description": "Tuyến 34: Bến xe Mỹ Đình - Bến xe Gia Lâm"
+  },
+  {
+    "id": 8823202,
+    "busId": "29B02737",
+    "routeId": 13000,
+    "title": "29B-027.37",
+    "description": "Tuyến 55: TTTM Aeon Mall Long Biên - Cầu Giấy"
+  },
+  {
+    "id": 8823752,
+    "busId": "29B02739",
+    "routeId": 34,
+    "title": "29B-027.39",
+    "description": "Tuyến 34: Bến xe Mỹ Đình - Bến xe Gia Lâm"
+  },
+  {
+    "id": 8823753,
+    "busId": "29B02740",
+    "routeId": 34,
+    "title": "29B-027.40",
+    "description": "Tuyến 34: Bến xe Mỹ Đình - Bến xe Gia Lâm"
+  },
+  {
+    "id": 8823755,
+    "busId": "29B02745",
+    "routeId": 34,
+    "title": "29B-027.45",
+    "description": "Tuyến 34: Bến xe Mỹ Đình - Bến xe Gia Lâm"
+  },
+  {
+    "id": 8830954,
+    "busId": "29B02746",
+    "routeId": 41,
+    "title": "29B-027.46",
+    "description": "Tuyến 41: Nam Thăng Long - Bến xe Giáp Bát"
+  },
+  {
+    "id": 8823756,
+    "busId": "29B02747",
+    "routeId": 34,
+    "title": "29B-027.47",
+    "description": "Tuyến 34: Bến xe Mỹ Đình - Bến xe Gia Lâm"
+  },
+  {
+    "id": 8830946,
+    "busId": "29B05821",
+    "routeId": 41,
+    "title": "29B-058.21",
+    "description": "Tuyến 41: Nam Thăng Long - Bến xe Giáp Bát"
+  },
+  {
+    "id": 8830694,
+    "busId": "29B05852",
+    "routeId": 4816,
+    "title": "29B-058.52",
+    "description": "Tuyến 16: Bến xe Mỹ Đình - Bến xe Nước Ngầm"
+  },
+  {
+    "id": 8788677,
+    "busId": "29B05869",
+    "routeId": 439,
+    "title": "29B-058.69",
+    "description": "Tuyến 39: Công viên Nghĩa Đô - Mai Động"
+  },
+  {
+    "id": 8788673,
+    "busId": "29B05871",
+    "routeId": 439,
+    "title": "29B-058.71",
+    "description": "Tuyến 39: Công viên Nghĩa Đô - Mai Động"
+  },
+  {
+    "id": 8830693,
+    "busId": "29B05883",
+    "routeId": 4816,
+    "title": "29B-058.83",
+    "description": "Tuyến 16: Bến xe Mỹ Đình - Bến xe Nước Ngầm"
+  },
+  {
+    "id": 8830949,
+    "busId": "29B05917",
+    "routeId": 41,
+    "title": "29B-059.17",
+    "description": "Tuyến 41: Nam Thăng Long - Bến xe Giáp Bát"
+  },
+  {
+    "id": 8788689,
+    "busId": "29B07174",
+    "routeId": 847,
+    "title": "29B-071.74",
+    "description": "Tuyến 47B: Đại học Kinh tế Quốc dân - Kiêu Kỵ (Gia Lâm)"
+  },
+  {
+    "id": 8788690,
+    "busId": "29B07194",
+    "routeId": 847,
+    "title": "29B-071.94",
+    "description": "Tuyến 47B: Đại học Kinh tế Quốc dân - Kiêu Kỵ (Gia Lâm)"
+  },
+  {
+    "id": 8788664,
+    "busId": "29B07235",
+    "routeId": 47,
+    "title": "29B-072.35",
+    "description": "Tuyến 47A: Long Biên - Bát Tràng"
+  },
+  {
+    "id": 8788695,
+    "busId": "29B07527",
+    "routeId": 847,
+    "title": "29B-075.27",
+    "description": "Tuyến 47B: Đại học Kinh tế Quốc dân - Kiêu Kỵ (Gia Lâm)"
+  },
+  {
+    "id": 8831705,
+    "busId": "29B08099",
+    "routeId": 123,
+    "title": "29B-080.99",
+    "description": "Tuyến 123: Bến xe Yên Nghĩa - Dân Hòa"
+  }
+]

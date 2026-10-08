@@ -1,0 +1,339 @@
+{
+  "cluster_name": "HUST_Core_Cluster",
+  "description": "Cum 5 tuyen xe buyt huyet mach Dai hoc Bach Khoa Ha Noi",
+  "routes": [
+    {
+      "route_no": "32",
+      "route_id": 32,
+      "name": "BX Giáp Bát - Nhổn",
+      "vehicles_count": 13
+    },
+    {
+      "route_no": "31",
+      "route_id": 31,
+      "name": "Bách Khoa - Chèm (ĐH Mỏ)",
+      "vehicles_count": 5
+    },
+    {
+      "route_no": "08A",
+      "route_id": 8,
+      "name": "Long Biên - Đông Mỹ",
+      "vehicles_count": 11
+    },
+    {
+      "route_no": "26",
+      "route_id": 426,
+      "name": "Mai Động - SVĐ Quốc Gia",
+      "vehicles_count": 12
+    },
+    {
+      "route_no": "21A",
+      "route_id": 21,
+      "name": "BX Giáp Bát - BX Yên Nghĩa",
+      "vehicles_count": 11
+    }
+  ],
+  "target_route_ids": [
+    32,
+    31,
+    8,
+    426,
+    21
+  ],
+  "total_vehicles": 52,
+  "vehicles": [
+    {
+      "id": 8828797,
+      "title": "29E-559.74",
+      "routeId": 8
+    },
+    {
+      "id": 8828793,
+      "title": "29E-559.01",
+      "routeId": 8
+    },
+    {
+      "id": 8828791,
+      "title": "29E-559.48",
+      "routeId": 8
+    },
+    {
+      "id": 8828789,
+      "title": "29E-288.22",
+      "routeId": 8
+    },
+    {
+      "id": 8828800,
+      "title": "29E-559.07",
+      "routeId": 8
+    },
+    {
+      "id": 8831360,
+      "title": "29E-559.78",
+      "routeId": 8
+    },
+    {
+      "id": 8828799,
+      "title": "29E-559.73",
+      "routeId": 8
+    },
+    {
+      "id": 8828798,
+      "title": "29E-559.10",
+      "routeId": 8
+    },
+    {
+      "id": 8828788,
+      "title": "29E-559.17",
+      "routeId": 8
+    },
+    {
+      "id": 8828792,
+      "title": "29E-559.02",
+      "routeId": 8
+    },
+    {
+      "id": 8828796,
+      "title": "29E-559.32",
+      "routeId": 8
+    },
+    {
+      "id": 8828837,
+      "title": "29E-559.82",
+      "routeId": 21
+    },
+    {
+      "id": 8828831,
+      "title": "29E-559.40",
+      "routeId": 21
+    },
+    {
+      "id": 8828827,
+      "title": "29E-559.27",
+      "routeId": 21
+    },
+    {
+      "id": 8828839,
+      "title": "29E-559.91",
+      "routeId": 21
+    },
+    {
+      "id": 8828840,
+      "title": "29E-559.67",
+      "routeId": 21
+    },
+    {
+      "id": 8828829,
+      "title": "29E-559.20",
+      "routeId": 21
+    },
+    {
+      "id": 8828834,
+      "title": "29E-559.05",
+      "routeId": 21
+    },
+    {
+      "id": 8828832,
+      "title": "29E-559.52",
+      "routeId": 21
+    },
+    {
+      "id": 8828836,
+      "title": "29E-559.41",
+      "routeId": 21
+    },
+    {
+      "id": 8828830,
+      "title": "29E-559.61",
+      "routeId": 21
+    },
+    {
+      "id": 8829612,
+      "title": "29E-559.90",
+      "routeId": 21
+    },
+    {
+      "id": 8831601,
+      "title": "29B-199.20",
+      "routeId": 31
+    },
+    {
+      "id": 8831400,
+      "title": "29B-198.71",
+      "routeId": 31
+    },
+    {
+      "id": 8831395,
+      "title": "29B-200.68",
+      "routeId": 31
+    },
+    {
+      "id": 232555,
+      "title": "29B-189.43",
+      "routeId": 31
+    },
+    {
+      "id": 232558,
+      "title": "29B-189.83",
+      "routeId": 31
+    },
+    {
+      "id": 1408506,
+      "title": "29F-051.82",
+      "routeId": 32
+    },
+    {
+      "id": 1408525,
+      "title": "29F-052.00",
+      "routeId": 32
+    },
+    {
+      "id": 1408523,
+      "title": "29F-051.17",
+      "routeId": 32
+    },
+    {
+      "id": 1408528,
+      "title": "29F-052.23",
+      "routeId": 32
+    },
+    {
+      "id": 1408517,
+      "title": "29F-051.67",
+      "routeId": 32
+    },
+    {
+      "id": 1408521,
+      "title": "29F-052.81",
+      "routeId": 32
+    },
+    {
+      "id": 1408524,
+      "title": "29F-051.06",
+      "routeId": 32
+    },
+    {
+      "id": 1408526,
+      "title": "29F-052.08",
+      "routeId": 32
+    },
+    {
+      "id": 1408527,
+      "title": "29F-051.98",
+      "routeId": 32
+    },
+    {
+      "id": 1408507,
+      "title": "29F-051.37",
+      "routeId": 32
+    },
+    {
+      "id": 1408522,
+      "title": "29F-051.92",
+      "routeId": 32
+    },
+    {
+      "id": 1408529,
+      "title": "29F-052.72",
+      "routeId": 32
+    },
+    {
+      "id": 1408509,
+      "title": "29F-051.83",
+      "routeId": 32
+    },
+    {
+      "id": 8830850,
+      "busId": "29E69011",
+      "routeId": 426,
+      "title": "29E-690.11",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830837,
+      "busId": "29E69019",
+      "routeId": 426,
+      "title": "29E-690.19",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830832,
+      "busId": "29E60343",
+      "routeId": 426,
+      "title": "29E-603.43",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830843,
+      "busId": "29E69003",
+      "routeId": 426,
+      "title": "29E-690.03",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830836,
+      "busId": "29E69008",
+      "routeId": 426,
+      "title": "29E-690.08",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830844,
+      "busId": "29E69023",
+      "routeId": 426,
+      "title": "29E-690.23",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830848,
+      "busId": "29E69044",
+      "routeId": 426,
+      "title": "29E-690.44",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830847,
+      "busId": "29E69046",
+      "routeId": 426,
+      "title": "29E-690.46",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830835,
+      "busId": "29E69049",
+      "routeId": 426,
+      "title": "29E-690.49",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830841,
+      "busId": "29E69065",
+      "routeId": 426,
+      "title": "29E-690.65",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830840,
+      "busId": "29E69074",
+      "routeId": 426,
+      "title": "29E-690.74",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8830839,
+      "busId": "29E69085",
+      "routeId": 426,
+      "title": "29E-690.85",
+      "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    }
+  ],
+  "operating_hours": {
+    "start": "05:00",
+    "end": "22:00"
+  },
+  "crawler_intervals": {
+    "bus_telemetry_seconds": 60,
+    "tomtom_peak_seconds": 360,
+    "tomtom_offpeak_seconds": 720
+  }
+}

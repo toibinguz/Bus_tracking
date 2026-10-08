@@ -1,0 +1,149 @@
+GET /v2/route/public/region/get?regionCode=hn_official&busDataDate=1762992000432 HTTP/1.1
+language: vi
+client-version: android|20600
+device-id: 7ab54c3ba04cceac
+package-name: com.t7.busmaphn
+Host: api.busmap.city
+Connection: Keep-Alive
+Accept-Encoding: gzip
+User-Agent: okhttp/4.12.0
+
+HTTP/1.1 200 OK
+Server: nginx/1.30.2
+Date: Wed, 07 Oct 2026 14:52:08 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+Content-Encoding: gzip
+
+{
+  "id": 20,
+  "code": "hn_official",
+  "title": "TP Hà Nội (Official)",
+  "title_en": "Ha Noi City",
+  "region": "105.703949,20.933177,106.011921,21.252462",
+  "centralPoint": "105.8523542,21.0287974",
+  "prefix": "hn_",
+  "api_geoApi_search": "https://api.busmap.vn/v2/geoApi/hn/search",
+  "api_geoApi_routePedestrian": "https://api.busmap.vn/v2/geoApi/routePedestrian",
+  "api_wtimes": "",
+  "api_goto": "SHOW_VEHICLE_LIST",
+  "api_goto2": "https://api.busmap.city/v2/public/busmap/estimate_bus_to_station",
+  "api_goto_multi": "https://api.busmap.city/v2/public/busmap/estimate_bus_to_station_multi",
+  "api_vehicle": "https://api.busmap.city/v2/public/busmap/vehicle_hn",
+  "api_routes": "https://files.busmap.vn/hn.routes.xyz",
+  "api_routeinfo": "https://files.busmap.vn/hn.routeinfo.xyz",
+  "api_route_timeline": "https://api.busmap.city/v2/route/public/timeline",
+  "api_stations": "https://files.busmap.vn/hn.stations.xyz",
+  "api_edges": "",
+  "api_ad_stores": "",
+  "booking_feature": true,
+  "url_tile_server": "https://bmap-tiles-a.golabs.vn/data/vietnam.json?lang=vi",
+  "payment_feature": false,
+  "multipass_feature": false,
+  "combo_ticket_feature": false,
+  "monthly_ticket_feature": false,
+  "vb_monthly_ticket_feature": false,
+  "route_insight": true,
+  "route_bus_gps": true,
+  "search_vehicle_feature": true,
+  "image_url": "https://storage.busmap.vn/busmap/system/banner/2025/05/06/BackgroundHN_1746503282096.png",
+  "eb_region_id": null,
+  "region_type": 4,
+  "action_payload": "",
+  "action_label": "",
+  "action_message": "",
+  "action_label_en": "",
+  "action_message_en": "",
+  "hide_logo": false,
+  "email": "Trungtamquanlydieuhanh@hanoi.gov.vn",
+  "phone": "19006836",
+  "url_fanpage": "https://www.facebook.com/people/Thông-tin-vận-tải-hành-khách-công-cộng-Hà-Nội/100057472718601/",
+  "logo": "",
+  "domain_btrack": null,
+  "enable": true,
+  "test": false,
+  "newBusData": true,
+  "menuCategories": [
+    {
+      "id": 0,
+      "title": "default",
+      "code": "default",
+      "items": [
+        {
+          "id": 11,
+          "title": "Tra cứu",
+          "description": null,
+          "label": null,
+          "logo": "https://storage.busmap.vn/busmap/system/logo/2024/07/29/tracuu_hn_1722238452200.png",
+          "order": 1,
+          "code": "LOOKUP",
+          "menu_category_id": null,
+          "payload": null
+        },
+        {
+          "id": 12,
+          "title": "Tìm đường",
+          "description": null,
+          "label": null,
+          "logo": "https://storage.busmap.vn/busmap/system/logo/2024/07/29/timduong_hn_1722238460739.png",
+          "order": 2,
+          "code": "NAVIGATION",
+          "menu_category_id": null,
+          "payload": null
+        },
+        {
+          "id": 13,
+          "title": "Trạm xung quanh",
+          "description": null,
+          "label": null,
+          "logo": "https://storage.busmap.vn/busmap/system/logo/2024/07/29/tramxungquanh_hn_1722238484445.png",
+          "order": 3,
+          "code": "STATION",
+          "menu_category_id": null,
+          "payload": null
+        },
+        {
+          "id": 14,
+          "title": "Góp ý",
+          "description": null,
+          "label": null,
+          "logo": "https://storage.busmap.vn/busmap/system/logo/2024/07/29/Frame%20427320626%403x_1722238506468.png",
+          "order": 4,
+          "code": "FEEDBACK",
+          "menu_category_id": null,
+          "payload": null
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "title": "Gomo",
+      "code": "Gomo01",
+      "order": null,
+      "items": []
+    }
+  ],
+  "avg_speeds": [
+    {
+      "route_type": 1,
+      "avg_speed": 21
+    },
+    {
+      "route_type": 2,
+      "avg_speed": 50
+    },
+    {
+      "route_type": 3,
+      "avg_speed": 45
+    },
+    {
+      "route_type": 4,
+      "avg_speed": 35
+    },
+    {
+      "route_type": 101,
+      "avg_speed": 17
+    }
+  ]
+}

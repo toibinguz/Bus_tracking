@@ -1,0 +1,565 @@
+
+    Routing API – car, truck & container + toll cost | VIETMAP
+        :root{--md-text-font:"Nunito Sans";--md-code-font:"JetBrains Mono"}
+    __md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(eJSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}
+function __md_analytics(){function n(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],n("js",new Date),n("config","G-JYJYMDRF7E"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&n("event","search",{search_term:this.value})}),document$.subscribe(function(){var a=document.forms.feedback;if(void 0!==a)for(var e of a.querySelectorAll("[type=submit]"))e.addEventListener("click",function(e){e.preventDefault();var t=document.location.pathname,e=this.getAttribute("data-md-value");n("event","feedback",{page:t,data:e}),a.firstElementChild.disabled=!0;e=a.querySelector(".md-feedback__note [data-md-value='"+e+"']");e&&(e.hidden=!1)}),a.hidden=!1}),location$.subscribe(function(e){n("config","G-JYJYMDRF7E",{page_path:e.pathname})})});var e=document.createElement("script");e.async=!0,e.src="https://www.googletagmanager.com/gtag/js?id=G-JYJYMDRF7E",document.getElementById("__analytics").insertAdjacentElement("afterEnd",e)}
+    "undefined"!=typeof __md_analytics&&__md_analytics()
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://maps.vietmap.vn/docs/"
+      },{
+        "@type": "ListItem",
+        "position": 2,
+        "name": "MAPS API",
+        "item": "https://maps.vietmap.vn/docs/map-api/overview/"
+      },{
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Route \u0026 Logistics",
+        "item": "https://maps.vietmap.vn/docs/map-api/route-version/route-v4/"
+      },{
+        "@type": "ListItem",
+        "position": 4,
+        "name": "Route API Group",
+        "item": "https://maps.vietmap.vn/docs/map-api/route-version/route-v4/"
+      },{
+        "@type": "ListItem",
+        "position": 5,
+        "name": "Route v4",
+        "item": "https://maps.vietmap.vn/docs/map-api/route-version/route-v4/"
+      }
+    ]
+  }
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Route v4",
+    "description": "Turn-by-turn directions across Vietnam for car, motorcycle, truck and container, honouring weight limits, with total toll cost per station.",
+    "url": "https://maps.vietmap.vn/docs/map-api/route-version/route-v4/",
+    "inLanguage": "en",
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "VIETMAP Maps API Documentation",
+      "url": "https://maps.vietmap.vn/docs/"
+    },
+    "author": { "@type": "Organization", "name": "VIETMAP" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "VIETMAP",
+      "url": "https://maps.vietmap.vn",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://maps.vietmap.vn/docs/assets/logo_dark.png"
+      }
+    },
+    "image": "https://maps.vietmap.vn/docs/assets/banner.png"
+  }
+          Skip to content
+            MAPS API DOCS
+              Route v4
+      var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}
+      VI
+            Initializing search
+  MAPS API
+  SDK WEB GL
+  SDK MOBILE
+    MAPS API DOCS
+    MAPS API
+            MAPS API
+    Overview
+    VietNam Address Migration
+    Register & Manage API Key
+            Register & Manage API Key
+    Register & Manage API Key
+    Search & Geocode API
+            Search & Geocode API
+    Merged Search & Geocode API - v4
+    Deprecated Search API - v3
+    Route & Logistics
+            Route & Logistics
+    Route API Group
+            Route API Group
+    Route v4
+    Route v4
+      Table of contents
+      Playground
+      URL
+      Method
+      Parameters
+      Example
+      Response description
+      Instruction Object Model
+      Annotation Object Model
+      Toll Object Model
+      Status Code Values
+    Map Matching
+    Deprecated Route v3
+    Deprecated Route Tolls
+    Deprecated Route v1.1
+    Logistics API Group
+    Display a Map
+            Display a Map
+    TileMap
+    Leaflet Integration
+    Traffic Layer
+    Static Map API
+    Branch Locator & Management
+    Boundaries API Group
+            Boundaries API Group
+    Isochrone
+    Geofencing
+    SDK WEB GL
+    SDK MOBILE
+      Table of contents
+      Playground
+      URL
+      Method
+      Parameters
+      Example
+      Response description
+      Instruction Object Model
+      Annotation Object Model
+      Toll Object Model
+      Status Code Values
+Route&para;
+Route v4 returns the best road route between two or more points for car, motorcycle, truck or container (honouring weight limits). The response includes distance, travel time, encoded geometry and turn-by-turn instructions; add annotations=toll to get the toll stations on the route and the total toll_cost for the requested vehicle.
+Playground&para;
+Try it in the Playground
+Call Route v4 with real data, no code required: Open Playground · or explore it on the Live Map
+AI Agent Integration  NEW
+Download the optimized doc for AI agent integration: Routing Agent Doc
+Or try it in Postman.
+URL&para;
+https://maps.vietmap.vn/api/route/v4?apikey={your-apikey}&amp;point={point}&amp;point={point}&amp;points_encoded={points_encoded}&amp;vehicle={vehicle}&amp;annotations={annotations}
+Method&para;
+GET
+Parameters&para;
+ | 
+ | Parameter
+ | Type
+ | Required
+ | Default
+ | Description
+ | apikey
+ | string
+ | yes
+ | none
+ | API key provided by VIETMAP for your account. Register here
+ | point
+ | array string
+ | yes
+ | none
+ | The points for which the route should be calculated. Format: [latitude,longitude]. Specify at least an origin and a destination. Via points are possible. The maximum number depends on your plan. Example query: &amp;point=lat,lng
+ | points_encoded
+ | boolean
+ | no
+ | true
+ | Allows changing the encoding of location data in the response. The default is polyline encoding, which is compact but requires special client code to unpack. Set this parameter to false to switch the encoding to simple coordinate pairs like [lon,lat]. See the description of the response format for more information.  We suggest this query should receive true value to decrease the size of the response JSON.
+ | vehicle
+ | string
+ | no
+ | car
+ | Enum: car, motorcycle, truck, container. Routing profile — determines speed and which roads are allowed.
+ | optimize
+ | string
+ | no
+ | false
+ | Not yet supported — the server ignores this parameter. Planned: true to reorder via points for the shortest total route (TSP).
+ | avoid
+ | string
+ | no
+ | null
+ | Road types to avoid. Allowed values: ferry. Example: avoid=ferry
+ | capacity
+ | integer
+ | conditional
+ | null
+ | Required when vehicle=truck. Gross vehicle weight in kilograms.
+ | time
+ | string
+ | no
+ | 2025-08-01T12:01:00Z
+ | Departure time in ISO-8601 (UTC). Defaults to now. Example: time=2025-08-01T12:01:00Z
+ | alternative
+ | boolean
+ | no
+ | false
+ | Set true to also return alternative routes in paths. Example: alternative=true
+ | heading
+ | number
+ | no
+ | null
+ | Current heading of the vehicle in degrees, 0–360, 0 = north. Used to pick the correct departure direction. Example: heading=45
+ | annotations
+ | string
+ | no
+ | null
+ | Enables extra metadata for the route. Provide a comma-separated list of keys. Allowed values: congestion, congestion_distance, toll. Requesting toll populates the toll_cost and tolls fields in each path. Example: annotations=congestion,toll. (Requesting annotations increases compute time and payload size.)
+Example&para;
+Input
+https://maps.vietmap.vn/api/route/v4?apikey={apikey}&amp;point=18.7338,105.6209&amp;point=17.75697,106.12351&amp;vehicle=truck&amp;capacity=2000&amp;annotations=congestion,toll
+Response
+{
+  &quot;license&quot;: &quot;vietmap&quot;,
+  &quot;code&quot;: &quot;OK&quot;,
+  &quot;paths&quot;: [
+    {
+      &quot;distance&quot;: 194465.7,
+      &quot;weight&quot;: 10854.3,
+      &quot;time&quot;: 10854078,
+      &quot;transfers&quot;: 0,
+      &quot;points_encoded&quot;: true,
+      &quot;bbox&quot;: [105.6139, 17.75471, 106.37462, 18.73474],
+      &quot;points&quot;: &quot;ccjqBkhtcS`E{DhFyDzDeBjHkC`Bg@xEkAnEaA|LwCxH{A~Ag@rDs@hA]bAg@|BwA~@}@dAmApG}BdHiBbCo@...&quot;,
+      &quot;instructions&quot;: [
+        {
+          &quot;distance&quot;: 3590.7,
+          &quot;heading&quot;: 0,
+          &quot;sign&quot;: 0,
+          &quot;interval&quot;: [0, 49],
+          &quot;text&quot;: &quot;&quot;,
+          &quot;time&quot;: 861754,
+          &quot;street_name&quot;: &quot;&quot;
+        },
+        {
+          &quot;distance&quot;: 1191,
+          &quot;heading&quot;: 0,
+          &quot;sign&quot;: 2,
+          &quot;interval&quot;: [49, 67],
+          &quot;text&quot;: &quot;Quốc Lộ 46&quot;,
+          &quot;time&quot;: 95123,
+          &quot;street_name&quot;: &quot;Quốc Lộ 46&quot;
+        },
+        /// More guide direction here
+        {
+          &quot;distance&quot;: 0,
+          &quot;heading&quot;: 0,
+          &quot;sign&quot;: 4,
+          &quot;interval&quot;: [1555, 1555],
+          &quot;text&quot;: &quot;&quot;,
+          &quot;time&quot;: 0,
+          &quot;street_name&quot;: &quot;&quot;
+        }
+      ],
+      &quot;snapped_waypoints&quot;: &quot;ccjqBkhtcSdl~DydaB&quot;,
+      &quot;toll_cost&quot;: 59000,
+      &quot;tolls&quot;: [
+        {
+          &quot;id&quot;: 528,
+          &quot;name&quot;: &quot;Trạm Thu Phí Nút Giao Quốc Lộ 46B&quot;,
+          &quot;address&quot;: &quot;Cao Tốc Diễn Châu Bãi Vọt&quot;,
+          &quot;type&quot;: &quot;entry&quot;,
+          &quot;price&quot;: 0
+        },
+        {
+          &quot;id&quot;: 544,
+          &quot;name&quot;: &quot;Trạm Thu Phí Km 479+200&quot;,
+          &quot;address&quot;: &quot;Cao Tốc Diễn Châu Bãi Vọt&quot;,
+          &quot;type&quot;: &quot;exit&quot;,
+          &quot;price&quot;: 59000,
+          &quot;prices&quot;: {
+            &quot;523&quot;: 140000,
+            &quot;524&quot;: 96000,
+            &quot;528&quot;: 59000
+          }
+        }
+      ]
+    }
+  ]
+}
+Response description&para;
+ | 
+ | Parameter
+ | Type
+ | Description
+ | license
+ | string
+ | License type associated with the routing data
+ | code
+ | string
+ | Status code indicating the success or failure of the request. Details at Status Code Values
+ | messages
+ | string
+ | Additional messages related to the request (if any)
+ | paths
+ | array
+ | Array containing route information including distance, time, etc.
+For each route in the paths array:
+ | 
+ | Sub-Parameter
+ | Type
+ | Description
+ | distance
+ | number
+ | Total distance of the route (in meters)
+ | weight
+ | number
+ | Internal routing cost used to rank candidate paths. Unitless; only meaningful for comparing routes in the same response.
+ | time
+ | int
+ | Total time required for the route (in milliseconds)
+ | transfers
+ | int
+ | Number of transfers required for the route
+ | points_encoded
+ | boolean
+ | Whether the points and snapped_waypoints fields are polyline-encoded strings rather than JSON arrays of coordinates
+ | bbox
+ | array
+ | The bounding box of the route geometry. Format: [minLon, minLat, maxLon, maxLat]
+ | points
+ | string
+ | Encoded points representing the route using google polyline 5 format. If the points_encoded is false, points will response a list of [lat,lng] format.
+ | instructions
+ | array
+ | Array containing turn-by-turn navigation instructions. Details at Instruction Object Model
+ | snapped_waypoints
+ | string
+ | Snapped waypoints representing the route (if available)
+ | annotations
+ | object[]
+ | Per-segment metadata (congestion, congestion_distance). Present only when requested via annotations. See Annotation Object Model
+ | toll_cost
+ | number
+ | Total toll cost for the route (in VND), calculated for the requested vehicle. (if available)
+ | tolls
+ | object[]
+ | Array of toll stations along the route. Details at Toll Object Model (if available)
+Instruction Object Model&para;
+For each navigation instruction in the instructions array:
+ | 
+ | Sub-Parameter
+ | Type
+ | Description
+ | distance
+ | double
+ | Distance until the next instruction (in meters)
+ | heading
+ | int
+ | Heading direction of the instruction (if available)
+ | sign
+ | int
+ | Direction sign of the instruction, sign description here
+ | interval
+ | array
+ | Two indices into points, referring to the beginning and the end of the segment of the route this instruction refers to.
+ | text
+ | string
+ | A description what the user has to do in order to follow the route.
+ | time
+ | int
+ | The duration for this instruction, in milliseconds.
+ | street_name
+ | string
+ | The name of the street to turn onto in order to follow the route.
+ | last_heading
+ | null
+ | Last heading direction of the instruction (if available)
+Annotation Object Model&para;
+ | 
+ | Name
+ | Type
+ | Description
+ | congestion
+ | object[]
+ | Array of congestion levels for segments.(if available)Possible values: low, moderate, heavy, severe, unknown.Based on average speed (km/h): low: ≥ 40; moderate: 20–&lt;40; heavy: 10–&lt;20; severe: &gt;0–≤10.
+ | congestion_distance
+ | object[]
+ | Array of distances (in meters) that only includes segments where congestion level is ≥ heavy. (if available)
+With more than 2 point values, annotations data may be inaccurate.
+Toll Object Model&para;
+For each toll station in the tolls array:
+ | 
+ | Sub-Parameter
+ | Type
+ | Description
+ | id
+ | int
+ | Unique identifier of the toll station.
+ | name
+ | string
+ | Name of the toll station.
+ | address
+ | string
+ | Address or road on which the toll station is located.
+ | type
+ | string
+ | The role of the station on the route. Enum: entry (toll booth where the vehicle enters), exit (toll booth where the vehicle exits and where the price is charged).
+ | price
+ | number
+ | Toll price charged at this station for the requested vehicle (in VND).
+ | prices
+ | object
+ | Map of toll prices (in VND) keyed by vehicle class id, listing the charge for each supported vehicle class at this station. (if available)
+Status Code Values&para;
+OK: The request was successful and the response contains valid data.
+INVALID_REQUEST: The request parameters failed validation. Details about the validation errors are provided in the messages field of the response.
+OVER_DAILY_LIMIT: The daily request limit for your API key has been exceeded. No further requests will be processed until the limit resets.
+MAX_POINTS_EXCEED: The number of points in the request URL exceeds the allowed maximum for your plan. Reduce the number of points and try again.
+ERROR_UNKNOWN: An unexpected error occurred while processing the API request. Please check the messages field for more information or contact support if the issue persists.
+ZERO_RESULTS: No viable route was found between the requested waypoints.
+var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))
+  Back to top
+                  Previous
+                Reverse Batch
+                  Next
+                Map Matching
+      Copyright &copy; 2026 VIETMAP
+    Made with
+      VIETMAP
+    {"base": "../../..", "features": ["announce.dismiss", "content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.tooltips", "navigation.footer", "navigation.path", "navigation.indexes", "navigation.prune", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}
+  .support-online {
+    position: fixed;
+    z-index: 999;
+    right: 30px;
+    bottom: 40%;
+    top: auto !important;
+    left: auto;
+  }
+  .support-online a {
+    position: relative;
+    margin: 10px;
+    text-align: left;
+    width: 40px;
+    height: 40px
+  }
+  .support-online a.call-now span {
+    line-height: 22px;
+  }
+  .support-online a.call-now span b {
+    font-size: 16px;
+    color: #fff700;
+  }
+  .support-online i {
+    width: 40px;
+    height: 40px;
+    background: #2a5dff;
+    color: #fff;
+    border-radius: 100%;
+    font-size: 20px;
+    text-align: center;
+    line-height: 40px;
+    position: relative;
+    z-index: 999
+  }
+  .support-content {}
+  .support-online a {
+    display: block
+  }
+  .support-online a span {
+    border-radius: 2px;
+    text-align: center;
+    background: #2a5dff;
+    padding: 10px;
+    display: none;
+    width: 150px;
+    margin-right: 12px;
+    position: absolute;
+    color: #ffffff;
+    z-index: 999;
+    top: 0px;
+    right: 41px;
+    font-size: 13pt;
+    transition: all 0.2s ease-in-out 0s;
+    -moz-animation: headerAnimation 0.7s 1;
+    -webkit-animation: headerAnimation 0.7s 1;
+    -o-animation: headerAnimation 0.7s 1;
+    animation: headerAnimation 0.7s 1;
+  }
+  .support-online img {
+    height: 40px;
+    width: 40px;
+  }
+  .support-online a:hover span {
+    display: block
+  }
+  .support-online a span::before {
+    content: "";
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 10px 0 10px 10px;
+    border-color: transparent transparent transparent #2a5dff;
+    position: absolute;
+    right: -10px;
+    top: 10px
+  }
+  .kenit-alo-circle {
+    width: 50px;
+    height: 50px;
+    top: -5px;
+    right: -5px;
+    position: absolute;
+    background-color: transparent;
+    -webkit-border-radius: 100%;
+    -moz-border-radius: 100%;
+    border-radius: 100%;
+    border: 2px solid rgba(30, 30, 30, 0.4);
+    opacity: .1;
+    border-color: lighten(#2a5dff, 5);
+    opacity: .5
+  }
+  .support-online .btn-support {
+    cursor: pointer
+  }
+  .animated {
+    animation-duration: 1s;
+    animation-fill-mode: both;
+  }
+  .animated.infinite {
+    animation-iteration-count: infinite;
+  }
+  .animated.hinge {
+    animation-duration: 2s;
+  }
+  .animated.flipOutX,
+  .animated.flipOutY,
+  .animated.bounceIn,
+  .animated.bounceOut {
+    animation-duration: .75s;
+  }
+  @keyframes zoomIn {
+    from {
+      opacity: 0;
+      transform: scale3d(.3, .3, .3);
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  .zoomIn {
+    animation-name: zoomIn;
+  }
+  @keyframes rubberBand {
+    from {
+      transform: scale3d(1, 1, 1);
+    }
+    30% {
+      transform: scale3d(1.25, 0.75, 1);
+    }
+    40% {
+      transform: scale3d(0.75, 1.25, 1);
+    }
+    50% {
+      transform: scale3d(1.15, 0.85, 1);
+    }
+    65% {
+      transform: scale3d(.95, 1.05, 1);
+    }
+    75% {
+      transform: scale3d(1.05, .95, 1);
+    }
+    to {
+      transform: scale3d(1, 1, 1);
+    }
+  }
+       -->
+      Tổng đài hỗ trợ089.616.4567
+      Chat Facebook
+      Chat Zalo

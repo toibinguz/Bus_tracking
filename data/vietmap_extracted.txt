@@ -1,0 +1,223 @@
+class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/2728.svg" title=":sparkles:" /> NEW
+Download the optimized doc for AI agent integration: Routing Agent Doc
+URL&para;
+https://maps.vietmap.vn/api/route/v3?apikey={your-apikey}&amp;point={point}&amp;point={point}&amp;points_encoded={points_encoded}&amp;vehicle={vehicle}&amp;annotations={annotations}
+Method&para;
+GET
+Parameters&para;
+ | 
+ | Parameter
+ | Type
+ | Required
+ | Default
+ | Description
+ | apikey
+ | string
+ | yes
+ | none
+ | API key provided by VIETMAP for your account. Register here
+ | point
+ | array string
+ | yes
+ | none
+ | The points for which the route should be calculated. Format: [latitude,longitude]. Specify at least an origin and a destination. Via points are possible. The maximum number depends on your plan. Example query: &amp;point=lat,lng
+ | points_encoded
+ | boolean
+ | no
+ | true
+ | Allows changing the encoding of location data in the response. The default is polyline encoding, which is compact but requires special client code to unpack. Set this parameter to false to switch the encoding to simple coordinate pairs like [lon,lat]. See the description of the response format for more information.  We suggest this query should receive true value to decrease the size of the response JSON.
+ | vehicle
+ | string
+ | no
+ | car
+ | Enum: car, motorcycle, truck. Config the vehicle profiles for which the route should be calculated.
+ | optimize
+ | string
+ | no
+ | false
+ | Execute TSP if the value = true. Under normal case, please do not enable this parameter (Not yet supported)
+ | avoid
+ | string
+ | no
+ | null
+ | Avoid a specific road types, such as ferry.
+ | capacity
+ | integer
+ | conditional
+ | null
+ | Required only when the vehicle=truck, represent for the truck's weight in kilogram
+ | time
+ | string
+ | no
+ | 2025-08-01T12:01:00Z
+ | Departure time, default value is the current date time Time sending with ISO-8601 date representation (UTC 0)
+ | alternative
+ | boolean
+ | no
+ | false
+ | Return any alternative route or not
+ | heading
+ | number
+ | no
+ | null
+ | Current heading of vehicle
+ | annotations
+ | string
+ | no
+ | null
+ | Enables per-segment metadata for the route. Provide a comma-separated list of keys. Allowed values: congestion, congestion_distance. Example: annotations=congestion,congestion_distance. (Requesting annotations increases compute time and payload size.)
+Example&para;
+Input
+https://maps.vietmap.vn/api/route/v3?apikey={apikey}&amp;point=10.755222,106.662633&amp;point=10.7559910,106.6633234&amp;vehicle=truck&amp;capacity=2000
+Response
+{
+  &quot;license&quot;: &quot;vietmap&quot;,
+  &quot;code&quot;: &quot;OK&quot;,
+  &quot;paths&quot;: [
+    {
+      &quot;distance&quot;: 2194.4,
+      &quot;weight&quot;: 351.4,
+      &quot;time&quot;: 351400,
+      &quot;transfers&quot;: 0,
+      &quot;points_encoded&quot;: true,
+      &quot;bbox&quot;: [106.70594, 10.79479, 106.71154, 10.80325],
+      &quot;points&quot;: &quot;}s{`Ac_hjSjAkCFQRu@Lu@F_@D]Ng@ZaALa@JY~AoDDEmBiBe@[WMg@M_@KmA]uA_@a@KkA]qA[[Gs@MUE_AKu@Co@Ew@CYAmAGeBKaAEsAKCQMQUGM?KBIFGHCJoBO{@Ck@AQ@MZAJAjAG|ACz@MnCEnAGlBCx@EjA?\\EvAEjBE~@Cr@F?HqBv@DBSDIBAl@HFADAVSD@JLB@h@BDADEDAJ@&quot;,
+      &quot;instructions&quot;: [
+        {
+          &quot;distance&quot;: 403.4,
+          &quot;heading&quot;: 0,
+          &quot;sign&quot;: 0,
+          &quot;interval&quot;: [0, 11],
+          &quot;text&quot;: &quot;Tiếp tục theo Nguyễn Cửu Vân&quot;,
+          &quot;time&quot;: 54800,
+          &quot;street_name&quot;: &quot;Nguyễn Cửu Vân&quot;,
+          &quot;last_heading&quot;: null
+        },
+        /// More guide direction here
+        {
+          &quot;distance&quot;: 58.7,
+          &quot;heading&quot;: 0,
+          &quot;sign&quot;: 0,
+          &quot;interval&quot;: [71, 79],
+          &quot;text&quot;: &quot;Tiếp tục theo Đường Không Tên&quot;,
+          &quot;time&quot;: 26300,
+          &quot;street_name&quot;: &quot;Đường Không Tên&quot;,
+          &quot;last_heading&quot;: null
+        },
+        {
+          &quot;distance&quot;: 0,
+          &quot;heading&quot;: 0,
+          &quot;sign&quot;: 4,
+          &quot;interval&quot;: [79, 79],
+          &quot;text&quot;: &quot;Đích đến&quot;,
+          &quot;time&quot;: 0,
+          &quot;street_name&quot;: &quot;Đường Không Tên&quot;,
+          &quot;last_heading&quot;: null
+        }
+      ],
+      &quot;snapped_waypoints&quot;: &quot;c_hjS}s{`AeDab@&quot;
+    }
+  ]
+}
+Response description&para;
+ | 
+ | Parameter
+ | Type
+ | Description
+ | license
+ | string
+ | License type associated with the routing data
+ | code
+ | string
+ | Status code indicating the success or failure of the request. Details at Status Code Values
+ | messages
+ | string
+ | Additional messages related to the request (if any)
+ | paths
+ | array
+ | Array containing route information including distance, time, etc.
+For each route in the paths array:
+ | 
+ | Sub-Parameter
+ | Type
+ | Description
+ | distance
+ | number
+ | Total distance of the route (in meters)
+ | weight
+ | number
+ | Weight assigned to the route
+ | time
+ | int
+ | Total time required for the route (in milliseconds)
+ | transfers
+ | int
+ | Number of transfers required for the route
+ | points_encoded
+ | boolean
+ | Whether the points and snapped_waypoints fields are polyline-encoded strings rather than JSON arrays of coordinates
+ | bbox
+ | array
+ | The bounding box of the route geometry. Format: [minLon, minLat, maxLon, maxLat]
+ | points
+ | string
+ | Encoded points representing the route using google polyline 5 format. If the points_encoded is false, points will response a list of [lat,lng] format.
+ | instructions
+ | array
+ | Array containing turn-by-turn navigation instructions. Details at Instruction Object Model
+ | snapped_waypoints
+ | string
+ | Snapped waypoints representing the route (if available)
+ | annotations
+ | object[]
+ | Array of annotation object to calculate speed, congestion. Details at Annotation Object Model (if available)
+Instruction Object Model&para;
+For each navigation instruction in the instructions array:
+ | 
+ | Sub-Parameter
+ | Type
+ | Description
+ | distance
+ | double
+ | Distance until the next instruction (in meters)
+ | heading
+ | int
+ | Heading direction of the instruction (if available)
+ | sign
+ | int
+ | Direction sign of the instruction, sign description here
+ | interval
+ | array
+ | Two indices into points, referring to the beginning and the end of the segment of the route this instruction refers to.
+ | text
+ | string
+ | A description what the user has to do in order to follow the route.
+ | time
+ | int
+ | The duration for this instruction, in milliseconds.
+ | street_name
+ | string
+ | The name of the street to turn onto in order to follow the route.
+ | last_heading
+ | null
+ | Last heading direction of the instruction (if available)
+Annotation Object Model&para;
+ | 
+ | Name
+ | Type
+ | Description
+ | congestion
+ | object[]
+ | Array of congestion levels for segments.(if available)Possible values: low, moderate, heavy, severe, unknown.Based on average speed (km/h): low: ≥ 40; moderate: 20–&lt;40; heavy: 10–&lt;20; severe: &gt;0–≤10.
+ | congestion_distance
+ | object[]
+ | Array of distances (in meters) that only includes segments where congestion level is ≥ heavy. (if available)
+Note that when calculate route with &gt; 2 waypoints, the annotations data may not valid
+Status Code Values&para;
+OK: The request was successful and the response contains valid data.
+INVALID_REQUEST: The request parameters failed validation. Details about the validation errors are provided in the messages field of the response.
+OVER_DAILY_LIMIT: The daily request limit for your API key has been exceeded. No further requests will be processed until the limit resets.
+MAX_POINTS_EXCEED: The number of points in the request URL exceeds the allowed maximum for your plan. Reduce the number of points and try again.
+ERROR_UNKNOWN: An unexpected error occurred while processing the API request. Please check the messages field for more information or contact support if the issue persists.
+ZERO_RESULTS: No viable route was found between the requested waypoints.
+</

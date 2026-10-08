@@ -1,0 +1,330 @@
+
+    Traffic layer – Real-time congestion overlay | VIETMAP
+        :root{--md-text-font:"Nunito Sans";--md-code-font:"JetBrains Mono"}
+    __md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(eJSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}
+function __md_analytics(){function n(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],n("js",new Date),n("config","G-JYJYMDRF7E"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&n("event","search",{search_term:this.value})}),document$.subscribe(function(){var a=document.forms.feedback;if(void 0!==a)for(var e of a.querySelectorAll("[type=submit]"))e.addEventListener("click",function(e){e.preventDefault();var t=document.location.pathname,e=this.getAttribute("data-md-value");n("event","feedback",{page:t,data:e}),a.firstElementChild.disabled=!0;e=a.querySelector(".md-feedback__note [data-md-value='"+e+"']");e&&(e.hidden=!1)}),a.hidden=!1}),location$.subscribe(function(e){n("config","G-JYJYMDRF7E",{page_path:e.pathname})})});var e=document.createElement("script");e.async=!0,e.src="https://www.googletagmanager.com/gtag/js?id=G-JYJYMDRF7E",document.getElementById("__analytics").insertAdjacentElement("afterEnd",e)}
+    "undefined"!=typeof __md_analytics&&__md_analytics()
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://maps.vietmap.vn/docs/"
+      },{
+        "@type": "ListItem",
+        "position": 2,
+        "name": "MAPS API",
+        "item": "https://maps.vietmap.vn/docs/map-api/overview/"
+      },{
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Display a Map",
+        "item": "https://maps.vietmap.vn/docs/map-api/tilemap/"
+      },{
+        "@type": "ListItem",
+        "position": 4,
+        "name": "Traffic Layer",
+        "item": "https://maps.vietmap.vn/docs/map-api/traffic-layer/"
+      }
+    ]
+  }
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Traffic Layer",
+    "description": "A vector style that colors real-time congestion per direction of travel, merged on top of your running GL base map. Renders from zoom 10.",
+    "url": "https://maps.vietmap.vn/docs/map-api/traffic-layer/",
+    "inLanguage": "en",
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "VIETMAP Maps API Documentation",
+      "url": "https://maps.vietmap.vn/docs/"
+    },
+    "author": { "@type": "Organization", "name": "VIETMAP" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "VIETMAP",
+      "url": "https://maps.vietmap.vn",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://maps.vietmap.vn/docs/assets/logo_dark.png"
+      }
+    },
+    "image": "https://maps.vietmap.vn/docs/assets/banner.png"
+  }
+          Skip to content
+            MAPS API DOCS
+              Traffic Layer
+      var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}
+      VI
+            Initializing search
+  MAPS API
+  SDK WEB GL
+  SDK MOBILE
+    MAPS API DOCS
+    MAPS API
+            MAPS API
+    Overview
+    VietNam Address Migration
+    Register & Manage API Key
+            Register & Manage API Key
+    Register & Manage API Key
+    Search & Geocode API
+            Search & Geocode API
+    Merged Search & Geocode API - v4
+    Deprecated Search API - v3
+    Route & Logistics
+            Route & Logistics
+    Route API Group
+    Logistics API Group
+    Display a Map
+            Display a Map
+    TileMap
+    Leaflet Integration
+    Traffic Layer
+    Traffic Layer
+      Table of contents
+      URL
+      Method
+      Merging it into a map
+      What the style contains
+      Colors and zoom range
+      Billing
+      Related APIs
+    Static Map API
+    Branch Locator & Management
+    Boundaries API Group
+            Boundaries API Group
+    Isochrone
+    Geofencing
+    SDK WEB GL
+    SDK MOBILE
+      Table of contents
+      URL
+      Method
+      Merging it into a map
+      What the style contains
+      Colors and zoom range
+      Billing
+      Related APIs
+Traffic layer&para;
+The traffic layer is a vector style that colors real-time congestion for each direction of travel. You merge its sources and layers into the GL base map you are already running — it does not replace the base map.
+Preview it on the Live Map with the "Traffic" layer switched on.
+URL&para;
+https://maps.vietmap.vn/maps/styles/tf/style.json?apikey={your-apikey}
+Method&para;
+GET
+Merging it into a map&para;
+Fetch the style, then add each source and layer to the current map:
+const APIKEY = &#39;{your-apikey}&#39;;
+async function addTraffic(map) {
+  const tf = await fetch(
+    `https://maps.vietmap.vn/maps/styles/tf/style.json?apikey=${APIKEY}`
+  ).then((r) =&gt; r.json());
+  for (const [id, source] of Object.entries(tf.sources)) {
+    if (!map.getSource(id)) map.addSource(id, source);
+  }
+  for (const layer of tf.layers) {
+    if (!map.getLayer(layer.id)) map.addLayer(layer);
+  }
+}
+map.on(&#39;style.load&#39;, () =&gt; addTraffic(map));
+Two common mistakes
+Do not pass this URL to the SDK's style parameter — that replaces the base map and you lose every base layer.
+Hook it to the style.load event rather than calling it once at startup: setStyle wipes every source and layer you added yourself, so switching base styles drops the traffic layer unless you re-add it.
+What the style contains&para;
+The style holds exactly one source and four layers:
+Component
+Value
+Source
+traffic — vector tiles, maxzoom 15
+Tiles
+https://maps.vietmap.vn/maps/tiles/tf/{z}/{x}/{y}.pbf?apikey={your-apikey}
+Source layer
+jam
+Layer
+What it draws
+Condition
+traffic-left
+One direction, colored from the lcolor property
+oneway &lt;= 0
+traffic-right
+The other direction, colored from rcolor
+oneway &gt;= 0
+traffic-border-left
+White casing on the left
+oneway == 0
+traffic-border-right
+White casing on the right
+oneway == 0
+Two-way roads draw two offset lines, one per direction, with a white casing. One-way roads draw a single line and no casing.
+Colors and zoom range&para;
+Congestion color lives in the data, not in the style: every segment carries lcolor and rcolor, and the layers just read them with ["get", "lcolor"]. To use your own palette, override line-color on traffic-left and traffic-right after adding them.
+All four layers set minzoom 10, so nothing renders below zoom 10. The source stops at maxzoom 15; deeper zooms overzoom the level-15 tiles.
+Billing&para;
+This layer is delivered as vector tiles. See How Pricing Works for how tile loads convert into transactions.
+Related APIs&para;
+Tilemap — the base styles you merge this layer on top of.
+Route v4 — pass annotations=congestion to get congestion per route segment as data rather than as a visual layer.
+var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))
+  Back to top
+                  Previous
+                Leaflet Integration
+                  Next
+                Static Map API
+      Copyright &copy; 2026 VIETMAP
+    Made with
+      VIETMAP
+    {"base": "../..", "features": ["announce.dismiss", "content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.tooltips", "navigation.footer", "navigation.path", "navigation.indexes", "navigation.prune", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}
+  .support-online {
+    position: fixed;
+    z-index: 999;
+    right: 30px;
+    bottom: 40%;
+    top: auto !important;
+    left: auto;
+  }
+  .support-online a {
+    position: relative;
+    margin: 10px;
+    text-align: left;
+    width: 40px;
+    height: 40px
+  }
+  .support-online a.call-now span {
+    line-height: 22px;
+  }
+  .support-online a.call-now span b {
+    font-size: 16px;
+    color: #fff700;
+  }
+  .support-online i {
+    width: 40px;
+    height: 40px;
+    background: #2a5dff;
+    color: #fff;
+    border-radius: 100%;
+    font-size: 20px;
+    text-align: center;
+    line-height: 40px;
+    position: relative;
+    z-index: 999
+  }
+  .support-content {}
+  .support-online a {
+    display: block
+  }
+  .support-online a span {
+    border-radius: 2px;
+    text-align: center;
+    background: #2a5dff;
+    padding: 10px;
+    display: none;
+    width: 150px;
+    margin-right: 12px;
+    position: absolute;
+    color: #ffffff;
+    z-index: 999;
+    top: 0px;
+    right: 41px;
+    font-size: 13pt;
+    transition: all 0.2s ease-in-out 0s;
+    -moz-animation: headerAnimation 0.7s 1;
+    -webkit-animation: headerAnimation 0.7s 1;
+    -o-animation: headerAnimation 0.7s 1;
+    animation: headerAnimation 0.7s 1;
+  }
+  .support-online img {
+    height: 40px;
+    width: 40px;
+  }
+  .support-online a:hover span {
+    display: block
+  }
+  .support-online a span::before {
+    content: "";
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 10px 0 10px 10px;
+    border-color: transparent transparent transparent #2a5dff;
+    position: absolute;
+    right: -10px;
+    top: 10px
+  }
+  .kenit-alo-circle {
+    width: 50px;
+    height: 50px;
+    top: -5px;
+    right: -5px;
+    position: absolute;
+    background-color: transparent;
+    -webkit-border-radius: 100%;
+    -moz-border-radius: 100%;
+    border-radius: 100%;
+    border: 2px solid rgba(30, 30, 30, 0.4);
+    opacity: .1;
+    border-color: lighten(#2a5dff, 5);
+    opacity: .5
+  }
+  .support-online .btn-support {
+    cursor: pointer
+  }
+  .animated {
+    animation-duration: 1s;
+    animation-fill-mode: both;
+  }
+  .animated.infinite {
+    animation-iteration-count: infinite;
+  }
+  .animated.hinge {
+    animation-duration: 2s;
+  }
+  .animated.flipOutX,
+  .animated.flipOutY,
+  .animated.bounceIn,
+  .animated.bounceOut {
+    animation-duration: .75s;
+  }
+  @keyframes zoomIn {
+    from {
+      opacity: 0;
+      transform: scale3d(.3, .3, .3);
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  .zoomIn {
+    animation-name: zoomIn;
+  }
+  @keyframes rubberBand {
+    from {
+      transform: scale3d(1, 1, 1);
+    }
+    30% {
+      transform: scale3d(1.25, 0.75, 1);
+    }
+    40% {
+      transform: scale3d(0.75, 1.25, 1);
+    }
+    50% {
+      transform: scale3d(1.15, 0.85, 1);
+    }
+    65% {
+      transform: scale3d(.95, 1.05, 1);
+    }
+    75% {
+      transform: scale3d(1.05, .95, 1);
+    }
+    to {
+      transform: scale3d(1, 1, 1);
+    }
+  }
+       -->
+      Tổng đài hỗ trợ089.616.4567
+      Chat Facebook
+      Chat Zalo

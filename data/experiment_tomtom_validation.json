@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "lat": 21.0395667737,
+    "lon": 105.8510921723,
+    "length_m": 220.4,
+    "delay_s": 245,
+    "magnitude": 3,
+    "free_flow_kmh": 36,
+    "actual_flow_kmh": 31,
+    "inferred_kmh": 3.0,
+    "magnitude_kmh": 12.2,
+    "abs_error_kmh": 28.0,
+    "confidence": 0.867049
+  },
+  {
+    "id": 2,
+    "lat": 21.0275571201,
+    "lon": 105.8460093862,
+    "length_m": 263.7,
+    "delay_s": 219,
+    "magnitude": 3,
+    "free_flow_kmh": 27,
+    "actual_flow_kmh": 18,
+    "inferred_kmh": 3.7,
+    "magnitude_kmh": 9.2,
+    "abs_error_kmh": 14.3,
+    "confidence": 0.798919
+  },
+  {
+    "id": 3,
+    "lat": 21.026257592,
+    "lon": 105.8516634828,
+    "length_m": 195.1,
+    "delay_s": 97,
+    "magnitude": 3,
+    "free_flow_kmh": 27,
+    "actual_flow_kmh": 18,
+    "inferred_kmh": 5.7,
+    "magnitude_kmh": 9.2,
+    "abs_error_kmh": 12.3,
+    "confidence": 0.798919
+  }
+]
