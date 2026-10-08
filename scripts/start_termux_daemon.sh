@@ -6,3 +6,4 @@ PID=$!
 echo "🚀 Crawler da khoi chay an ngam [PID: $PID]"
 echo "📄 Xem nhip crawl truc tiep: tail -f crawler.log"
 echo "⏹️ Lenh dung khi can: bash scripts/stop_termux_daemon.sh"
+

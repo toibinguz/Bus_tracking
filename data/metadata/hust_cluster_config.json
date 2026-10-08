@@ -1,11 +1,37 @@
 {
-  "cluster_name": "HUST_Core_Cluster",
-  "description": "Cum 5 tuyen xe buyt huyet mach Dai hoc Bach Khoa Ha Noi",
+  "cluster_name": "HUST_Expanded_Corridor_Cluster_220",
+  "description": "Mạng lưới 220 xe buýt hành lang trọng điểm Đại học Bách Khoa Hà Nội (19 tuyến kết nối)",
+  "operating_hours": {
+    "start": "05:00",
+    "end": "22:00"
+  },
+  "total_vehicles": 220,
+  "target_route_ids": [
+    32,
+    31,
+    8,
+    426,
+    21,
+    3,
+    30000184,
+    19,
+    835,
+    25,
+    27,
+    28,
+    35,
+    41,
+    51,
+    918,
+    2,
+    22,
+    101103
+  ],
   "routes": [
     {
       "route_no": "32",
       "route_id": 32,
-      "name": "BX Giáp Bát - Nhổn",
+      "name": "Bến xe Giáp Bát - Nhổn",
       "vehicles_count": 13
     },
     {
@@ -23,25 +49,201 @@
     {
       "route_no": "26",
       "route_id": 426,
-      "name": "Mai Động - SVĐ Quốc Gia",
+      "name": "Mai Động - Sân Vận Động Quốc gia",
       "vehicles_count": 12
     },
     {
       "route_no": "21A",
       "route_id": 21,
-      "name": "BX Giáp Bát - BX Yên Nghĩa",
+      "name": "Bến xe Giáp Bát - Bến xe Yên Nghĩa",
       "vehicles_count": 11
+    },
+    {
+      "route_no": "03A",
+      "route_id": 3,
+      "name": "Bến xe Giáp Bát - Bến xe Gia Lâm",
+      "vehicles_count": 4
+    },
+    {
+      "route_no": "E07TC",
+      "route_id": 30000184,
+      "name": "Long Biên - Hòa Lạc",
+      "vehicles_count": 14
+    },
+    {
+      "route_no": "19",
+      "route_id": 19,
+      "name": "Trần Khánh Dư - Học viện chính sách và phát triển",
+      "vehicles_count": 13
+    },
+    {
+      "route_no": "35B",
+      "route_id": 835,
+      "name": "Nam Thăng Long - Thanh Lâm (Mê Linh)",
+      "vehicles_count": 11
+    },
+    {
+      "route_no": "25",
+      "route_id": 25,
+      "name": "Bệnh viện Bệnh Nhiệt đới trung ương cơ sở 2 - Bến xe Giáp Bát",
+      "vehicles_count": 5
+    },
+    {
+      "route_no": "27",
+      "route_id": 27,
+      "name": "Bến xe Yên Nghĩa - Nam Thăng Long",
+      "vehicles_count": 20
+    },
+    {
+      "route_no": "28",
+      "route_id": 28,
+      "name": "Bến xe Nước Ngầm - Đông Ngạc - Đại học Mỏ",
+      "vehicles_count": 7
+    },
+    {
+      "route_no": "35A",
+      "route_id": 35,
+      "name": "Trần Khánh Dư - Nam Thăng Long",
+      "vehicles_count": 7
+    },
+    {
+      "route_no": "41",
+      "route_id": 41,
+      "name": "Nam Thăng Long - Bến xe Giáp Bát",
+      "vehicles_count": 5
+    },
+    {
+      "route_no": "51",
+      "route_id": 51,
+      "name": "Bến xe Gia Lâm - Trần Vỹ (Học viện Tư Pháp)",
+      "vehicles_count": 12
+    },
+    {
+      "route_no": "BRT01",
+      "route_id": 918,
+      "name": "Bến xe Yên Nghĩa - Kim Mã",
+      "vehicles_count": 15
+    },
+    {
+      "route_no": "02",
+      "route_id": 2,
+      "name": "Bác Cổ - Bến xe Yên Nghĩa",
+      "vehicles_count": 16
+    },
+    {
+      "route_no": "22A",
+      "route_id": 22,
+      "name": "Bến xe Gia Lâm - Khu đô thị Kiến Hưng",
+      "vehicles_count": 16
+    },
+    {
+      "route_no": "E01",
+      "route_id": 101103,
+      "name": "Bến xe Mỹ Đình - Khu đô thị Ocean Park",
+      "vehicles_count": 23
     }
   ],
-  "target_route_ids": [
-    32,
-    31,
-    8,
-    426,
-    21
-  ],
-  "total_vehicles": 52,
   "vehicles": [
+    {
+      "id": 231968,
+      "title": "29B-205.47",
+      "routeId": 2
+    },
+    {
+      "id": 231966,
+      "title": "29B-205.40",
+      "routeId": 2
+    },
+    {
+      "id": 231981,
+      "title": "29B-205.92",
+      "routeId": 2
+    },
+    {
+      "id": 231969,
+      "title": "29B-205.51",
+      "routeId": 2
+    },
+    {
+      "id": 231971,
+      "title": "29B-205.58",
+      "routeId": 2
+    },
+    {
+      "id": 231984,
+      "title": "29B-208.41",
+      "routeId": 2
+    },
+    {
+      "id": 7505312,
+      "title": "29B-152.15",
+      "routeId": 2
+    },
+    {
+      "id": 231963,
+      "title": "29B-205.19",
+      "routeId": 2
+    },
+    {
+      "id": 231987,
+      "title": "29B-209.54",
+      "routeId": 2
+    },
+    {
+      "id": 231967,
+      "title": "29B-205.46",
+      "routeId": 2
+    },
+    {
+      "id": 1408400,
+      "title": "29F-016.12",
+      "routeId": 2
+    },
+    {
+      "id": 231970,
+      "title": "29B-205.54",
+      "routeId": 2
+    },
+    {
+      "id": 231972,
+      "title": "29B-205.63",
+      "routeId": 2
+    },
+    {
+      "id": 231982,
+      "title": "29B-205.96",
+      "routeId": 2
+    },
+    {
+      "id": 231977,
+      "title": "29B-205.80",
+      "routeId": 2
+    },
+    {
+      "id": 1408401,
+      "title": "29F-015.20",
+      "routeId": 2
+    },
+    {
+      "id": 8617445,
+      "title": "29B-204.09",
+      "routeId": 3
+    },
+    {
+      "id": 231996,
+      "title": "29B-193.89",
+      "routeId": 3
+    },
+    {
+      "id": 232006,
+      "title": "29B-194.88",
+      "routeId": 3
+    },
+    {
+      "id": 232000,
+      "title": "29B-194.47",
+      "routeId": 3
+    },
     {
       "id": 8828797,
       "title": "29E-559.74",
@@ -98,6 +300,71 @@
       "routeId": 8
     },
     {
+      "id": 8829251,
+      "title": "29E-560.02",
+      "routeId": 19
+    },
+    {
+      "id": 8829035,
+      "title": "29E-560.90",
+      "routeId": 19
+    },
+    {
+      "id": 8829033,
+      "title": "29E-560.24",
+      "routeId": 19
+    },
+    {
+      "id": 8829036,
+      "title": "29E-290.00",
+      "routeId": 19
+    },
+    {
+      "id": 8829040,
+      "title": "29E-560.81",
+      "routeId": 19
+    },
+    {
+      "id": 8829988,
+      "title": "29E-559.14",
+      "routeId": 19
+    },
+    {
+      "id": 8829042,
+      "title": "29E-559.13",
+      "routeId": 19
+    },
+    {
+      "id": 8829064,
+      "title": "29E-560.31",
+      "routeId": 19
+    },
+    {
+      "id": 8829028,
+      "title": "29E-422.85",
+      "routeId": 19
+    },
+    {
+      "id": 8829041,
+      "title": "29E-560.17",
+      "routeId": 19
+    },
+    {
+      "id": 8829030,
+      "title": "29E-422.59",
+      "routeId": 19
+    },
+    {
+      "id": 8829037,
+      "title": "29E-560.71",
+      "routeId": 19
+    },
+    {
+      "id": 8829039,
+      "title": "29E-560.82",
+      "routeId": 19
+    },
+    {
       "id": 8828837,
       "title": "29E-559.82",
       "routeId": 21
@@ -151,6 +418,236 @@
       "id": 8829612,
       "title": "29E-559.90",
       "routeId": 21
+    },
+    {
+      "id": 8835419,
+      "title": "29B-150.13",
+      "routeId": 22
+    },
+    {
+      "id": 8835406,
+      "title": "29B-152.66",
+      "routeId": 22
+    },
+    {
+      "id": 8835418,
+      "title": "29B-150.11",
+      "routeId": 22
+    },
+    {
+      "id": 8835408,
+      "title": "29B-187.80",
+      "routeId": 22
+    },
+    {
+      "id": 8835410,
+      "title": "29B-151.56",
+      "routeId": 22
+    },
+    {
+      "id": 8835404,
+      "title": "29B-154.29",
+      "routeId": 22
+    },
+    {
+      "id": 8835413,
+      "title": "29B-152.19",
+      "routeId": 22
+    },
+    {
+      "id": 8835414,
+      "title": "29B-150.96",
+      "routeId": 22
+    },
+    {
+      "id": 8835416,
+      "title": "29B-154.81",
+      "routeId": 22
+    },
+    {
+      "id": 8835412,
+      "title": "29B-150.86",
+      "routeId": 22
+    },
+    {
+      "id": 8835407,
+      "title": "29B-152.04",
+      "routeId": 22
+    },
+    {
+      "id": 8835417,
+      "title": "29B-153.88",
+      "routeId": 22
+    },
+    {
+      "id": 8835405,
+      "title": "29B-148.24",
+      "routeId": 22
+    },
+    {
+      "id": 8835401,
+      "title": "29B-153.80",
+      "routeId": 22
+    },
+    {
+      "id": 8823346,
+      "title": "29B-415.43",
+      "routeId": 25
+    },
+    {
+      "id": 8650613,
+      "title": "29B-414.53",
+      "routeId": 25
+    },
+    {
+      "id": 8823343,
+      "title": "29B-415.30",
+      "routeId": 25
+    },
+    {
+      "id": 232440,
+      "title": "29B-419.41",
+      "routeId": 25
+    },
+    {
+      "id": 8823344,
+      "title": "29B-415.35",
+      "routeId": 25
+    },
+    {
+      "id": 7665495,
+      "title": "29B-401.40",
+      "routeId": 27
+    },
+    {
+      "id": 8823360,
+      "title": "29B-404.95",
+      "routeId": 27
+    },
+    {
+      "id": 8374897,
+      "title": "29B-400.23",
+      "routeId": 27
+    },
+    {
+      "id": 232481,
+      "title": "29B-415.38",
+      "routeId": 27
+    },
+    {
+      "id": 8823417,
+      "title": "29B-402.25",
+      "routeId": 27
+    },
+    {
+      "id": 8823352,
+      "title": "29B-404.55",
+      "routeId": 27
+    },
+    {
+      "id": 8788609,
+      "title": "29B-404.69",
+      "routeId": 27
+    },
+    {
+      "id": 8797360,
+      "title": "29B-400.62",
+      "routeId": 27
+    },
+    {
+      "id": 232488,
+      "title": "29B-415.74",
+      "routeId": 27
+    },
+    {
+      "id": 8823393,
+      "title": "29B-401.88",
+      "routeId": 27
+    },
+    {
+      "id": 7910586,
+      "title": "29B-400.88",
+      "routeId": 27
+    },
+    {
+      "id": 8823350,
+      "title": "29B-400.42",
+      "routeId": 27
+    },
+    {
+      "id": 8647841,
+      "title": "29B-400.28",
+      "routeId": 27
+    },
+    {
+      "id": 8823349,
+      "title": "29B-400.44",
+      "routeId": 27
+    },
+    {
+      "id": 7702636,
+      "title": "29B-400.33",
+      "routeId": 27
+    },
+    {
+      "id": 8662831,
+      "title": "29B-404.59",
+      "routeId": 27
+    },
+    {
+      "id": 8709829,
+      "title": "29B-404.02",
+      "routeId": 27
+    },
+    {
+      "id": 8649591,
+      "title": "29B-404.92",
+      "routeId": 27
+    },
+    {
+      "id": 7911440,
+      "title": "29B-403.66",
+      "routeId": 27
+    },
+    {
+      "id": 8824467,
+      "title": "29B-400.08",
+      "routeId": 27
+    },
+    {
+      "id": 8831243,
+      "title": "29B-198.98",
+      "routeId": 28
+    },
+    {
+      "id": 8759609,
+      "title": "29B-198.68",
+      "routeId": 28
+    },
+    {
+      "id": 7345946,
+      "title": "29B-200.88",
+      "routeId": 28
+    },
+    {
+      "id": 7538634,
+      "title": "29B-200.56",
+      "routeId": 28
+    },
+    {
+      "id": 7477136,
+      "title": "29B-197.95",
+      "routeId": 28
+    },
+    {
+      "id": 7624477,
+      "title": "29B-204.67",
+      "routeId": 28
+    },
+    {
+      "id": 8251559,
+      "title": "29B-200.82",
+      "routeId": 28
     },
     {
       "id": 8831601,
@@ -243,6 +740,370 @@
       "routeId": 32
     },
     {
+      "id": 8010901,
+      "title": "29B-415.38",
+      "routeId": 35
+    },
+    {
+      "id": 7565894,
+      "title": "29B-404.55",
+      "routeId": 35
+    },
+    {
+      "id": 8824592,
+      "title": "29B-515.07",
+      "routeId": 35
+    },
+    {
+      "id": 7494272,
+      "title": "29B-416.12",
+      "routeId": 35
+    },
+    {
+      "id": 8824598,
+      "title": "29B-517.57",
+      "routeId": 35
+    },
+    {
+      "id": 8824597,
+      "title": "29B-517.44",
+      "routeId": 35
+    },
+    {
+      "id": 8824596,
+      "title": "29B-516.72",
+      "routeId": 35
+    },
+    {
+      "id": 8830949,
+      "title": "29B-059.17",
+      "routeId": 41
+    },
+    {
+      "id": 8830951,
+      "title": "29B-057.14",
+      "routeId": 41
+    },
+    {
+      "id": 8830954,
+      "title": "29B-027.46",
+      "routeId": 41
+    },
+    {
+      "id": 8831156,
+      "title": "29B-058.89",
+      "routeId": 41
+    },
+    {
+      "id": 8830946,
+      "title": "29B-058.21",
+      "routeId": 41
+    },
+    {
+      "id": 232854,
+      "title": "29B-516.18",
+      "routeId": 51
+    },
+    {
+      "id": 232857,
+      "title": "29B-516.56",
+      "routeId": 51
+    },
+    {
+      "id": 232847,
+      "title": "29B-513.81",
+      "routeId": 51
+    },
+    {
+      "id": 232851,
+      "title": "29B-515.36",
+      "routeId": 51
+    },
+    {
+      "id": 232858,
+      "title": "29B-517.94",
+      "routeId": 51
+    },
+    {
+      "id": 232848,
+      "title": "29B-514.68",
+      "routeId": 51
+    },
+    {
+      "id": 232852,
+      "title": "29B-515.24",
+      "routeId": 51
+    },
+    {
+      "id": 232850,
+      "title": "29B-515.80",
+      "routeId": 51
+    },
+    {
+      "id": 232846,
+      "title": "29B-513.76",
+      "routeId": 51
+    },
+    {
+      "id": 232855,
+      "title": "29B-516.03",
+      "routeId": 51
+    },
+    {
+      "id": 232853,
+      "title": "29B-516.34",
+      "routeId": 51
+    },
+    {
+      "id": 8815476,
+      "title": "29G-013.25",
+      "routeId": 51
+    },
+    {
+      "id": 1151725,
+      "title": "29F-019.84",
+      "routeId": 101103
+    },
+    {
+      "id": 1151800,
+      "title": "29F-007.71",
+      "routeId": 101103
+    },
+    {
+      "id": 1151757,
+      "title": "29F-020.25",
+      "routeId": 101103
+    },
+    {
+      "id": 7026059,
+      "title": "29F-018.05",
+      "routeId": 101103
+    },
+    {
+      "id": 1151731,
+      "title": "29F-008.82",
+      "routeId": 101103
+    },
+    {
+      "id": 8833461,
+      "title": "29H-938.39",
+      "routeId": 101103
+    },
+    {
+      "id": 7117337,
+      "title": "29F-024.73",
+      "routeId": 101103
+    },
+    {
+      "id": 1867214,
+      "title": "29F-008.63",
+      "routeId": 101103
+    },
+    {
+      "id": 7026066,
+      "title": "29F-018.22",
+      "routeId": 101103
+    },
+    {
+      "id": 8831109,
+      "title": "29H-935.10",
+      "routeId": 101103
+    },
+    {
+      "id": 8024670,
+      "title": "29F-007.94",
+      "routeId": 101103
+    },
+    {
+      "id": 233222,
+      "busId": "29B14823",
+      "routeId": 918,
+      "title": "29B-148.23",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233231,
+      "busId": "29B14832",
+      "routeId": 918,
+      "title": "29B-148.32",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233224,
+      "busId": "29B15012",
+      "routeId": 918,
+      "title": "29B-150.12",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233237,
+      "busId": "29B15032",
+      "routeId": 918,
+      "title": "29B-150.32",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233238,
+      "busId": "29B15057",
+      "routeId": 918,
+      "title": "29B-150.57",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233232,
+      "busId": "29B15058",
+      "routeId": 918,
+      "title": "29B-150.58",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233236,
+      "busId": "29B15301",
+      "routeId": 918,
+      "title": "29B-153.01",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233246,
+      "busId": "29B15306",
+      "routeId": 918,
+      "title": "29B-153.06",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233233,
+      "busId": "29B15338",
+      "routeId": 918,
+      "title": "29B-153.38",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233219,
+      "busId": "29B15342",
+      "routeId": 918,
+      "title": "29B-153.42",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 8835411,
+      "busId": "29B15350",
+      "routeId": 22,
+      "title": "29B-153.50",
+      "description": "Tuyến 22A: Bến xe Gia Lâm - Khu đô thị Kiến Hưng"
+    },
+    {
+      "id": 8835420,
+      "busId": "29B15358",
+      "routeId": 22,
+      "title": "29B-153.58",
+      "description": "Tuyến 22A: Bến xe Gia Lâm - Khu đô thị Kiến Hưng"
+    },
+    {
+      "id": 233249,
+      "busId": "29B15421",
+      "routeId": 918,
+      "title": "29B-154.21",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233227,
+      "busId": "29B15443",
+      "routeId": 918,
+      "title": "29B-154.43",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233241,
+      "busId": "29B15456",
+      "routeId": 918,
+      "title": "29B-154.56",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233250,
+      "busId": "29B15459",
+      "routeId": 918,
+      "title": "29B-154.59",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 233234,
+      "busId": "29B15472",
+      "routeId": 918,
+      "title": "29B-154.72",
+      "description": "Tuyến BRT01: Bến xe Yên Nghĩa - Kim Mã"
+    },
+    {
+      "id": 8110132,
+      "busId": "29B41538",
+      "routeId": 835,
+      "title": "29B-415.38",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
+      "id": 232637,
+      "busId": "29B41702",
+      "routeId": 835,
+      "title": "29B-417.02",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
+      "id": 8555620,
+      "busId": "29B41764",
+      "routeId": 835,
+      "title": "29B-417.64",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
+      "id": 232638,
+      "busId": "29B41789",
+      "routeId": 835,
+      "title": "29B-417.89",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
+      "id": 232639,
+      "busId": "29B41843",
+      "routeId": 835,
+      "title": "29B-418.43",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
+      "id": 232640,
+      "busId": "29B41868",
+      "routeId": 835,
+      "title": "29B-418.68",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
+      "id": 232641,
+      "busId": "29B41884",
+      "routeId": 835,
+      "title": "29B-418.84",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
+      "id": 232642,
+      "busId": "29B41889",
+      "routeId": 835,
+      "title": "29B-418.89",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
+      "id": 232644,
+      "busId": "29B41897",
+      "routeId": 835,
+      "title": "29B-418.97",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
+      "id": 232645,
+      "busId": "29B41901",
+      "routeId": 835,
+      "title": "29B-419.01",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
       "id": 8830850,
       "busId": "29E69011",
       "routeId": 426,
@@ -255,6 +1116,83 @@
       "routeId": 426,
       "title": "29E-690.19",
       "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8834029,
+      "busId": "29E86491",
+      "routeId": 30000184,
+      "title": "29E-864.91",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8829909,
+      "busId": "29F00710",
+      "routeId": 30000184,
+      "title": "29F-007.10",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 1151805,
+      "busId": "29F00741",
+      "routeId": 101103,
+      "title": "29F-007.41",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 8830310,
+      "busId": "29F01868",
+      "routeId": 30000184,
+      "title": "29F-018.68",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 1867212,
+      "busId": "29F01880",
+      "routeId": 101103,
+      "title": "29F-018.80",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 8830054,
+      "busId": "29F01935",
+      "routeId": 101103,
+      "title": "29F-019.35",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 1151831,
+      "busId": "29F02012",
+      "routeId": 101103,
+      "title": "29F-020.12",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 8831829,
+      "busId": "29H91012",
+      "routeId": 101103,
+      "title": "29H-910.12",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 8829922,
+      "busId": "29H91507",
+      "routeId": 30000184,
+      "title": "29H-915.07",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8833931,
+      "busId": "29H91869",
+      "routeId": 101103,
+      "title": "29H-918.69",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 8829798,
+      "busId": "29H91934",
+      "routeId": 30000184,
+      "title": "29H-919.34",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
     },
     {
       "id": 8830832,
@@ -325,15 +1263,118 @@
       "routeId": 426,
       "title": "29E-690.85",
       "description": "Tuyến 26: Mai Động - Sân Vận Động Quốc gia"
+    },
+    {
+      "id": 8834028,
+      "busId": "29E86449",
+      "routeId": 30000184,
+      "title": "29E-864.49",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8834025,
+      "busId": "29E86455",
+      "routeId": 30000184,
+      "title": "29E-864.55",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8834026,
+      "busId": "29E86457",
+      "routeId": 30000184,
+      "title": "29E-864.57",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8825702,
+      "busId": "29F00537",
+      "routeId": 835,
+      "title": "29F-005.37",
+      "description": "Tuyến 35B: Nam Thăng Long - Thanh Lâm (Mê Linh)"
+    },
+    {
+      "id": 1151724,
+      "busId": "29F00725",
+      "routeId": 101103,
+      "title": "29F-007.25",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 1151727,
+      "busId": "29F00836",
+      "routeId": 101103,
+      "title": "29F-008.36",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 8830770,
+      "busId": "29F02084",
+      "routeId": 30000184,
+      "title": "29F-020.84",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8831247,
+      "busId": "29F02092",
+      "routeId": 30000184,
+      "title": "29F-020.92",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8829811,
+      "busId": "29H90446",
+      "routeId": 30000184,
+      "title": "29H-904.46",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8829797,
+      "busId": "29H93500",
+      "routeId": 30000184,
+      "title": "29H-935.00",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8829801,
+      "busId": "29H93555",
+      "routeId": 30000184,
+      "title": "29H-935.55",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8831063,
+      "busId": "29H93569",
+      "routeId": 101103,
+      "title": "29H-935.69",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 8831075,
+      "busId": "29H93570",
+      "routeId": 101103,
+      "title": "29H-935.70",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 8829904,
+      "busId": "29H93584",
+      "routeId": 30000184,
+      "title": "29H-935.84",
+      "description": "Tuyến E07TC: Long Biên - Hòa Lạc"
+    },
+    {
+      "id": 8831061,
+      "busId": "29H93622",
+      "routeId": 101103,
+      "title": "29H-936.22",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
+    },
+    {
+      "id": 8835270,
+      "busId": "29H93865",
+      "routeId": 101103,
+      "title": "29H-938.65",
+      "description": "Tuyến E01: Bến xe Mỹ Đình - Khu đô thị Ocean Park"
     }
-  ],
-  "operating_hours": {
-    "start": "05:00",
-    "end": "22:00"
-  },
-  "crawler_intervals": {
-    "bus_telemetry_seconds": 60,
-    "tomtom_peak_seconds": 360,
-    "tomtom_offpeak_seconds": 720
-  }
+  ]
 }

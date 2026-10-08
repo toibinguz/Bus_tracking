@@ -1,7 +1,12 @@
 """
-Production Multi-Tier Crawler for HUST Bus Cluster (5 Routes, 52 Buses)
+Production Multi-Tier Crawler for HUST Corridor Cluster (220 Buses, 19 Routes)
 Author: Antigravity Big Data Architecture Team
-Target Operating Schedule: 05:00 - 22:00 (Daily) or 24/7 with flag
+Features:
+- 220 Corridor Buses with Smooth Micro-Batch Pacing (~4 req/s, Flat CPU)
+- Stateful TomTom Quota Persistence & CLI Progress Dashboard
+- Real-time Data Quality & Sanity Guard (Depot/Stale/Geofence/Reassigned)
+- Automated Hugging Face Cloud Synchronization Every 10 Minutes
+- Auto Operating Schedule: 05:00 - 22:00 (Sleeps safely at night)
 """
 
 import os
@@ -26,10 +31,19 @@ TOMTOM_OUTPUT_DIR = "data/raw/traffic"
 API_KEY_FILE = "Test_tomtom/TOMTOM_API_KEY.txt"
 HF_TOKEN_FILE = "access_token_hf.txt"
 HF_DATASET_ID = os.environ.get("HF_DATASET_ID", "Toibinguz/hust-bus-data")
+TOMTOM_QUOTA_FILE = "data/metadata/tomtom_quota_tracker.json"
 
-BUS_POLL_INTERVAL = 60 # seconds (each bus cycle)
-HF_SYNC_INTERVAL = 600 # seconds (sync to Cloud every 10 mins if token available)
+BUS_POLL_INTERVAL = 60  # seconds (target cycle)
+HF_SYNC_INTERVAL = 600  # seconds (sync to Cloud every 10 mins)
 MAX_TOMTOM_DAILY = 2200
+
+# Geographic bounding box for Hanoi Urban Core
+HANOI_BBOX = {
+    "min_lat": 20.80,
+    "max_lat": 21.30,
+    "min_lon": 105.65,
+    "max_lon": 106.05
+}
 
 # Top 19 critical bottlenecks for HUST cluster routes
 HUST_BOTTLENECK_NODES = [
@@ -78,6 +92,45 @@ def get_hf_token():
             return f.read().strip()
     return os.environ.get("HF_TOKEN", "")
 
+def load_tomtom_quota_state():
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    if os.path.exists(TOMTOM_QUOTA_FILE):
+        try:
+            with open(TOMTOM_QUOTA_FILE, "r", encoding="utf-8") as f:
+                state = json.load(f)
+                if state.get("date") == today_str:
+                    return state.get("used_today", 0)
+        except Exception:
+            pass
+    return 0
+
+def save_tomtom_quota_state(used_today):
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    os.makedirs(os.path.dirname(TOMTOM_QUOTA_FILE), exist_ok=True)
+    state = {
+        "date": today_str,
+        "daily_limit": MAX_TOMTOM_DAILY,
+        "used_today": used_today,
+        "remaining_today": max(0, MAX_TOMTOM_DAILY - used_today),
+        "last_updated": datetime.now().strftime("%H:%M:%S")
+    }
+    try:
+        with open(TOMTOM_QUOTA_FILE, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+def render_tomtom_cli_bar(used, limit, next_poll_seconds):
+    percent = min(1.0, used / float(limit))
+    bar_width = 16
+    filled = int(percent * bar_width)
+    empty = bar_width - filled
+    bar_str = "█" * filled + "░" * empty
+    remaining = max(0, limit - used)
+    pct_str = f"{percent * 100:.1f}%"
+    countdown_str = f"{int(next_poll_seconds // 60):02d}:{int(next_poll_seconds % 60):02d}s" if next_poll_seconds > 0 else "Sẵn sàng"
+    return f"🚦 TomTom: [{bar_str}] {used}/{limit} ({pct_str}) | Còn: {remaining:,} reqs | Đợt tới: {countdown_str}"
+
 def sync_to_hf(local_bus_file, local_traffic_file, date_str, token):
     if not token:
         return
@@ -108,7 +161,7 @@ def sync_to_hf(local_bus_file, local_traffic_file, date_str, token):
     except Exception as e:
         print(f"   ⚠️ [HF-Sync] Tạm thời chưa đẩy được lên Cloud ({e}). Dữ liệu đã lưu an toàn tại máy.", flush=True)
 
-def fetch_single_bus(vehicle_id):
+def fetch_single_bus_raw(vehicle_id):
     raw_req = (
         f"GET /v2/public/busmap/vehicle_hn/get?id={vehicle_id} HTTP/1.1\r\n"
         "Host: api.busmap.city\r\n"
@@ -119,7 +172,7 @@ def fetch_single_bus(vehicle_id):
         "Connection: close\r\n\r\n"
     )
     try:
-        with socket.create_connection(("api.busmap.city", 443), timeout=3) as s:
+        with socket.create_connection(("api.busmap.city", 443), timeout=3.5) as s:
             with ssl_context.wrap_socket(s, server_hostname="api.busmap.city") as ss:
                 ss.sendall(raw_req.encode("utf-8"))
                 resp = b""
@@ -136,9 +189,69 @@ def fetch_single_bus(vehicle_id):
         return None
     return None
 
+def sanitize_and_validate_telemetry(raw, vid, target_route_ids, last_updates_cache, crawl_time_iso):
+    """
+    Chuẩn hóa dữ liệu thực tế và gắn cờ kiểm soát chất lượng (Quality Status)
+    Xử lý: Đảo trục tọa độ BusMap, xe đỗ bãi, trôi GPS, xe đổi tuyến, ping đông cứng
+    """
+    if not raw:
+        return None
+
+    # 1. BusMap đảo ngược Lat và Lng: raw["Lat"] là Kinh độ (Lon), raw["Lng"] là Vĩ độ (Lat)
+    try:
+        std_lon = float(raw.get("Lat", 0.0))
+        std_lat = float(raw.get("Lng", 0.0))
+    except (ValueError, TypeError):
+        return None
+
+    speed = float(raw.get("Speed", 0.0))
+    direction = int(raw.get("direction", 0))
+    route_id = int(raw.get("RouteId", 0))
+    last_update = raw.get("lastUpdateTime", "")
+    station_id = raw.get("currentStationId", 0)
+
+    # 2. Đánh giá chất lượng thực tế
+    quality_status = "ACTIVE_VALID"
+
+    # Edge Case A: Xe nằm bãi / Đỗ nghỉ đầu bến
+    if direction == -1 and speed == 0 and station_id == 0:
+        quality_status = "IDLE_DEPOT"
+    # Edge Case B: Tọa độ nằm ngoài phạm vi đô thị Hà Nội (Geofence)
+    elif not (HANOI_BBOX["min_lat"] <= std_lat <= HANOI_BBOX["max_lat"] and
+              HANOI_BBOX["min_lon"] <= std_lon <= HANOI_BBOX["max_lon"]):
+        quality_status = "OUT_OF_BOUNDS"
+    # Edge Case C: Xe bị điều động luân chuyển sang tuyến ngoài hành lang
+    elif route_id not in target_route_ids:
+        quality_status = "REASSIGNED_ROUTE"
+    # Edge Case D: Vận tốc dị thường (trôi GPS hầm chui / cầu vượt)
+    elif speed > 90.0:
+        quality_status = "SPEED_ANOMALY"
+    # Edge Case E: Ping đông cứng (mất sóng trên xe, server trả tọa độ cũ)
+    elif vid in last_updates_cache and last_updates_cache[vid] == last_update:
+        quality_status = "STALE_PING"
+
+    last_updates_cache[vid] = last_update
+
+    clean_record = {
+        "vehicle_id": vid,
+        "plate": raw.get("VehicleNumber", ""),
+        "route_id": route_id,
+        "lat": round(std_lat, 6),
+        "lon": round(std_lon, 6),
+        "speed": speed,
+        "direction": direction,
+        "heading_deg": raw.get("Deg", 0),
+        "current_station_id": station_id,
+        "next_station_id": raw.get("nextStationId", 0),
+        "device_update_time": last_update,
+        "crawled_at": crawl_time_iso,
+        "quality_status": quality_status
+    }
+    return clean_record
+
 def fetch_tomtom_flow(lat, lon, api_key):
     url = f"https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/10/json?key={api_key}&point={lat},{lon}&unit=KMPH"
-    req = urllib.request.Request(url, headers={"User-Agent": "HUSTBusCrawler/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "HUSTBusCrawler/2.0"})
     try:
         with urllib.request.urlopen(req, context=ssl_context, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
@@ -152,33 +265,37 @@ def main():
 
     os.makedirs(BUS_OUTPUT_DIR, exist_ok=True)
     os.makedirs(TOMTOM_OUTPUT_DIR, exist_ok=True)
+    os.makedirs("data/metadata", exist_ok=True)
 
     if not os.path.exists(CONFIG_FILE):
-        print(f"[ERROR] Chua tim thay file cau hinh: {CONFIG_FILE}")
+        print(f"[ERROR] Chua tim thay file cau hinh: {CONFIG_FILE}", flush=True)
         return
 
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         config = json.load(f)
 
     target_vehicles = config.get("vehicles", [])
+    target_route_ids = set(config.get("target_route_ids", []))
     v_ids = [v["id"] for v in target_vehicles if "id" in v]
     tomtom_key = get_tomtom_api_key()
     hf_token = get_hf_token()
 
-    print("=" * 70, flush=True)
-    print("🚀 HỆ THỐNG CRAWLER 24/7 - CỤM TUYẾN BÁCH KHOA (HUST CLUSTER)", flush=True)
-    print(f"📍 Tuyến theo dõi: 32, 31, 08A, 26, 21A ({len(v_ids)} xe buýt)", flush=True)
+    daily_tomtom_count = load_tomtom_quota_state()
+    current_day = datetime.now().day
+    last_tomtom_poll = 0
+    last_hf_sync = time.time()
+    last_updates_cache = {}  # {vid: lastUpdateTime}
+    round_no = 1
+
+    print("=" * 75, flush=True)
+    print("🚀 HỆ THỐNG CRAWLER 24/7 - MẠNG LƯỚI HÀNH LANG BÁCH KHOA (220 XE BUÝT)", flush=True)
+    print(f"📍 Quy mô theo dõi: {len(target_route_ids)} tuyến hành lang ({len(v_ids)} xe buýt probe)", flush=True)
+    print(f"🌊 Cơ chế Pacing: Trải đều 55 micro-batches (~4 req/s liên tục, không dồn burst)", flush=True)
     print(f"🚦 Điểm nghẽn TomTom: {len(HUST_BOTTLENECK_NODES)} nút giao trọng yếu", flush=True)
     print(f"⏰ Khung giờ hoạt động: {'24/7 (Bắt buộc)' if run_24x7 else '05:00 - 22:00 (Tự động ngủ ban đêm)'}", flush=True)
     print(f"🔑 TomTom API Key: {'Đã nạp' if tomtom_key else 'Thiếu key'}", flush=True)
     print(f"☁️ Cloud Sync (Hugging Face): {'Đã kích hoạt (Mỗi 10 phút)' if hf_token else 'Tắt (Lưu 100% trong máy)'}", flush=True)
-    print("=" * 70, flush=True)
-
-    daily_tomtom_count = 0
-    current_day = datetime.now().day
-    last_tomtom_poll = 0
-    last_hf_sync = time.time()
-    round_no = 1
+    print("=" * 75, flush=True)
 
     while True:
         try:
@@ -186,12 +303,13 @@ def main():
             # Reset counter on new day
             if now.day != current_day:
                 daily_tomtom_count = 0
+                save_tomtom_quota_state(daily_tomtom_count)
                 current_day = now.day
 
             # Check operating hours
             if not is_operating_hours(run_24x7):
                 print(f"[{now.strftime('%H:%M:%S')}] 🌙 Ngoài khung giờ xe buýt (22:00 - 05:00). Hệ thống nghỉ ngơi...", flush=True)
-                time.sleep(300) # Sleep 5 minutes and check again
+                time.sleep(300)
                 continue
 
             round_start = time.time()
@@ -200,30 +318,61 @@ def main():
             bus_out_file = os.path.join(BUS_OUTPUT_DIR, f"bus_telemetry_{date_str}_{hour_str}.jsonl")
             traffic_out_file = os.path.join(TOMTOM_OUTPUT_DIR, f"tomtom_flow_{date_str}.jsonl")
 
-            # 1. CRAWL 52 BUSES
+            # -------------------------------------------------------------
+            # 1. CRAWL 220 BUSES VỚI CƠ CHẾ PACING TRẢI ĐỀU (MICRO-BATCHING)
+            # -------------------------------------------------------------
             bus_records = []
-            with ThreadPoolExecutor(max_workers=6) as executor:
-                futures = {executor.submit(fetch_single_bus, vid): vid for vid in v_ids}
-                for fut in futures:
-                    res = fut.result()
-                    if res:
-                        res["crawled_at"] = now.isoformat()
-                        bus_records.append(res)
-                    time.sleep(0.03)
+            active_count = 0
+            depot_count = 0
+            stale_count = 0
 
+            # Chia 220 xe thành các micro-batch 4 xe
+            batch_size = 4
+            micro_batches = [v_ids[i:i + batch_size] for i in range(0, len(v_ids), batch_size)]
+            
+            # Pacing delay giữa các micro-batch (55 batches x ~0.95s ≈ 52 giây)
+            micro_delay = 0.05 if single_test else 0.95
+
+            for b_idx, batch in enumerate(micro_batches):
+                with ThreadPoolExecutor(max_workers=batch_size) as executor:
+                    futures = {executor.submit(fetch_single_bus_raw, vid): vid for vid in batch}
+                    for fut in futures:
+                        vid = futures[fut]
+                        raw_res = fut.result()
+                        if raw_res:
+                            clean_rec = sanitize_and_validate_telemetry(
+                                raw_res, vid, target_route_ids, last_updates_cache, now.isoformat()
+                            )
+                            if clean_rec:
+                                bus_records.append(clean_rec)
+                                status = clean_rec["quality_status"]
+                                if status == "ACTIVE_VALID":
+                                    active_count += 1
+                                elif status == "IDLE_DEPOT":
+                                    depot_count += 1
+                                elif status == "STALE_PING":
+                                    stale_count += 1
+
+                # Nghỉ đệm pacing mượt mà
+                time.sleep(micro_delay)
+
+            # Lưu file dữ liệu xe buýt cục bộ
             if bus_records:
                 with open(bus_out_file, "a", encoding="utf-8") as f:
                     for rec in bus_records:
                         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
-            # 2. CRAWL TOMTOM BOTTLENECKS (Peak: every 6 mins, Off-peak: every 12 mins)
+            # -------------------------------------------------------------
+            # 2. CRAWL TOMTOM BOTTLENECKS (Theo lịch biểu đỉnh / ngoài đỉnh)
+            # -------------------------------------------------------------
             hour_val = now.hour + now.minute / 60.0
             is_peak = (6.5 <= hour_val <= 9.0) or (16.5 <= hour_val <= 19.5)
-            tomtom_interval = 360 if is_peak else 720 # 6 mins or 12 mins
+            tomtom_interval = 360 if is_peak else 720  # 6 phút hoặc 12 phút
+            next_tomtom_in = max(0, tomtom_interval - (time.time() - last_tomtom_poll))
 
             tomtom_sampled = 0
-            if tomtom_key and (time.time() - last_tomtom_poll >= tomtom_interval):
-                if daily_tomtom_count + len(HUST_BOTTLENECK_NODES) < MAX_TOMTOM_DAILY:
+            if tomtom_key and (time.time() - last_tomtom_poll >= tomtom_interval or (single_test and round_no == 1)):
+                if daily_tomtom_count + len(HUST_BOTTLENECK_NODES) <= MAX_TOMTOM_DAILY:
                     traffic_records = []
                     for node in HUST_BOTTLENECK_NODES:
                         flow_res = fetch_tomtom_flow(node["lat"], node["lon"], tomtom_key)
@@ -240,38 +389,51 @@ def main():
                                 "travel_time": flow_res.get("currentTravelTime"),
                                 "confidence": flow_res.get("confidence")
                             })
-                        time.sleep(0.1) # 100ms throttle
+                        time.sleep(0.08)  # 80ms throttle
 
                     if traffic_records:
                         with open(traffic_out_file, "a", encoding="utf-8") as f:
                             for tr in traffic_records:
                                 f.write(json.dumps(tr, ensure_ascii=False) + "\n")
-                    last_tomtom_poll = time.time()
 
+                    last_tomtom_poll = time.time()
+                    save_tomtom_quota_state(daily_tomtom_count)
+                    next_tomtom_in = tomtom_interval
+
+            # -------------------------------------------------------------
+            # 3. TRÌNH DIỄN DASHBOARD CLI TRỰC QUAN
+            # -------------------------------------------------------------
             elapsed = time.time() - round_start
-            tomtom_info = f"TomTom: +{tomtom_sampled} reqs ({daily_tomtom_count}/{MAX_TOMTOM_DAILY})" if tomtom_sampled > 0 else f"TomTom: Chờ chu kỳ ({daily_tomtom_count}/{MAX_TOMTOM_DAILY})"
-            print(f"[{now.strftime('%H:%M:%S')}] [Vòng {round_no:03d}] 🚌 Xe buýt: {len(bus_records)}/{len(v_ids)} xe hoạt động | {tomtom_info} | {elapsed:.1f}s", flush=True)
+            tt_dashboard = render_tomtom_cli_bar(daily_tomtom_count, MAX_TOMTOM_DAILY, next_tomtom_in)
+            
+            print(f"[{now.strftime('%H:%M:%S')}] [Vòng {round_no:03d}] "
+                  f"🚌 Xe buýt: {len(bus_records)}/{len(v_ids)} phản hồi "
+                  f"({active_count} lăn bánh, {depot_count} đỗ bãi, {stale_count} lặp) | "
+                  f"{elapsed:.1f}s", flush=True)
+            print(f"   {tt_dashboard}", flush=True)
             round_no += 1
 
-            # 3. PERIODIC CLOUD SYNC (Mỗi 10 phút hoặc khi test)
+            # -------------------------------------------------------------
+            # 4. ĐỒNG BỘ ĐỊNH KỲ LÊN HUGGING FACE DATASET
+            # -------------------------------------------------------------
             if hf_token and (time.time() - last_hf_sync >= HF_SYNC_INTERVAL or single_test):
                 sync_to_hf(bus_out_file, traffic_out_file, date_str, hf_token)
                 last_hf_sync = time.time()
 
             if single_test:
-                print("\n[INFO] Test run 1 vòng hoàn tất thành công! Dừng tiến trình.", flush=True)
+                print("\n[INFO] Test run 1 vòng 220 xe hoàn tất thành công! Dừng tiến trình.", flush=True)
                 break
 
-            sleep_wait = max(5, BUS_POLL_INTERVAL - elapsed)
+            sleep_wait = max(3, BUS_POLL_INTERVAL - elapsed)
             time.sleep(sleep_wait)
 
         except KeyboardInterrupt:
             print("\n[INFO] Người dùng bấm Ctrl+C. Đang dừng Crawler an toàn...", flush=True)
+            save_tomtom_quota_state(daily_tomtom_count)
             break
         except Exception as err:
-            print(f"⚠️ [CẢNH BÁO] Có lỗi tạm thời trong vòng lặp ({err}). Tự động tiếp tục sau 10s...", flush=True)
-            time.sleep(10)
+            print(f"⚠️ [CẢNH BÁO] Có lỗi tạm thời trong vòng lặp ({err}). Tự động tiếp tục sau 5s...", flush=True)
+            time.sleep(5)
 
 if __name__ == "__main__":
     main()
-
