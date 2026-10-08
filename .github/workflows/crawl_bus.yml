@@ -2,9 +2,9 @@ name: HUST Bus Cluster 24x7 Cloud Crawler
 
 on:
   schedule:
-    # Chạy mỗi 10 phút (UTC: 22h tối đến 15h chiều = 05h sáng đến 22h tối giờ Hà Nội)
-    - cron: '*/10 22-23,0-15 * * *'
-  workflow_dispatch: # Cho phép bấm nút 'Run workflow' thủ công trên web GitHub để test
+    # Chạy tự động mỗi 10 phút (Logic giờ Hà Nội 05:00 - 22:00 do script Python tự kiểm soát)
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Cho phép bấm nút 'Run workflow' thủ công bất cứ lúc nào
 
 jobs:
   crawl_and_sync:
