@@ -133,24 +133,25 @@ def is_peak_hours(hn_time=None):
     else:
         return (7.5 <= hour_val <= 9.5) or (17.0 <= hour_val <= 19.0)
 
-# -------------------------------------------------------------
-# 7. DEVICE IDENTIFIERS & CREDENTIALS
-# -------------------------------------------------------------
+import threading
+_DEVICE_ID_LOCK = threading.Lock()
 _CURRENT_BUSMAP_DEVICE_ID = None
 
 def get_busmap_device_id(force_rotate=False):
     """
     Lấy device-id giả lập Android (16 hex chars).
     Nếu bị 429 LOCKED hoặc force_rotate=True, tự động sinh mã mới để vượt qua giới hạn rate-limit per-device.
+    Được bảo vệ bởi threading.Lock() để an toàn tuyệt đối khi chạy đa luồng.
     """
     global _CURRENT_BUSMAP_DEVICE_ID
     env_id = os.environ.get("BUSMAP_DEVICE_ID")
     if env_id and not force_rotate:
         return env_id
-    if _CURRENT_BUSMAP_DEVICE_ID is None or force_rotate:
-        import uuid
-        _CURRENT_BUSMAP_DEVICE_ID = uuid.uuid4().hex[:16]
-    return _CURRENT_BUSMAP_DEVICE_ID
+    with _DEVICE_ID_LOCK:
+        if _CURRENT_BUSMAP_DEVICE_ID is None or force_rotate:
+            import uuid
+            _CURRENT_BUSMAP_DEVICE_ID = uuid.uuid4().hex[:16]
+        return _CURRENT_BUSMAP_DEVICE_ID
 
 def get_tomtom_api_key():
     """Lấy TomTom API Key từ biến môi trường hoặc file cục bộ."""
