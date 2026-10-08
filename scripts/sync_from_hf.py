@@ -67,8 +67,12 @@ def main():
     copied_files = 0
     import shutil
     for chunk in all_chunks:
-        is_bus = "\\bus\\" in chunk or "/bus/" in chunk
-        category = "bus" if is_bus else "traffic"
+        if "\\bus\\" in chunk or "/bus/" in chunk:
+            category = "bus"
+        elif "\\incidents\\" in chunk or "/incidents/" in chunk:
+            category = "incidents"
+        else:
+            category = "traffic"
         
         target_dir = os.path.join(LOCAL_RAW_DIR, category)
         os.makedirs(target_dir, exist_ok=True)
