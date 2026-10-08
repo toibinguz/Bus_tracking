@@ -1,7 +1,11 @@
 """
 Single-step Cloud Crawler for GitHub Actions -> Hugging Face Dataset
 Author: Antigravity Big Data Architecture Team
-Target: Run every 5-10 minutes on GitHub Actions runner
+Upgrades:
+- 220 Corridor Buses with Micro-batch Pacing (~4 req/s, Anti-WAF Stealth)
+- Real-time Data Quality & Sanity Guard (Standard WGS84, Depot, Stale, Geofence)
+- Two-tier TomTom Dynamic Governor (Peak: every 9m, Off-peak: every 18m -> ~1,380 calls/day)
+- Native Zero-Dependency HF Commit API (No pip install required)
 """
 
 import os
@@ -10,11 +14,11 @@ import json
 import time
 import socket
 import ssl
+import base64
 import urllib.request
 from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
-# Force UTF-8 encoding
 if sys.stdout.encoding != 'utf-8':
     try:
         sys.stdout.reconfigure(encoding='utf-8')
@@ -36,7 +40,15 @@ if not HF_TOKEN and os.path.exists("access_token_hf.txt"):
     with open("access_token_hf.txt", "r", encoding="utf-8") as f:
         HF_TOKEN = f.read().strip()
 
-# Bottlenecks around HUST routes
+# Geographic bounding box for Hanoi Urban Core
+HANOI_BBOX = {
+    "min_lat": 20.80,
+    "max_lat": 21.30,
+    "min_lon": 105.65,
+    "max_lon": 106.05
+}
+
+# Top 19 critical bottlenecks for HUST cluster routes
 HUST_BOTTLENECK_NODES = [
     {"name": "Kim_Lien_Ham_Chui", "lat": 21.0084, "lon": 105.8427},
     {"name": "Dai_Co_Viet_Pho_Hue", "lat": 21.0092, "lon": 105.8503},
@@ -71,7 +83,7 @@ def is_operating_hours(hn_time):
     hour = hn_time.hour + hn_time.minute / 60.0
     return 5.0 <= hour <= 22.0
 
-def fetch_single_bus(v_id):
+def fetch_single_bus_raw(v_id):
     raw_req = (
         f"GET /v2/public/busmap/vehicle_hn/get?id={v_id} HTTP/1.1\r\n"
         "Host: api.busmap.city\r\n"
@@ -82,7 +94,7 @@ def fetch_single_bus(v_id):
         "Connection: close\r\n\r\n"
     )
     try:
-        with socket.create_connection(("api.busmap.city", 443), timeout=3) as s:
+        with socket.create_connection(("api.busmap.city", 443), timeout=3.5) as s:
             with ssl_context.wrap_socket(s, server_hostname="api.busmap.city") as ss:
                 ss.sendall(raw_req.encode("utf-8"))
                 resp = b""
@@ -99,9 +111,57 @@ def fetch_single_bus(v_id):
         return None
     return None
 
+def sanitize_and_validate_telemetry(raw, vid, target_route_ids, last_updates_cache, crawl_time_iso):
+    if not raw:
+        return None
+
+    try:
+        std_lon = float(raw.get("Lat", 0.0))
+        std_lat = float(raw.get("Lng", 0.0))
+    except (ValueError, TypeError):
+        return None
+
+    speed = float(raw.get("Speed", 0.0))
+    direction = int(raw.get("direction", 0))
+    route_id = int(raw.get("RouteId", 0))
+    last_update = raw.get("lastUpdateTime", "")
+    station_id = raw.get("currentStationId", 0)
+
+    quality_status = "ACTIVE_VALID"
+
+    if direction == -1 and speed == 0 and station_id == 0:
+        quality_status = "IDLE_DEPOT"
+    elif not (HANOI_BBOX["min_lat"] <= std_lat <= HANOI_BBOX["max_lat"] and
+              HANOI_BBOX["min_lon"] <= std_lon <= HANOI_BBOX["max_lon"]):
+        quality_status = "OUT_OF_BOUNDS"
+    elif route_id not in target_route_ids:
+        quality_status = "REASSIGNED_ROUTE"
+    elif speed > 90.0:
+        quality_status = "SPEED_ANOMALY"
+    elif vid in last_updates_cache and last_updates_cache[vid] == last_update:
+        quality_status = "STALE_PING"
+
+    last_updates_cache[vid] = last_update
+
+    return {
+        "vehicle_id": vid,
+        "plate": raw.get("VehicleNumber", ""),
+        "route_id": route_id,
+        "lat": round(std_lat, 6),
+        "lon": round(std_lon, 6),
+        "speed": speed,
+        "direction": direction,
+        "heading_deg": raw.get("Deg", 0),
+        "current_station_id": station_id,
+        "next_station_id": raw.get("nextStationId", 0),
+        "device_update_time": last_update,
+        "crawled_at": crawl_time_iso,
+        "quality_status": quality_status
+    }
+
 def fetch_tomtom_flow(lat, lon, api_key):
     url = f"https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/10/json?key={api_key}&point={lat},{lon}&unit=KMPH"
-    req = urllib.request.Request(url, headers={"User-Agent": "GitHubActionsBusCrawler/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "GitHubActionsBusCrawler/2.0"})
     try:
         with urllib.request.urlopen(req, context=ssl_context, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
@@ -109,13 +169,74 @@ def fetch_tomtom_flow(lat, lon, api_key):
     except Exception:
         return None
 
+def upload_batches_to_hf_native(bus_chunk, traffic_chunk, date_tag, time_tag, token):
+    if not token or not HF_DATASET_ID:
+        print("[INFO] Khong co HF_TOKEN hoac HF_DATASET_ID. Chi ghi file cuc bo.", flush=True)
+        return
+
+    operations = []
+
+    if bus_chunk and os.path.exists(bus_chunk):
+        with open(bus_chunk, "rb") as f:
+            b_bytes = f.read()
+        if b_bytes:
+            operations.append({
+                "key": "file",
+                "value": {
+                    "path": f"raw_data/{date_tag}/bus/batch_{time_tag}.jsonl",
+                    "encoding": "base64",
+                    "content": base64.b64encode(b_bytes).decode("ascii")
+                }
+            })
+
+    if traffic_chunk and os.path.exists(traffic_chunk):
+        with open(traffic_chunk, "rb") as f:
+            t_bytes = f.read()
+        if t_bytes:
+            operations.append({
+                "key": "file",
+                "value": {
+                    "path": f"raw_data/{date_tag}/traffic/batch_{time_tag}.jsonl",
+                    "encoding": "base64",
+                    "content": base64.b64encode(t_bytes).decode("ascii")
+                }
+            })
+
+    if not operations:
+        return
+
+    commit_url = f"https://huggingface.co/api/datasets/{HF_DATASET_ID}/commit/main"
+    payload = {
+        "operations": operations,
+        "summary": f"Cloud Relay Batch ({date_tag} {time_tag}): {len(operations)} files"
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        commit_url,
+        data=data,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req, context=ssl_context, timeout=30) as resp:
+            if resp.getcode() == 200:
+                print(f"[OK] Da day thanh cong {len(operations)} batches len HF Dataset: {HF_DATASET_ID}", flush=True)
+            else:
+                print(f"[WARN] HF tra ve ma {resp.getcode()}", flush=True)
+    except Exception as e:
+        print(f"[WARN] Loi upload HF Dataset: {e}", flush=True)
+
 def main():
     hn_time = get_hanoi_time()
     ts_str = hn_time.strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{ts_str}] Khoi chay Cloud Crawler Phien 9 Phut tren GitHub Actions...")
+    print(f"[{ts_str}] Khoi chay Cloud Crawler Phien 9 Phut tren GitHub Actions...", flush=True)
 
     if not is_operating_hours(hn_time) and "--force" not in sys.argv:
-        print(f"[{ts_str}] Ngoai khung gio xe buyt (22:00 - 05:00). Tam dung day chuyen.")
+        print(f"[{ts_str}] Ngoai khung gio xe buyt (22:00 - 05:00). Tam dung day chuyen.", flush=True)
         with open(".stop_chain", "w") as f:
             f.write("night")
         return
@@ -126,75 +247,99 @@ def main():
         except: pass
 
     if not os.path.exists(CONFIG_FILE):
-        print(f"[ERROR] Khong tim thay {CONFIG_FILE}!")
+        print(f"[ERROR] Khong tim thay {CONFIG_FILE}!", flush=True)
         return
 
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         config = json.load(f)
     v_ids = [v["id"] for v in config.get("vehicles", []) if "id" in v]
+    target_route_ids = set(config.get("target_route_ids", []))
 
-    # Phien chay 9 phut (540s) de dat do phan giai cap do phut (moi 60s / vong)
-    SESSION_DURATION = 540 # 9 phut
+    print(f"[INFO] Khoi dong phien cào 220 xe buyt ({len(target_route_ids)} tuyen hanh lang)...", flush=True)
+
+    SESSION_DURATION = 540  # 9 phut
     session_start = time.time()
     round_no = 1
     
     all_session_bus_records = []
     traffic_records = []
-    last_tomtom_time = 0
+    last_updates_cache = {}
+
+    # Chinh sach TomTom:
+    # Gio cao diem (06:30-09:00, 16:30-19:30): Moi phien 9 phut goi 1 lan
+    # Gio thap diem: Chi goi o phien chan de gioi han ~1,380 calls/ngay (< 2,200 quota)
+    hour_val = hn_time.hour + hn_time.minute / 60.0
+    is_peak = (6.5 <= hour_val <= 9.0) or (16.5 <= hour_val <= 19.5)
+    should_query_tomtom = is_peak or ((hn_time.minute // 9) % 2 == 0)
+
+    # 1. Thu thap TomTom o dau phien neu du dieu kien
+    if TOMTOM_KEY and should_query_tomtom:
+        print(f"[{hn_time.strftime('%H:%M:%S')}] 🚦 Thu thap 19 nut giao TomTom ({'Cao diem' if is_peak else 'Thuong'})...", flush=True)
+        for node in HUST_BOTTLENECK_NODES:
+            res = fetch_tomtom_flow(node["lat"], node["lon"], TOMTOM_KEY)
+            if res:
+                traffic_records.append({
+                    "timestamp": hn_time.isoformat(),
+                    "node_name": node["name"],
+                    "lat": node["lat"],
+                    "lon": node["lon"],
+                    "current_speed": res.get("currentSpeed"),
+                    "free_flow_speed": res.get("freeFlowSpeed"),
+                    "travel_time": res.get("currentTravelTime"),
+                    "confidence": res.get("confidence")
+                })
+            time.sleep(0.08)
+
+    # 2. Vong lap cào GPS 220 xe buyt moi 60 giay voi Micro-batch Pacing
+    batch_size = 4
+    micro_batches = [v_ids[i:i + batch_size] for i in range(0, len(v_ids), batch_size)]
+    single_test = "--test" in sys.argv
 
     while (time.time() - session_start) < SESSION_DURATION:
         round_start = time.time()
         cur_hn_time = get_hanoi_time()
         round_ts = cur_hn_time.strftime("%H:%M:%S")
 
-        # 1. Thu thap GPS 52 xe buyt cap do phut
         round_bus_records = []
-        with ThreadPoolExecutor(max_workers=6) as executor:
-            futures = {executor.submit(fetch_single_bus, vid): vid for vid in v_ids}
-            for fut in futures:
-                res = fut.result()
-                if res:
-                    res["crawled_at"] = cur_hn_time.isoformat()
-                    round_bus_records.append(res)
-                time.sleep(0.02)
+        active_count = 0
+        depot_count = 0
+
+        for batch in micro_batches:
+            with ThreadPoolExecutor(max_workers=batch_size) as executor:
+                futures = {executor.submit(fetch_single_bus_raw, vid): vid for vid in batch}
+                for fut in futures:
+                    vid = futures[fut]
+                    raw_res = fut.result()
+                    if raw_res:
+                        clean_rec = sanitize_and_validate_telemetry(
+                            raw_res, vid, target_route_ids, last_updates_cache, cur_hn_time.isoformat()
+                        )
+                        if clean_rec:
+                            round_bus_records.append(clean_rec)
+                            if clean_rec["quality_status"] == "ACTIVE_VALID":
+                                active_count += 1
+                            elif clean_rec["quality_status"] == "IDLE_DEPOT":
+                                depot_count += 1
+
+            # Micro-pacing delay (~0.85s giua cac micro-batch de trai deu trong 48s)
+            if not single_test:
+                time.sleep(0.85)
 
         all_session_bus_records.extend(round_bus_records)
-
-        # 2. Thu thap TomTom (1 lan dau phien va cach nhau it nhat 360s gio cao diem / 720s gio thuong)
-        hour_val = cur_hn_time.hour + cur_hn_time.minute / 60.0
-        is_peak = (6.5 <= hour_val <= 9.0) or (16.5 <= hour_val <= 19.5)
-        tt_interval = 360 if is_peak else 720
-
-        tomtom_sampled = 0
-        if TOMTOM_KEY and (time.time() - last_tomtom_time >= tt_interval):
-            for node in HUST_BOTTLENECK_NODES:
-                res = fetch_tomtom_flow(node["lat"], node["lon"], TOMTOM_KEY)
-                if res:
-                    tomtom_sampled += 1
-                    traffic_records.append({
-                        "timestamp": cur_hn_time.isoformat(),
-                        "node_name": node["name"],
-                        "current_speed": res.get("currentSpeed"),
-                        "free_flow_speed": res.get("freeFlowSpeed"),
-                        "travel_time": res.get("currentTravelTime")
-                    })
-                time.sleep(0.08)
-            last_tomtom_time = time.time()
-
         round_elapsed = time.time() - round_start
-        print(f"[{round_ts}] [Vong {round_no:02d}] 🚌 {len(round_bus_records)}/{len(v_ids)} xe buyt | TomTom: {tomtom_sampled} nut | {round_elapsed:.1f}s")
+        print(f"[{round_ts}] [Vong {round_no:02d}] 🚌 {len(round_bus_records)}/{len(v_ids)} xe buyt "
+              f"({active_count} lan banh, {depot_count} do bai) | {round_elapsed:.1f}s", flush=True)
         round_no += 1
 
-        # Neu la test run hoac con duoi 60s la het phien thi break
-        if "--test" in sys.argv or (SESSION_DURATION - (time.time() - session_start)) < 60:
+        if single_test or (SESSION_DURATION - (time.time() - session_start)) < 60:
             break
 
-        sleep_wait = max(5, 60 - round_elapsed)
+        sleep_wait = max(3, 60 - round_elapsed)
         time.sleep(sleep_wait)
 
-    print(f"\n[SUMMARY] Ket thuc phien: Thu duoc {len(all_session_bus_records)} pings xe buyt ({round_no-1} vong) va {len(traffic_records)} ban ghi TomTom.")
+    print(f"\n[SUMMARY] Ket thuc phien: Thu duoc {len(all_session_bus_records)} pings ({round_no-1} vong) va {len(traffic_records)} ban ghi TomTom.", flush=True)
 
-    # 3. Luu file batch va day len Hugging Face Dataset
+    # 3. Ghi file batch va day len Hugging Face Dataset qua Native Commit API
     tmp_dir = "temp_cloud_output"
     os.makedirs(tmp_dir, exist_ok=True)
     date_tag = hn_time.strftime("%Y-%m-%d")
@@ -211,38 +356,7 @@ def main():
             for r in traffic_records:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    # 4. Day len Hugging Face Dataset
-    if HF_TOKEN and HF_DATASET_ID:
-        try:
-            from huggingface_hub import HfApi
-            api = HfApi(token=HF_TOKEN)
-            
-            repo_bus_path = f"raw_data/{date_tag}/bus/batch_{time_tag}.jsonl"
-            api.upload_file(
-                path_or_fileobj=bus_chunk,
-                path_in_repo=repo_bus_path,
-                repo_id=HF_DATASET_ID,
-                repo_type="dataset",
-                commit_message=f"Minute-level batch: {len(all_session_bus_records)} pings ({date_tag} {time_tag})"
-            )
-            print(f"[OK] Da day bus batch len HF Dataset: {repo_bus_path}")
-
-            if traffic_records and os.path.exists(traffic_chunk):
-                repo_traffic_path = f"raw_data/{date_tag}/traffic/batch_{time_tag}.jsonl"
-                api.upload_file(
-                    path_or_fileobj=traffic_chunk,
-                    path_in_repo=repo_traffic_path,
-                    repo_id=HF_DATASET_ID,
-                    repo_type="dataset",
-                    commit_message=f"Traffic batch: {len(traffic_records)} nodes ({date_tag} {time_tag})"
-                )
-                print(f"[OK] Da day traffic batch len HF Dataset: {repo_traffic_path}")
-
-        except Exception as e:
-            print(f"[WARN] Loi upload HF Dataset: {e}")
-    else:
-        print("[INFO] Khong co HF_TOKEN hoac HF_DATASET_ID. Chi ghi file cuc bo.")
+    upload_batches_to_hf_native(bus_chunk, traffic_chunk, date_tag, time_tag, HF_TOKEN)
 
 if __name__ == "__main__":
     main()
-

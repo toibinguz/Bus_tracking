@@ -24,10 +24,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Libraries
-        run: |
-          pip install huggingface_hub
-
       - name: Execute Crawler Step (9-minute continuous loop)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
