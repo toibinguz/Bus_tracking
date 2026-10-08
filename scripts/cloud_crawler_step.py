@@ -21,6 +21,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import (
     CONFIG_FILE, HF_DATASET_ID,
+    MAX_DAILY_TOMTOM_BATCHES, MAX_TOMTOM_FLOW_DAILY,
+    SESSION_DURATION_SEC, BUS_MICRO_BATCH_SIZE, BUS_MICRO_BATCH_DELAY_SEC,
+    BUS_POLL_INTERVAL_SEC, WATCHDOG_MIN_RESPONSE_RATE,
     get_hanoi_time, is_operating_hours, is_peak_hours,
     get_tomtom_api_key, get_hf_token, HUST_BOTTLENECK_NODES
 )
@@ -63,7 +66,6 @@ def main():
 
     print(f"[INFO] Khởi động phiên cào {len(v_ids)} xe buýt ({len(target_route_ids)} tuyến hành lang)...", flush=True)
 
-    SESSION_DURATION = 540  # 9 phút
     session_start = time.time()
     single_test = "--test" in sys.argv
     no_tomtom = "--no-tomtom" in sys.argv
@@ -77,14 +79,14 @@ def main():
     # 1. Kiểm tra ngân sách TomTom hôm nay từ Cloud Dataset
     date_tag = hn_time.strftime("%Y-%m-%d")
     today_traffic_batches = get_hf_today_traffic_batch_count(date_tag, hf_token) if (hf_token and not single_test) else 0
-    can_poll_tomtom = (today_traffic_batches < 31) and not TOMTOM_CIRCUIT_OPEN and not no_tomtom
+    can_poll_tomtom = (today_traffic_batches < MAX_DAILY_TOMTOM_BATCHES) and not TOMTOM_CIRCUIT_OPEN and not no_tomtom
 
-    if today_traffic_batches >= 31 and not single_test:
-        print(f"[{ts_str}] 🚦 [BUDGET GOVERNOR] Đã dùng {today_traffic_batches}/31 đợt TomTom hôm nay (~{today_traffic_batches*19}/600 flow). Tạm dừng TomTom.", flush=True)
+    if today_traffic_batches >= MAX_DAILY_TOMTOM_BATCHES and not single_test:
+        print(f"[{ts_str}] 🚦 [BUDGET GOVERNOR] Đã dùng {today_traffic_batches}/{MAX_DAILY_TOMTOM_BATCHES} đợt TomTom hôm nay (~{today_traffic_batches*len(HUST_BOTTLENECK_NODES)}/{MAX_TOMTOM_FLOW_DAILY} flow). Tạm dừng TomTom.", flush=True)
 
     # 2. Lập lịch TomTom (Hỗ trợ phân tách Ngày thường vs Cuối tuần)
     total_mins = hn_time.hour * 60 + hn_time.minute
-    step_9m = total_mins // 9
+    step_9m = total_mins // (SESSION_DURATION_SEC // 60)
     is_peak = is_peak_hours(hn_time)
     baseline_tomtom = single_test or (is_peak and step_9m % 2 == 0) or (not is_peak and step_9m % 6 == 0)
 
@@ -94,16 +96,15 @@ def main():
     if tomtom_key and can_poll_tomtom and baseline_tomtom:
         peak_label = "Cao điểm" if is_peak else "Thấp điểm"
         weekend_label = " (Cuối tuần)" if hn_time.weekday() >= 5 else ""
-        print(f"[{hn_time.strftime('%H:%M:%S')}] 🚦 Thu thập TomTom (19 Flow + 1 Incident BBox, {peak_label}{weekend_label})...", flush=True)
+        print(f"[{hn_time.strftime('%H:%M:%S')}] 🚦 Thu thập TomTom ({len(HUST_BOTTLENECK_NODES)} Flow + 1 Incident BBox, {peak_label}{weekend_label})...", flush=True)
         traffic_records, incident_records = execute_tomtom_poll(hn_time, tomtom_key)
         tomtom_polled_in_session = True
         print(f"   🚦 Hoàn tất: {len(traffic_records)} flow segments, {len(incident_records)} incidents.", flush=True)
 
-    # 3. Vòng lặp cào GPS 220 xe buýt mỗi 60 giây với Micro-batch Pacing
-    batch_size = 8
-    micro_batches = [v_ids[i:i + batch_size] for i in range(0, len(v_ids), batch_size)]
+    # 3. Vòng lặp cào GPS xe buýt với Micro-batch Pacing
+    micro_batches = [v_ids[i:i + BUS_MICRO_BATCH_SIZE] for i in range(0, len(v_ids), BUS_MICRO_BATCH_SIZE)]
 
-    while (time.time() - session_start) < SESSION_DURATION:
+    while (time.time() - session_start) < SESSION_DURATION_SEC:
         round_start = time.time()
         cur_hn_time = get_hanoi_time()
         round_ts = cur_hn_time.strftime("%H:%M:%S")
@@ -113,7 +114,7 @@ def main():
         depot_count = 0
 
         for batch in micro_batches:
-            with ThreadPoolExecutor(max_workers=batch_size) as executor:
+            with ThreadPoolExecutor(max_workers=BUS_MICRO_BATCH_SIZE) as executor:
                 futures = {executor.submit(fetch_single_bus_raw, vid): vid for vid in batch}
                 for fut in futures:
                     vid = futures[fut]
@@ -130,17 +131,17 @@ def main():
                                 depot_count += 1
 
             if not single_test:
-                time.sleep(0.35)
+                time.sleep(BUS_MICRO_BATCH_DELAY_SEC)
 
         all_session_bus_records.extend(round_bus_records)
         round_elapsed = time.time() - round_start
         print(f"[{round_ts}] [Vòng {round_no:02d}] 🚌 {len(round_bus_records)}/{len(v_ids)} xe buýt "
               f"({active_count} lăn bánh, {depot_count} đỗ bãi) | {round_elapsed:.1f}s", flush=True)
 
-        # Watchdog: Cảnh báo nếu tỷ lệ phản hồi < 60%
+        # Watchdog: Cảnh báo nếu tỷ lệ phản hồi < ngưỡng an toàn
         total_vids = len(v_ids)
         resp_rate = (len(round_bus_records) / total_vids) if total_vids > 0 else 0
-        if resp_rate < 0.60:
+        if resp_rate < WATCHDOG_MIN_RESPONSE_RATE:
             print(f"   ⚠️ [WATCHDOG] Cảnh báo: Tỷ lệ xe phản hồi thấp ({len(round_bus_records)}/{total_vids} = {resp_rate*100:.1f}%).", flush=True)
 
         # Dynamic Congestion Trigger: Đánh giá sau vòng 1 nếu chưa gọi TomTom
@@ -157,10 +158,10 @@ def main():
 
         round_no += 1
 
-        if single_test or (SESSION_DURATION - (time.time() - session_start)) < 60:
+        if single_test or (SESSION_DURATION_SEC - (time.time() - session_start)) < BUS_POLL_INTERVAL_SEC:
             break
 
-        sleep_wait = max(3, 60 - round_elapsed)
+        sleep_wait = max(3, BUS_POLL_INTERVAL_SEC - round_elapsed)
         time.sleep(sleep_wait)
 
     print(f"\n[SUMMARY] Kết thúc phiên: Thu được {len(all_session_bus_records)} pings ({round_no-1} vòng), {len(traffic_records)} TomTom flow và {len(incident_records)} TomTom incidents.", flush=True)

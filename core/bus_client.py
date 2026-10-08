@@ -8,7 +8,12 @@ import json
 import time
 import math
 from datetime import datetime
-from .config import HANOI_BBOX, CONFIG_FILE
+from .config import (
+    HANOI_BBOX, CONFIG_FILE,
+    GPS_DRIFT_MAX_SPEED_KMPH, BUS_STOPPED_SPEED_KMPH,
+    STALE_DELTA_T_MIN_SEC, STALE_DELTA_T_MAX_SEC,
+    EMA_ALPHA, get_busmap_device_id
+)
 
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
@@ -16,12 +21,13 @@ ssl_context.verify_mode = ssl.CERT_NONE
 
 def fetch_single_bus_raw(v_id):
     """Gửi HTTP request cấp thấp qua raw socket SSL đến BusMap API để tối ưu tốc độ và né WAF."""
+    dev_id = get_busmap_device_id()
     raw_req = (
         f"GET /v2/public/busmap/vehicle_hn/get?id={v_id} HTTP/1.1\r\n"
         "Host: api.busmap.city\r\n"
         "language: vi\r\n"
         "client-version: android|20600\r\n"
-        "device-id: 7ab54c3ba04cceac\r\n"
+        f"device-id: {dev_id}\r\n"
         "package-name: com.t7.busmaphn\r\n"
         "Connection: close\r\n\r\n"
     )
@@ -101,21 +107,21 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
         if prev_update and prev_update == last_update:
             is_stale = True
 
-        if 3.0 <= delta_t <= 300.0:
+        if STALE_DELTA_T_MIN_SEC <= delta_t <= STALE_DELTA_T_MAX_SEC:
             dist = haversine_distance(prev_lat, prev_lon, std_lat, std_lon)
-            if dist < 5.0:
+            if dist < BUS_STOPPED_SPEED_KMPH:
                 calc_speed = 0.0
                 smoothed_speed = 0.0
             else:
                 v_derived = (dist / delta_t) * 3.6
-                if v_derived > 80.0:  # Xe buýt nội đô không thể vượt quá 80 km/h
+                if v_derived > GPS_DRIFT_MAX_SPEED_KMPH:  # Vượt quá giới hạn vật lý nội đô
                     is_drift_jump = True
                     calc_speed = prev_smoothed
                     smoothed_speed = prev_smoothed
                 else:
                     calc_speed = round(v_derived, 1)
-                    smoothed_speed = round(0.65 * calc_speed + 0.35 * prev_smoothed, 1)
-        elif delta_t > 300.0:
+                    smoothed_speed = round(EMA_ALPHA * calc_speed + (1.0 - EMA_ALPHA) * prev_smoothed, 1)
+        elif delta_t > STALE_DELTA_T_MAX_SEC:
             calc_speed = raw_speed
             smoothed_speed = raw_speed
 
@@ -162,12 +168,13 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
 
 def search_vehicles_by_query(query, limit=50):
     """Tìm kiếm xe buýt trên API BusMap theo mã tuyến hoặc biển số."""
+    dev_id = get_busmap_device_id()
     raw_req = (
         f"GET /v2/public/busmap/search_vehicle_v2?regionCode=hn&limit={limit}&vehicleId={query}&page=0 HTTP/1.1\r\n"
         "Host: api.busmap.city\r\n"
         "language: vi\r\n"
         "client-version: android|20600\r\n"
-        "device-id: 7ab54c3ba04cceac\r\n"
+        f"device-id: {dev_id}\r\n"
         "package-name: com.t7.busmaphn\r\n"
         "Connection: close\r\n\r\n"
     )

@@ -22,7 +22,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import (
     CONFIG_FILE, BUS_OUTPUT_DIR, TRAFFIC_OUTPUT_DIR, INCIDENT_OUTPUT_DIR,
-    MAX_TOMTOM_FLOW_DAILY, MAX_TOMTOM_INCIDENT_DAILY,
+    MAX_TOMTOM_FLOW_DAILY, MAX_TOMTOM_FLOW_MONTHLY,
+    MAX_TOMTOM_INCIDENT_DAILY, MAX_TOMTOM_INCIDENT_MONTHLY,
+    BUS_POLL_INTERVAL_SEC, HF_SYNC_INTERVAL_SEC,
+    BUS_MICRO_BATCH_SIZE, BUS_MICRO_BATCH_DELAY_SEC,
+    TOMTOM_PEAK_INTERVAL_SEC, TOMTOM_OFFPEAK_INTERVAL_SEC,
+    TOMTOM_FLOW_THROTTLE_SEC, WATCHDOG_MIN_RESPONSE_RATE,
     HUST_BOTTLENECK_NODES,
     is_operating_hours, is_peak_hours,
     get_tomtom_api_key, get_hf_token
@@ -37,9 +42,6 @@ from core.traffic_client import (
 )
 from core.congestion import evaluate_hotspot_congestion
 from core.hf_client import upload_batches_to_hf_native
-
-BUS_POLL_INTERVAL = 60  # seconds
-HF_SYNC_INTERVAL = 600  # seconds
 
 def main():
     run_24x7 = "--24x7" in sys.argv or "--always" in sys.argv
@@ -113,18 +115,17 @@ def main():
             traffic_out_file = os.path.join(TRAFFIC_OUTPUT_DIR, f"tomtom_flow_{date_str}.jsonl")
             incident_out_file = os.path.join(INCIDENT_OUTPUT_DIR, f"tomtom_incidents_{date_str}.jsonl")
 
-            # 1. CRAWL 220 BUSES
+            # 1. CRAWL BUSES VỚI PACING
             bus_records = []
             active_count = 0
             depot_count = 0
             stale_count = 0
 
-            batch_size = 8
-            micro_batches = [v_ids[i:i + batch_size] for i in range(0, len(v_ids), batch_size)]
-            micro_delay = 0.05 if single_test else 0.35
+            micro_batches = [v_ids[i:i + BUS_MICRO_BATCH_SIZE] for i in range(0, len(v_ids), BUS_MICRO_BATCH_SIZE)]
+            micro_delay = 0.05 if single_test else BUS_MICRO_BATCH_DELAY_SEC
 
             for batch in micro_batches:
-                with ThreadPoolExecutor(max_workers=batch_size) as executor:
+                with ThreadPoolExecutor(max_workers=BUS_MICRO_BATCH_SIZE) as executor:
                     futures = {executor.submit(fetch_single_bus_raw, vid): vid for vid in batch}
                     for fut in futures:
                         vid = futures[fut]
@@ -148,7 +149,7 @@ def main():
 
             total_vids = len(v_ids)
             resp_rate = (len(bus_records) / total_vids) if total_vids > 0 else 0
-            if resp_rate < 0.60:
+            if resp_rate < WATCHDOG_MIN_RESPONSE_RATE:
                 print(f"   ⚠️ [WATCHDOG] Cảnh báo: Tỷ lệ xe phản hồi thấp ({len(bus_records)}/{total_vids} = {resp_rate*100:.1f}%).", flush=True)
 
             # 2. ĐÁNH GIÁ ÙN TẮC & ĐIỀU CHỈNH CHU KỲ TOMTOM ĐỘNG
@@ -157,16 +158,16 @@ def main():
             is_congested = congestion_eval["is_congested"]
 
             is_peak = is_peak_hours(now)
-            tomtom_interval = 1080 if (is_peak or is_congested) else 3240
+            tomtom_interval = TOMTOM_PEAK_INTERVAL_SEC if (is_peak or is_congested) else TOMTOM_OFFPEAK_INTERVAL_SEC
             next_tomtom_in = max(0, tomtom_interval - (time.time() - last_tomtom_poll))
 
             if is_congested and not prev_congested:
-                print(f"   🚨 [DYN-CONGESTION] Phát hiện ùn tắc tại {len(congestion_eval['congested_nodes'])} nút: {congestion_eval['congested_nodes']}. Rút ngắn chu kỳ TomTom xuống 18 phút!", flush=True)
+                print(f"   🚨 [DYN-CONGESTION] Phát hiện ùn tắc tại {len(congestion_eval['congested_nodes'])} nút: {congestion_eval['congested_nodes']}. Rút ngắn chu kỳ TomTom xuống {TOMTOM_PEAK_INTERVAL_SEC//60} phút!", flush=True)
 
             # 3. CRAWL TOMTOM
             if tomtom_key and not TOMTOM_CIRCUIT_OPEN and (time.time() - last_tomtom_poll >= tomtom_interval or (single_test and round_no == 1)):
-                can_flow = (quota_state["flow_today"] + len(HUST_BOTTLENECK_NODES) <= MAX_TOMTOM_FLOW_DAILY) and (quota_state["flow_month"] + len(HUST_BOTTLENECK_NODES) <= 20000)
-                can_incident = (quota_state["incident_today"] + 1 <= MAX_TOMTOM_INCIDENT_DAILY) and (quota_state["incident_month"] + 1 <= 2500)
+                can_flow = (quota_state["flow_today"] + len(HUST_BOTTLENECK_NODES) <= MAX_TOMTOM_FLOW_DAILY) and (quota_state["flow_month"] + len(HUST_BOTTLENECK_NODES) <= MAX_TOMTOM_FLOW_MONTHLY)
+                can_incident = (quota_state["incident_today"] + 1 <= MAX_TOMTOM_INCIDENT_DAILY) and (quota_state["incident_month"] + 1 <= MAX_TOMTOM_INCIDENT_MONTHLY)
 
                 traffic_records = []
                 incident_records = []
@@ -191,7 +192,7 @@ def main():
                                 "road_closure": flow_res.get("roadClosure", False),
                                 "coordinates": seg_coords
                             })
-                        time.sleep(0.08)
+                        time.sleep(TOMTOM_FLOW_THROTTLE_SEC)
 
                     if traffic_records:
                         with open(traffic_out_file, "a", encoding="utf-8") as f:
@@ -240,7 +241,7 @@ def main():
             round_no += 1
 
             # 5. ĐỒNG BỘ ĐỊNH KỲ LÊN CLOUD
-            if hf_token and not single_test and (time.time() - last_hf_sync >= HF_SYNC_INTERVAL):
+            if hf_token and not single_test and (time.time() - last_hf_sync >= HF_SYNC_INTERVAL_SEC):
                 time_tag = now.strftime("%H%M%S")
                 upload_batches_to_hf_native(bus_out_file, traffic_out_file, incident_out_file, date_str, time_tag, hf_token)
                 last_hf_sync = time.time()
@@ -249,7 +250,7 @@ def main():
                 print("\n[INFO] Test run 1 vòng 220 xe hoàn tất thành công! Dừng tiến trình.", flush=True)
                 break
 
-            sleep_wait = max(3, BUS_POLL_INTERVAL - elapsed)
+            sleep_wait = max(3, BUS_POLL_INTERVAL_SEC - elapsed)
             time.sleep(sleep_wait)
 
         except KeyboardInterrupt:
