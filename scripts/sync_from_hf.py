@@ -17,15 +17,13 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-DATASET_ID = "Toibinguz/hust-bus-data"
-TOKEN_FILE = "access_token_hf.txt"
-LOCAL_RAW_DIR = "data/raw"
+# Add parent directory to sys.path so core package is importable
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def get_hf_token():
-    if os.path.exists(TOKEN_FILE):
-        with open(TOKEN_FILE, "r", encoding="utf-8") as f:
-            return f.read().strip()
-    return os.environ.get("HF_TOKEN", "")
+from core.config import HF_DATASET_ID, get_hf_token
+
+DATASET_ID = HF_DATASET_ID
+LOCAL_RAW_DIR = "data/raw"
 
 def main():
     token = get_hf_token()
