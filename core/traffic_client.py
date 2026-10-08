@@ -16,6 +16,7 @@ from .config import (
     MAX_TOMTOM_FLOW_MONTHLY,
     MAX_TOMTOM_INCIDENT_DAILY,
     MAX_TOMTOM_INCIDENT_MONTHLY,
+    TOMTOM_FLOW_THROTTLE_SEC,
     HUST_CORRIDOR_BBOX,
     HUST_BOTTLENECK_NODES
 )
@@ -90,7 +91,7 @@ def execute_tomtom_poll(cur_hn_time, api_key):
                 "road_closure": res.get("roadClosure", False),
                 "coordinates": seg_coords
             })
-        time.sleep(0.08)
+        time.sleep(TOMTOM_FLOW_THROTTLE_SEC)
 
     # B. Incident Details
     raw_incidents = fetch_tomtom_incidents(api_key)
@@ -180,7 +181,7 @@ def render_tomtom_cli_bar(quota_state, next_poll_seconds, is_congested=False, ci
     status_tag = "🔴 CIRCUIT OPEN" if circuit_open else ("🔥 ÙN TẮC" if is_congested else "🟢 BÌNH THƯỜNG")
     return (
         f"🚦 TomTom [{status_tag}]: Flow [{bar_str}] {quota_state['flow_today']}/{MAX_TOMTOM_FLOW_DAILY} "
-        f"(Tháng: {quota_state['flow_month']}/20k) | Incidents {quota_state['incident_today']}/{MAX_TOMTOM_INCIDENT_DAILY} | "
+        f"(Tháng: {quota_state['flow_month']}/{MAX_TOMTOM_FLOW_MONTHLY // 1000}k) | Incidents {quota_state['incident_today']}/{MAX_TOMTOM_INCIDENT_DAILY} | "
         f"Đợt tới: {countdown_str}"
     )
 

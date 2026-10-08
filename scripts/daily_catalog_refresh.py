@@ -24,7 +24,12 @@ if sys.stdout.encoding != 'utf-8':
 # Add parent directory to sys.path so core package is importable
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.config import CONFIG_FILE, get_hanoi_time
+from core.config import (
+    CONFIG_FILE,
+    BUS_MICRO_BATCH_SIZE,
+    BUS_MICRO_BATCH_DELAY_SEC,
+    get_hanoi_time
+)
 from core.bus_client import fetch_single_bus_raw, search_vehicles_by_query, load_cluster_config, save_cluster_config
 
 VEHICLES_CATALOG_FILE = "data/metadata/vehicles_catalog.json"
@@ -72,16 +77,15 @@ def run_daily_catalog_refresh():
     # 1. Khảo sát 220 xe hiện có (Pacing micro-batches để bảo vệ WAF)
     print("[*] [Pha 1/3] Đang ping kiểm tra trạng thái 220 xe...", flush=True)
     audit_results = {}
-    batch_size = 8
-    micro_batches = [configured_vids[i:i + batch_size] for i in range(0, len(configured_vids), batch_size)]
+    micro_batches = [configured_vids[i:i + BUS_MICRO_BATCH_SIZE] for i in range(0, len(configured_vids), BUS_MICRO_BATCH_SIZE)]
 
     for batch in micro_batches:
-        with ThreadPoolExecutor(max_workers=batch_size) as executor:
+        with ThreadPoolExecutor(max_workers=BUS_MICRO_BATCH_SIZE) as executor:
             futures = {executor.submit(audit_vehicle, vid): vid for vid in batch}
             for fut in futures:
                 res = fut.result()
                 audit_results[res["id"]] = res
-        time.sleep(0.25)
+        time.sleep(BUS_MICRO_BATCH_DELAY_SEC)
 
     active_count = sum(1 for r in audit_results.values() if r["status"] == "ACTIVE")
     depot_count = sum(1 for r in audit_results.values() if r["status"] == "DEPOT")
