@@ -1,9 +1,6 @@
 name: HUST Bus Cluster 24x7 Cloud Crawler
 
 on:
-  schedule:
-    # 22:00 UTC = 05:00 sáng Hà Nội (Đánh thức phiên tiếp sức đầu tiên mỗi sáng)
-    - cron: '0 22 * * *'
   workflow_dispatch: # Cho phép kích hoạt thủ công khi cần
 
 # 🔒 KHÓA ĐƠN TIẾN TRÌNH: Chỉ cho phép tối đa 1 runner chạy tại một thời điểm
@@ -47,16 +44,12 @@ jobs:
             git push origin main || echo "Git push skipped/failed gracefully"
           fi
 
-      - name: Self-Trigger Next Run (Continuous Relay)
+      - name: Self-Trigger Next Run (Continuous Relay 24/7)
         if: success()
         run: |
-          if [ -f .stop_chain ]; then
-            echo "🌙 Da het gio xe buyt hoat dong (22:00). Tam dung day chuyen den 05:00 sang mai!"
-          else
-            echo "🚀 Kich hoat phien chay tiep theo tren GitHub Actions..."
-            curl -X POST \
-              -H "Accept: application/vnd.github.v3+json" \
-              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              https://api.github.com/repos/${{ github.repository }}/actions/workflows/crawl_bus.yml/dispatches \
-              -d '{"ref":"main"}'
-          fi
+          echo "🚀 Kích hoạt phiên tiếp sức tiếp theo trên GitHub Actions (24/7)..."
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/crawl_bus.yml/dispatches \
+            -d '{"ref":"main"}'

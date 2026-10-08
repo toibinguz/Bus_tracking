@@ -43,16 +43,18 @@ def main():
     ts_str = hn_time.strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{ts_str}] Khởi chạy Cloud Crawler Phiên 9 Phút trên GitHub Actions...", flush=True)
 
-    if not is_operating_hours(hn_time) and "--force" not in sys.argv:
-        print(f"[{ts_str}] Ngoài khung giờ xe buýt (22:00 - 05:00). Tạm dừng dây chuyền.", flush=True)
-        with open(".stop_chain", "w") as f:
-            f.write("night")
-        return
+    single_test = "--test" in sys.argv
 
-    # Xóa cờ stop_chain nếu đang trong giờ hoạt động
-    if os.path.exists(".stop_chain"):
-        try: os.remove(".stop_chain")
-        except Exception: pass
+    # 🌙 Ban đêm (22:00 - 05:00): Không gọi API BusMap/TomTom để bảo vệ hạn ngạch.
+    # Ngủ đủ nhịp 9 phút để duy trì chuỗi tiếp sức 24/7 đơn luồng không bao giờ ngắt.
+    if not is_operating_hours(hn_time) and "--force" not in sys.argv:
+        print(f"[{ts_str}] 🌙 Đêm (22:00 - 05:00): Ngoài giờ xe buýt hoạt động. Không gửi request API.", flush=True)
+        if single_test:
+            print("[INFO] Chế độ --test: Thoát ngay.", flush=True)
+            return
+        print(f"[{ts_str}] ⏳ Nghỉ ngơi duy trì nhịp tiếp sức 24/7 ({SESSION_DURATION_SEC}s)...", flush=True)
+        time.sleep(SESSION_DURATION_SEC)
+        return
 
     if not os.path.exists(CONFIG_FILE):
         print(f"[ERROR] Không tìm thấy file cấu hình: {CONFIG_FILE}!", flush=True)
