@@ -2,14 +2,18 @@ name: HUST Bus Cluster 24x7 Cloud Crawler
 
 on:
   schedule:
-    # Chạy tự động mỗi 10 phút (Logic giờ Hà Nội 05:00 - 22:00 do script Python tự kiểm soát)
-    - cron: '*/10 * * * *'
+    # 22:00 UTC = 05:00 sáng Hà Nội (Kích hoạt phiên đầu tiên mỗi sáng)
+    - cron: '0 22 * * *'
+    # Lịch dự phòng mỗi 30 phút phòng khi chuỗi bị ngắt quãng
+    - cron: '*/30 * * * *'
   workflow_dispatch: # Cho phép bấm nút 'Run workflow' thủ công bất cứ lúc nào
 
 jobs:
   crawl_and_sync:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      actions: write
 
     steps:
       - name: Checkout Code
@@ -24,7 +28,7 @@ jobs:
         run: |
           pip install huggingface_hub
 
-      - name: Execute Crawler Step
+      - name: Execute Crawler Step (9-minute continuous loop)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_DATASET_ID: ${{ secrets.HF_DATASET_ID }}
@@ -32,3 +36,16 @@ jobs:
         run: |
           python scripts/cloud_crawler_step.py
 
+      - name: Self-Trigger Next Run (Continuous Relay)
+        if: success()
+        run: |
+          if [ -f .stop_chain ]; then
+            echo "🌙 Da het gio xe buyt hoat dong (22:00). Tam dung day chuyen den 05:00 sang mai!"
+          else
+            echo "🚀 Kich hoat phien chay tiep theo tren GitHub Actions..."
+            curl -X POST \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/${{ github.repository }}/actions/workflows/crawl_bus.yml/dispatches \
+              -d '{"ref":"main"}'
+          fi

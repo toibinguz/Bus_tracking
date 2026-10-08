@@ -115,8 +115,15 @@ def main():
     print(f"[{ts_str}] Khoi chay Cloud Crawler Phien 9 Phut tren GitHub Actions...")
 
     if not is_operating_hours(hn_time) and "--force" not in sys.argv:
-        print(f"[{ts_str}] Ngoai khung gio xe buyt (22:00 - 05:00). Ket thuc som de tiet kiem runner.")
+        print(f"[{ts_str}] Ngoai khung gio xe buyt (22:00 - 05:00). Tam dung day chuyen.")
+        with open(".stop_chain", "w") as f:
+            f.write("night")
         return
+
+    # Xoa file stop_chain neu ton tai truoc do
+    if os.path.exists(".stop_chain"):
+        try: os.remove(".stop_chain")
+        except: pass
 
     if not os.path.exists(CONFIG_FILE):
         print(f"[ERROR] Khong tim thay {CONFIG_FILE}!")
