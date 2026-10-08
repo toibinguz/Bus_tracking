@@ -98,49 +98,58 @@ $$T_{base}(k) = \text{Quantile}_{0.15}\Big( \{ T_{obs}(k) \mid t \in \text{Giờ
 
 ---
 
-## 4. Đặc Tả Chuẩn Xác Bộ 20 Chiều Đặc Trưng Của Mô Hình Học Máy
+## 4. Đặc Tả Chuẩn Xác Bộ 23 Chiều Đặc Trưng Của Mô Hình Học Máy
 
-Mô hình LightGBM dự đoán độ trễ dôi dư: $\mathbf{\hat{\Delta T}_{delay}(k)} = f(X_k)$. Toàn bộ các biến rác, biến snapshot vi mô và biến trùng lặp đã bị loại bỏ, giữ lại **đúng 20 chiều đặc trưng có quan hệ nhân quả mạnh mẽ**:
+Mô hình LightGBM dự đoán độ trễ dôi dư: $\mathbf{\hat{\Delta T}_{delay}(k)} = f(X_k)$. Không gò ép con số nhân tạo, toàn bộ **23 đặc trưng dưới đây đều có căn cứ vật lý, toán học và vận hành thực tế vững chắc**:
 
 ```text
-Vector Đầu Vào X_k (Đúng 20 Chiều Tinh Nhuệ)
-├── 1. Thuộc Tính Không Gian & Tiếp Cận Trạm  [5 chiều]
-├── 2. Động Học Xe & Quán Tính Chuyến         [3 chiều]
-├── 3. Tương Tác Đội Xe & Probe Đa Tuyến      [4 chiều]
-├── 4. Bối Cảnh Dòng Chảy TomTom & Sự Cố      [3 chiều]
-└── 5. Chu Kỳ Thời Gian & Thời Tiết Hà Nội     [5 chiều]
+Vector Đầu Vào X_k (23 Chiều Tự Nhiên Hoàn Bị)
+├── 1. Hạ Tầng & Hình Học Chặng:          [5 chiều]
+├── 2. Hướng Tuyến & Tiến Độ Vòng Đời:    [2 chiều]
+├── 3. Động Học Xe & Quán Tính Chuyến Đi: [2 chiều]
+├── 4. Đội Xe & Cảm Biến Probe Đa Tuyến:  [5 chiều]
+├── 5. Áp Lực Dòng Xe TomTom & Sự Cố:     [3 chiều]
+├── 6. Chu Kỳ Thời Gian Đô Thị:           [4 chiều]
+└── 7. Thời Tiết & Tác Động Mặt Đường:    [2 chiều]
 ```
 
-### Nhóm 1: Thuộc Tính Không Gian & Tiếp Cận Trạm — 5 Chiều
+### Nhóm 1: Hạ Tầng & Hình Học Chặng — 5 Chiều
 1. `segment_length_m` (float): Chiều dài tim đường thực tế của chặng (mét).
 2. `road_class` (int: 1, 2, 3): Phân loại cấp đường (1: Phố hẹp hỗn hợp; 2: Đại lộ dải phân cách; 3: Cầu vượt/Hầm chui).
 3. `road_quality_index` (float: 0.0 - 1.0): **Chỉ số Chất lượng Mặt đường & Ma sát Hạ tầng** ($Q_{road} = v_{base} / v_{limit}$, phản ánh ổ gà, nắp cống, gờ giảm tốc).
-4. `tomtom_coverage_ratio` (float: 0.0 - 1.0): Tỷ lệ bao phủ của nút TomTom trên chặng ($L_{overlap\_m} / L_{segment\_m}$).
-5. `dist_to_next_stop_m` (float): **Khoảng cách còn lại từ vị trí xe đến trạm đón tiếp theo** (mét). Đo vùng tiếp cận tấp lề ($< 150\text{m}$ xe phải xi-nhan chuyển làn cắt ngang dòng xe máy để cập bến đón khách).
+4. `num_traffic_signals` (int: 0, 1, 2): Số lượng nút giao có đèn tín hiệu trên chặng (đo trực tiếp xác suất dừng chờ đèn đỏ $60\text{s}$).
+5. `tomtom_coverage_ratio` (float: 0.0 - 1.0): Tỷ lệ bao phủ của nút TomTom trên chặng ($L_{overlap\_m} / L_{segment\_m}$).
 
-### Nhóm 2: Động Học Xe & Quán Tính Chuyến Đi — 3 Chiều
-6. `v_current_momentum` (float): Vận tốc EMA hiện tại của xe (km/h). Đại diện cho động lượng và trớn chạy tức thời của xe tại thời điểm xét chặng.
-7. `cumulative_trip_delay_sec` (float): **Độ trễ lũy kế của toàn chuyến xe từ đầu bến đến hiện tại** (giây). Phản ánh tải lượng khách trên xe (xe đã gom đầy khách suốt nửa tuyến) và tâm lý tài xế (nếu trễ nặng $\implies$ tài xế có xu hướng ép ga bù giờ; nếu chạy sớm $\implies$ tài xế câu giờ).
-8. `route_progress_ratio` (float: 0.0 - 1.0): **Vị trí tương đối của trạm/chặng trên toàn tuyến** ($s / L_{tổng}$). Phân định rõ 3 giai đoạn sinh học của chuyến đi: Đầu bến ($0.0 - 0.2$: xe vắng, ít khách xuống), Giữa tuyến ($0.2 - 0.8$: lõi xuyên tâm, xe đầy tải, đông khách), Cuối bến ($0.8 - 1.0$: khách chỉ xuống, không lên mới, xe chuẩn bị về bến quay đầu). (Thay thế cho biến `upstream_delay_last_segment` bị trùng lặp).
+### Nhóm 2: Hướng Tuyến & Tiến Độ Vòng Đời Chuyến — 2 Chiều
+6. `direction` (binary: 0 hoặc 1): **Hướng xe chạy (0: Chiều đi / Outbound, 1: Chiều về / Inbound)**. Giải quyết triệt để bài toán bất đối xứng dòng xe thủy triều (sáng tắc chiều vào nội đô, chiều tắc chiều ra ngoại thành).
+7. `route_progress_ratio` (float: 0.0 - 1.0): Tiến độ hành trình trên tuyến ($s / L_{tổng}$). Phân định 3 giai đoạn: Đầu bến ($0.0 - 0.2$: xe vắng), Giữa tuyến ($0.2 - 0.8$: lõi xuyên tâm đầy tải), Cuối bến ($0.8 - 1.0$: khách xuống dần để về bến).
 
-### Nhóm 3: Tương Tác Đội Xe & Cảm Biến Probe Đa Tuyến — 4 Chiều
-9. `headway_ratio` (float): **Tỷ lệ giãn cách thực tế / Giãn cách biểu đồ** ($H_{actual} / H_{scheduled}$). Nhận diện dính chùm (Bus bunching $< 0.5$) hoặc xe bị bỏ xa khách dồn ứ trạm ($> 1.5$).
-10. `lead_bus_delay` (float): Độ trễ $\Delta T_{delay}$ của xe buýt cùng tuyến chạy trước nó tại chính chặng này (giây).
-11. `lead_bus_age_min` (float): Xe đi trước đã rời chặng này cách đây bao nhiêu phút (đo độ tươi của cảm biến xe trước).
-12. `segment_cross_route_delay_30m` (float): **Độ trễ trung bình của TẤT CẢ các xe buýt (bất kỳ tuyến nào)** vừa đi qua chặng này trong 30 phút gần nhất (giây). Khai thác tối đa dữ liệu probe chạy chung đường của mạng lưới 19 tuyến!
+### Nhóm 3: Động Học Xe & Quán Tính Chuyến Đi — 2 Chiều
+8. `v_current_momentum` (float): Vận tốc EMA hiện tại của xe (km/h). Đại diện cho động lượng và trớn chạy tức thời của xe tại thời điểm xét chặng.
+9. `cumulative_trip_delay_sec` (float): **Độ trễ lũy kế của toàn chuyến xe từ đầu bến đến hiện tại** (giây). Phản ánh tải lượng khách trên xe (xe đã gom đầy khách suốt nửa tuyến) và tâm lý tài xế (nếu trễ nặng $\implies$ tài xế có xu hướng ép ga bù giờ; nếu chạy sớm $\implies$ tài xế câu giờ).
 
-### Nhóm 4: Bối Cảnh Dòng Chảy TomTom & Sự Cố — 3 Chiều
-13. `downstream_tomtom_ratio` (float: 0.0 - 1.0): Tỷ lệ $v_{current} / v_{free}$ của nút TomTom thuộc/phía trước chặng này.
-14. `tomtom_delay_contrib` (float): **Độ trễ TomTom thực tế đóng góp trên chiều dài giao cắt $L_{overlap}$** (giây):
+### Nhóm 4: Đội Xe & Cảm Biến Probe Đa Tuyến — 5 Chiều
+10. `headway_ratio` (float): **Tỷ lệ giãn cách thực tế / Giãn cách biểu đồ** ($H_{actual} / H_{scheduled}$). Nhận diện dính chùm (Bus bunching $< 0.5$) hoặc xe bị bỏ xa khách dồn ứ trạm ($> 1.5$).
+11. `has_lead_bus_probe` (binary: 0 hoặc 1): Cờ xác thực có xe probe đi trước hay không (0: Xe đầu ngày / Cold-start, 1: Có dữ liệu probe tin cậy).
+12. `lead_bus_delay` (float): Độ trễ $\Delta T_{delay}$ của xe buýt cùng tuyến chạy trước nó tại chính chặng này (giây, $= 0$ nếu không có probe).
+13. `lead_bus_age_min` (float): Xe đi trước đã rời chặng này cách đây bao nhiêu phút (đo độ tươi của tín hiệu probe).
+14. `segment_cross_route_delay_30m` (float): **Độ trễ trung bình của TẤT CẢ các xe buýt (bất kỳ tuyến nào)** vừa đi qua chặng này trong 30 phút gần nhất (giây). Khai thác tối đa dữ liệu probe chạy chung đường của mạng lưới 19 tuyến!
+
+### Nhóm 5: Áp Lực Dòng Xe TomTom & Sự Cố — 3 Chiều
+15. `downstream_tomtom_ratio` (float: 0.0 - 1.0): Tỷ lệ $v_{current} / v_{free}$ của nút TomTom thuộc/phía trước chặng này.
+16. `tomtom_delay_contrib` (float): **Độ trễ TomTom thực tế đóng góp trên chiều dài giao cắt $L_{overlap}$** (giây):
     $$\Delta t_{tomtom\_contrib} = L_{overlap\_m} \times \left( \frac{1}{v_{tomtom\_current}} - \frac{1}{v_{free\_flow}} \right)$$
-15. `incident_impact_penalty` (float): Độ trễ tai nạn/ngập úng ảnh hưởng trực tiếp đến chặng (giây, bằng 0 nếu không có sự cố).
+17. `incident_impact_penalty` (float): Độ trễ tai nạn/ngập úng ảnh hưởng trực tiếp đến chặng (giây, bằng 0 nếu không có sự cố).
 
-### Nhóm 5: Chu Kỳ Thời Gian & Thời Tiết Hà Nội — 5 Chiều
-16. `time_sin`: $\sin(2\pi \cdot \text{minute\_of\_day} / 1440)$ — Chu kỳ phút trong ngày.
-17. `time_cos`: $\cos(2\pi \cdot \text{minute\_of\_day} / 1440)$.
-18. `day_sin`: $\sin(2\pi \cdot \text{day\_of\_week} / 7)$ — Chu kỳ ngày trong tuần.
-19. `is_weekend` (binary: 0 hoặc 1): Cờ thứ 7 & Chủ Nhật.
-20. `precipitation_mm` (float): Lượng mưa thời gian thực tại Hà Nội (mm/h, từ Open-Meteo).
+### Nhóm 6: Chu Kỳ Thời Gian Đô Thị — 4 Chiều
+18. `time_sin`: $\sin(2\pi \cdot \text{minute\_of\_day} / 1440)$ — Chu kỳ phút trong ngày.
+19. `time_cos`: $\cos(2\pi \cdot \text{minute\_of\_day} / 1440)$.
+20. `day_sin`: $\sin(2\pi \cdot \text{day\_of\_week} / 7)$ — Chu kỳ ngày trong tuần.
+21. `is_weekend` (binary: 0 hoặc 1): Cờ thứ 7 & Chủ Nhật.
+
+### Nhóm 7: Thời Tiết & Tác Động Mặt Đường — 2 Chiều
+22. `precipitation_mm` (float): Lượng mưa thời gian thực tại Hà Nội (mm/h, từ Open-Meteo).
+23. `rain_accumulation_30m` (float): **Lượng mưa tích lũy trong 30 phút gần nhất** (mm). Đo độ trễ trơn trượt của mặt đường và ngập nước kéo dài tại các điểm trũng sau khi cơn mưa vừa tạnh.
 
 ---
 
