@@ -59,21 +59,31 @@ def main():
     )
     print(f"[OK] Da tai ve thu muc tam: {downloaded_path}")
 
-    # Merge chunks by date
+    # Merge chunks by date into local data/raw
     all_chunks = glob.glob(os.path.join(temp_sync_dir, "raw_data", "**", "*.jsonl"), recursive=True)
     print(f"[*] Tim thay tong cong {len(all_chunks)} chunks du lieu tren Cloud.")
 
     total_records = 0
+    copied_files = 0
+    import shutil
     for chunk in all_chunks:
         is_bus = "\\bus\\" in chunk or "/bus/" in chunk
         category = "bus" if is_bus else "traffic"
         
-        # Determine target file
+        target_dir = os.path.join(LOCAL_RAW_DIR, category)
+        os.makedirs(target_dir, exist_ok=True)
+        target_file = os.path.join(target_dir, os.path.basename(chunk))
+        
+        # Count lines
         with open(chunk, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        total_records += len(lines)
+            lines_count = sum(1 for _ in f)
+        total_records += lines_count
 
-    print(f"\n🎉 Dong bo thanh cong {total_records:,} records ve may tinh cua ban!")
+        # Copy or overwrite if updated
+        shutil.copy2(chunk, target_file)
+        copied_files += 1
+
+    print(f"\n🎉 Dong bo thanh cong {copied_files} files voi {total_records:,} records ve may tinh cua ban!")
     print(f"📂 Vi tri luu tru: {os.path.abspath(LOCAL_RAW_DIR)}")
 
 if __name__ == "__main__":

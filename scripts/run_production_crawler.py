@@ -24,8 +24,11 @@ CONFIG_FILE = "data/metadata/hust_cluster_config.json"
 BUS_OUTPUT_DIR = "data/raw/bus"
 TOMTOM_OUTPUT_DIR = "data/raw/traffic"
 API_KEY_FILE = "Test_tomtom/TOMTOM_API_KEY.txt"
+HF_TOKEN_FILE = "access_token_hf.txt"
+HF_DATASET_ID = os.environ.get("HF_DATASET_ID", "Toibinguz/hust-bus-data")
 
 BUS_POLL_INTERVAL = 60 # seconds (each bus cycle)
+HF_SYNC_INTERVAL = 600 # seconds (sync to Cloud every 10 mins if token available)
 MAX_TOMTOM_DAILY = 2200
 
 # Top 19 critical bottlenecks for HUST cluster routes
@@ -67,7 +70,43 @@ def get_tomtom_api_key():
     if os.path.exists(API_KEY_FILE):
         with open(API_KEY_FILE, "r", encoding="utf-8") as f:
             return f.read().strip()
-    return os.environ.get("TOMTOM_API_KEY", "")
+    return os.environ.get("TOMTOM_KEY", "") or os.environ.get("TOMTOM_API_KEY", "")
+
+def get_hf_token():
+    if os.path.exists(HF_TOKEN_FILE):
+        with open(HF_TOKEN_FILE, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    return os.environ.get("HF_TOKEN", "")
+
+def sync_to_hf(local_bus_file, local_traffic_file, date_str, token):
+    if not token:
+        return
+    try:
+        from huggingface_hub import HfApi
+        api = HfApi(token=token)
+        
+        if local_bus_file and os.path.exists(local_bus_file):
+            repo_bus_path = f"raw_data/{date_str}/bus/{os.path.basename(local_bus_file)}"
+            api.upload_file(
+                path_or_fileobj=local_bus_file,
+                path_in_repo=repo_bus_path,
+                repo_id=HF_DATASET_ID,
+                repo_type="dataset",
+                commit_message=f"Sync {os.path.basename(local_bus_file)}"
+            )
+
+        if local_traffic_file and os.path.exists(local_traffic_file):
+            repo_traffic_path = f"raw_data/{date_str}/traffic/{os.path.basename(local_traffic_file)}"
+            api.upload_file(
+                path_or_fileobj=local_traffic_file,
+                path_in_repo=repo_traffic_path,
+                repo_id=HF_DATASET_ID,
+                repo_type="dataset",
+                commit_message=f"Sync {os.path.basename(local_traffic_file)}"
+            )
+        print(f"   ☁️ [HF-Sync] Đồng bộ thành công lên Dataset {HF_DATASET_ID}", flush=True)
+    except Exception as e:
+        print(f"   ⚠️ [HF-Sync] Tạm thời chưa đẩy được lên Cloud ({e}). Dữ liệu đã lưu an toàn tại máy.", flush=True)
 
 def fetch_single_bus(vehicle_id):
     raw_req = (
@@ -124,98 +163,114 @@ def main():
     target_vehicles = config.get("vehicles", [])
     v_ids = [v["id"] for v in target_vehicles if "id" in v]
     tomtom_key = get_tomtom_api_key()
+    hf_token = get_hf_token()
 
-    print("=" * 70)
-    print("🚀 HỆ THỐNG CRAWLER 24/7 - CỤM TUYẾN BÁCH KHOA (HUST CLUSTER)")
-    print(f"📍 Tuyến theo dõi: 32, 31, 08A, 26, 21A ({len(v_ids)} xe buýt)")
-    print(f"🚦 Điểm nghẽn TomTom: {len(HUST_BOTTLENECK_NODES)} nút giao trọng yếu")
-    print(f"⏰ Khung giờ hoạt động: {'24/7 (Bắt buộc)' if run_24x7 else '05:00 - 22:00 (Tự động ngủ ban đêm)'}")
-    print(f"🔑 TomTom API Key: {'Đã nạp' if tomtom_key else 'Thiếu key'}")
-    print("=" * 70)
+    print("=" * 70, flush=True)
+    print("🚀 HỆ THỐNG CRAWLER 24/7 - CỤM TUYẾN BÁCH KHOA (HUST CLUSTER)", flush=True)
+    print(f"📍 Tuyến theo dõi: 32, 31, 08A, 26, 21A ({len(v_ids)} xe buýt)", flush=True)
+    print(f"🚦 Điểm nghẽn TomTom: {len(HUST_BOTTLENECK_NODES)} nút giao trọng yếu", flush=True)
+    print(f"⏰ Khung giờ hoạt động: {'24/7 (Bắt buộc)' if run_24x7 else '05:00 - 22:00 (Tự động ngủ ban đêm)'}", flush=True)
+    print(f"🔑 TomTom API Key: {'Đã nạp' if tomtom_key else 'Thiếu key'}", flush=True)
+    print(f"☁️ Cloud Sync (Hugging Face): {'Đã kích hoạt (Mỗi 10 phút)' if hf_token else 'Tắt (Lưu 100% trong máy)'}", flush=True)
+    print("=" * 70, flush=True)
 
     daily_tomtom_count = 0
     current_day = datetime.now().day
     last_tomtom_poll = 0
+    last_hf_sync = time.time()
     round_no = 1
 
     while True:
-        now = datetime.now()
-        # Reset counter on new day
-        if now.day != current_day:
-            daily_tomtom_count = 0
-            current_day = now.day
+        try:
+            now = datetime.now()
+            # Reset counter on new day
+            if now.day != current_day:
+                daily_tomtom_count = 0
+                current_day = now.day
 
-        # Check operating hours
-        if not is_operating_hours(run_24x7):
-            print(f"[{now.strftime('%H:%M:%S')}] 🌙 Ngoài khung giờ xe buýt (22:00 - 05:00). Hệ thống nghỉ ngơi...")
-            time.sleep(300) # Sleep 5 minutes and check again
-            continue
+            # Check operating hours
+            if not is_operating_hours(run_24x7):
+                print(f"[{now.strftime('%H:%M:%S')}] 🌙 Ngoài khung giờ xe buýt (22:00 - 05:00). Hệ thống nghỉ ngơi...", flush=True)
+                time.sleep(300) # Sleep 5 minutes and check again
+                continue
 
-        round_start = time.time()
-        date_str = now.strftime("%Y-%m-%d")
-        hour_str = now.strftime("%H")
-        bus_out_file = os.path.join(BUS_OUTPUT_DIR, f"bus_telemetry_{date_str}_{hour_str}.jsonl")
+            round_start = time.time()
+            date_str = now.strftime("%Y-%m-%d")
+            hour_str = now.strftime("%H")
+            bus_out_file = os.path.join(BUS_OUTPUT_DIR, f"bus_telemetry_{date_str}_{hour_str}.jsonl")
+            traffic_out_file = os.path.join(TOMTOM_OUTPUT_DIR, f"tomtom_flow_{date_str}.jsonl")
 
-        # 1. CRAWL 52 BUSES
-        bus_records = []
-        with ThreadPoolExecutor(max_workers=6) as executor:
-            futures = {executor.submit(fetch_single_bus, vid): vid for vid in v_ids}
-            for fut in futures:
-                res = fut.result()
-                if res:
-                    res["crawled_at"] = now.isoformat()
-                    bus_records.append(res)
-                time.sleep(0.03)
+            # 1. CRAWL 52 BUSES
+            bus_records = []
+            with ThreadPoolExecutor(max_workers=6) as executor:
+                futures = {executor.submit(fetch_single_bus, vid): vid for vid in v_ids}
+                for fut in futures:
+                    res = fut.result()
+                    if res:
+                        res["crawled_at"] = now.isoformat()
+                        bus_records.append(res)
+                    time.sleep(0.03)
 
-        if bus_records:
-            with open(bus_out_file, "a", encoding="utf-8") as f:
-                for rec in bus_records:
-                    f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            if bus_records:
+                with open(bus_out_file, "a", encoding="utf-8") as f:
+                    for rec in bus_records:
+                        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
-        # 2. CRAWL TOMTOM BOTTLENECKS (Peak: every 6 mins, Off-peak: every 12 mins)
-        hour_val = now.hour + now.minute / 60.0
-        is_peak = (6.5 <= hour_val <= 9.0) or (16.5 <= hour_val <= 19.5)
-        tomtom_interval = 360 if is_peak else 720 # 6 mins or 12 mins
+            # 2. CRAWL TOMTOM BOTTLENECKS (Peak: every 6 mins, Off-peak: every 12 mins)
+            hour_val = now.hour + now.minute / 60.0
+            is_peak = (6.5 <= hour_val <= 9.0) or (16.5 <= hour_val <= 19.5)
+            tomtom_interval = 360 if is_peak else 720 # 6 mins or 12 mins
 
-        tomtom_sampled = 0
-        if tomtom_key and (time.time() - last_tomtom_poll >= tomtom_interval):
-            if daily_tomtom_count + len(HUST_BOTTLENECK_NODES) < MAX_TOMTOM_DAILY:
-                traffic_out_file = os.path.join(TOMTOM_OUTPUT_DIR, f"tomtom_flow_{date_str}.jsonl")
-                traffic_records = []
-                for node in HUST_BOTTLENECK_NODES:
-                    flow_res = fetch_tomtom_flow(node["lat"], node["lon"], tomtom_key)
-                    daily_tomtom_count += 1
-                    tomtom_sampled += 1
-                    if flow_res:
-                        traffic_records.append({
-                            "timestamp": now.isoformat(),
-                            "node_name": node["name"],
-                            "lat": node["lat"],
-                            "lon": node["lon"],
-                            "current_speed": flow_res.get("currentSpeed"),
-                            "free_flow_speed": flow_res.get("freeFlowSpeed"),
-                            "travel_time": flow_res.get("currentTravelTime"),
-                            "confidence": flow_res.get("confidence")
-                        })
-                    time.sleep(0.1) # 100ms throttle
+            tomtom_sampled = 0
+            if tomtom_key and (time.time() - last_tomtom_poll >= tomtom_interval):
+                if daily_tomtom_count + len(HUST_BOTTLENECK_NODES) < MAX_TOMTOM_DAILY:
+                    traffic_records = []
+                    for node in HUST_BOTTLENECK_NODES:
+                        flow_res = fetch_tomtom_flow(node["lat"], node["lon"], tomtom_key)
+                        daily_tomtom_count += 1
+                        tomtom_sampled += 1
+                        if flow_res:
+                            traffic_records.append({
+                                "timestamp": now.isoformat(),
+                                "node_name": node["name"],
+                                "lat": node["lat"],
+                                "lon": node["lon"],
+                                "current_speed": flow_res.get("currentSpeed"),
+                                "free_flow_speed": flow_res.get("freeFlowSpeed"),
+                                "travel_time": flow_res.get("currentTravelTime"),
+                                "confidence": flow_res.get("confidence")
+                            })
+                        time.sleep(0.1) # 100ms throttle
 
-                if traffic_records:
-                    with open(traffic_out_file, "a", encoding="utf-8") as f:
-                        for tr in traffic_records:
-                            f.write(json.dumps(tr, ensure_ascii=False) + "\n")
-                last_tomtom_poll = time.time()
+                    if traffic_records:
+                        with open(traffic_out_file, "a", encoding="utf-8") as f:
+                            for tr in traffic_records:
+                                f.write(json.dumps(tr, ensure_ascii=False) + "\n")
+                    last_tomtom_poll = time.time()
 
-        elapsed = time.time() - round_start
-        tomtom_info = f"TomTom: +{tomtom_sampled} reqs (Tổng hôm nay: {daily_tomtom_count}/{MAX_TOMTOM_DAILY})" if tomtom_sampled > 0 else f"TomTom: Chờ chu kỳ ({daily_tomtom_count}/{MAX_TOMTOM_DAILY})"
-        print(f"[{now.strftime('%H:%M:%S')}] [Vòng {round_no:03d}] 🚌 Xe buýt: {len(bus_records)}/{len(v_ids)} xe hoạt động | {tomtom_info} | {elapsed:.1f}s")
-        round_no += 1
+            elapsed = time.time() - round_start
+            tomtom_info = f"TomTom: +{tomtom_sampled} reqs ({daily_tomtom_count}/{MAX_TOMTOM_DAILY})" if tomtom_sampled > 0 else f"TomTom: Chờ chu kỳ ({daily_tomtom_count}/{MAX_TOMTOM_DAILY})"
+            print(f"[{now.strftime('%H:%M:%S')}] [Vòng {round_no:03d}] 🚌 Xe buýt: {len(bus_records)}/{len(v_ids)} xe hoạt động | {tomtom_info} | {elapsed:.1f}s", flush=True)
+            round_no += 1
 
-        if single_test:
-            print("\n[INFO] Test run 1 vong hoan tat thanh cong! Dung tien trinh.")
+            # 3. PERIODIC CLOUD SYNC (Mỗi 10 phút hoặc khi test)
+            if hf_token and (time.time() - last_hf_sync >= HF_SYNC_INTERVAL or single_test):
+                sync_to_hf(bus_out_file, traffic_out_file, date_str, hf_token)
+                last_hf_sync = time.time()
+
+            if single_test:
+                print("\n[INFO] Test run 1 vòng hoàn tất thành công! Dừng tiến trình.", flush=True)
+                break
+
+            sleep_wait = max(5, BUS_POLL_INTERVAL - elapsed)
+            time.sleep(sleep_wait)
+
+        except KeyboardInterrupt:
+            print("\n[INFO] Người dùng bấm Ctrl+C. Đang dừng Crawler an toàn...", flush=True)
             break
-
-        sleep_wait = max(5, BUS_POLL_INTERVAL - elapsed)
-        time.sleep(sleep_wait)
+        except Exception as err:
+            print(f"⚠️ [CẢNH BÁO] Có lỗi tạm thời trong vòng lặp ({err}). Tự động tiếp tục sau 10s...", flush=True)
+            time.sleep(10)
 
 if __name__ == "__main__":
     main()

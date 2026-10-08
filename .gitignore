@@ -8,4 +8,5 @@ __pycache__/
 .vscode/
 data/temp_hf_sync/
 temp_cloud_output/
-
+data/raw/
+*.log

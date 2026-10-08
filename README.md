@@ -66,6 +66,11 @@ Bus_tracking/
    python scripts/sync_from_hf.py
    ```
 
+### Cách C: Thu Thập 24/7 Bền Bỉ Trên Điện Thoại Android (Termux)
+1. Cài đặt Termux từ F-Droid / GitHub Releases và cấp quyền Không hạn chế pin (Unrestricted).
+2. Chạy 1 dòng lệnh khởi tạo: `bash scripts/setup_termux.sh`
+3. Chi tiết hướng dẫn xem tại: [`docs/19_TERMUX_ANDROID_24x7_INGESTION_GUIDE.md`](file:///z:/Desktop/Bus_tracking/docs/19_TERMUX_ANDROID_24x7_INGESTION_GUIDE.md)
+
 ---
 
 ## 📚 4. Hệ Thống Tài Liệu Kỹ Thuật (Docs Index)
@@ -74,4 +79,5 @@ Toàn bộ cơ sở lý thuyết, công thức toán học và tài liệu thi�
 * **Bus-as-a-Probe & BusMap API:** `01_BUSMAP_INGESTION_STRATEGY.md`, `05_BUSMAP_API_FAILURE_ANALYSIS.md`, `06_EXTRACTED_APIS_AND_SYSTEM_DISCOVERY.md`
 * **Lý thuyết Tắc nghẽn & TomTom:** `02_TOMTOM_TWO_TIER_TRAFFIC_OPTIMIZATION.md`, `09_TOMTOM_FLOW_INTERPOLATION_THEORY.md`, `10_TOMTOM_EMPIRICAL_VALIDATION_REPORT.md`
 * **Quy mô Cụm Bách Khoa:** `13_CONGESTION_COVERAGE_CAPACITY_ANALYSIS.md`, `14_HUST_CLUSTER_ROUTES_SELECTION_AND_SPATIAL_FEASIBILITY.md`
-* **Hướng dẫn Triển khai:** `15_24x7_CRAWLER_DEPLOYMENT_GUIDE.md`, `18_GITHUB_ACTIONS_CLOUD_CRAWLER_SETUP.md`
+* **Hướng dẫn Triển khai:** `15_24x7_CRAWLER_DEPLOYMENT_GUIDE.md`, `18_GITHUB_ACTIONS_CLOUD_CRAWLER_SETUP.md`, `19_TERMUX_ANDROID_24x7_INGESTION_GUIDE.md`
+
