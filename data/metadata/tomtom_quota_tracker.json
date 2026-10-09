@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-09",
+  "month": "2026-10",
+  "flow_daily_budget": 600,
+  "flow_monthly_limit": 20000,
+  "flow_used_today": 589,
+  "flow_used_month": 1732,
+  "flow_remaining_today": 11,
+  "flow_remaining_month": 18268,
+  "incident_daily_budget": 75,
+  "incident_monthly_limit": 2500,
+  "incident_used_today": 31,
+  "incident_used_month": 70,
+  "incident_remaining_today": 44,
+  "incident_remaining_month": 2430,
+  "last_updated": "2026-10-09 20:45:00"
+}

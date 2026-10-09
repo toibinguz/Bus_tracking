@@ -10,4 +10,3 @@ data/temp_hf_sync/
 temp_cloud_output/
 data/raw/
 *.log
-data/metadata/tomtom_quota_tracker.json

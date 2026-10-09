@@ -18,7 +18,8 @@ from .config import (
     MAX_TOMTOM_INCIDENT_MONTHLY,
     TOMTOM_FLOW_THROTTLE_SEC,
     HUST_CORRIDOR_BBOX,
-    HUST_BOTTLENECK_NODES
+    HUST_BOTTLENECK_NODES,
+    get_hanoi_time
 )
 
 ssl_context = ssl.create_default_context()
@@ -126,9 +127,10 @@ def execute_tomtom_poll(cur_hn_time, api_key):
     return flow, inc
 
 def load_tomtom_quota_state():
-    """Tải trạng thái sử dụng hạn mức TomTom theo Ngày và Tháng."""
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    current_month_str = datetime.now().strftime("%Y-%m")
+    """Tải trạng thái sử dụng hạn mức TomTom theo Ngày và Tháng theo giờ chuẩn Hà Nội."""
+    hn_time = get_hanoi_time()
+    today_str = hn_time.strftime("%Y-%m-%d")
+    current_month_str = hn_time.strftime("%Y-%m")
     flow_today = 0
     flow_month = 0
     incident_today = 0
@@ -155,9 +157,10 @@ def load_tomtom_quota_state():
     }
 
 def save_tomtom_quota_state(quota_state):
-    """Lưu cập nhật trạng thái hạn mức TomTom theo Ngày và Tháng."""
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    current_month_str = datetime.now().strftime("%Y-%m")
+    """Lưu cập nhật trạng thái hạn mức TomTom theo Ngày và Tháng theo giờ chuẩn Hà Nội."""
+    hn_time = get_hanoi_time()
+    today_str = hn_time.strftime("%Y-%m-%d")
+    current_month_str = hn_time.strftime("%Y-%m")
     os.makedirs(os.path.dirname(TOMTOM_QUOTA_FILE), exist_ok=True)
     state = {
         "date": today_str,
@@ -174,7 +177,7 @@ def save_tomtom_quota_state(quota_state):
         "incident_used_month": quota_state["incident_month"],
         "incident_remaining_today": max(0, MAX_TOMTOM_INCIDENT_DAILY - quota_state["incident_today"]),
         "incident_remaining_month": max(0, MAX_TOMTOM_INCIDENT_MONTHLY - quota_state["incident_month"]),
-        "last_updated": datetime.now().strftime("%H:%M:%S")
+        "last_updated": hn_time.strftime("%Y-%m-%d %H:%M:%S")
     }
     try:
         with open(TOMTOM_QUOTA_FILE, "w", encoding="utf-8") as f:

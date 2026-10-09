@@ -21,8 +21,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import (
     CONFIG_FILE, HF_DATASET_ID,
-    MAX_DAILY_TOMTOM_BATCHES, MAX_TOMTOM_FLOW_DAILY,
-    MAX_TOMTOM_INCIDENT_DAILY,
+    MAX_DAILY_TOMTOM_BATCHES, MAX_TOMTOM_FLOW_DAILY, MAX_TOMTOM_FLOW_MONTHLY,
+    MAX_TOMTOM_INCIDENT_DAILY, MAX_TOMTOM_INCIDENT_MONTHLY,
     SESSION_DURATION_SEC, BUS_MICRO_BATCH_SIZE, BUS_MICRO_BATCH_DELAY_SEC,
     BUS_POLL_INTERVAL_SEC, WATCHDOG_MIN_RESPONSE_RATE,
     get_hanoi_time, is_operating_hours, is_peak_hours,
@@ -33,7 +33,8 @@ from core.bus_client import (
 )
 from core.traffic_client import (
     execute_tomtom_flow_poll, execute_tomtom_incident_poll,
-    execute_tomtom_poll, TOMTOM_CIRCUIT_OPEN
+    execute_tomtom_poll, TOMTOM_CIRCUIT_OPEN,
+    load_tomtom_quota_state, save_tomtom_quota_state
 )
 from core.congestion import evaluate_hotspot_congestion
 from core.hf_client import (
@@ -95,18 +96,30 @@ def main():
     incident_records = []
     kinematic_cache = {}
 
-    # 1. Kiểm tra ngân sách TomTom hôm nay từ Cloud Dataset
-    date_tag = hn_time.strftime("%Y-%m-%d")
-    today_traffic_batches = get_hf_today_batch_count(date_tag, "traffic", hf_token) if (hf_token and not single_test) else 0
-    today_incident_batches = get_hf_today_batch_count(date_tag, "incidents", hf_token) if (hf_token and not single_test) else 0
-    can_poll_tomtom_flow = (today_traffic_batches < MAX_DAILY_TOMTOM_BATCHES) and not TOMTOM_CIRCUIT_OPEN and not no_tomtom
-    can_poll_tomtom_incident = (today_incident_batches < MAX_TOMTOM_INCIDENT_DAILY) and not TOMTOM_CIRCUIT_OPEN and not no_tomtom
+    # 1. Đọc và kiểm tra ngân sách TomTom chính xác từ Sổ Cái Hạn Ngạch
+    quota_state = load_tomtom_quota_state()
+    flow_used_today = quota_state["flow_today"]
+    flow_used_month = quota_state["flow_month"]
+    incident_used_today = quota_state["incident_today"]
+    incident_used_month = quota_state["incident_month"]
 
-    if today_traffic_batches >= MAX_DAILY_TOMTOM_BATCHES and not single_test:
-        print(f"[{ts_str}] 🚦 [BUDGET GOVERNOR] Đã dùng {today_traffic_batches}/{MAX_DAILY_TOMTOM_BATCHES} đợt TomTom Flow hôm nay (~{today_traffic_batches*len(HUST_BOTTLENECK_NODES)}/{MAX_TOMTOM_FLOW_DAILY} flow). Tạm dừng Flow để bảo lưu hạn ngạch.", flush=True)
+    num_flow_nodes = len(HUST_BOTTLENECK_NODES)
+    can_poll_tomtom_flow = (
+        (flow_used_today + num_flow_nodes <= MAX_TOMTOM_FLOW_DAILY) and
+        (flow_used_month + num_flow_nodes <= MAX_TOMTOM_FLOW_MONTHLY) and
+        not TOMTOM_CIRCUIT_OPEN and not no_tomtom
+    )
+    can_poll_tomtom_incident = (
+        (incident_used_today + 1 <= MAX_TOMTOM_INCIDENT_DAILY) and
+        (incident_used_month + 1 <= MAX_TOMTOM_INCIDENT_MONTHLY) and
+        not TOMTOM_CIRCUIT_OPEN and not no_tomtom
+    )
 
-    if today_incident_batches >= MAX_TOMTOM_INCIDENT_DAILY and not single_test:
-        print(f"[{ts_str}] 🚨 [BUDGET GOVERNOR] Đã dùng {today_incident_batches}/{MAX_TOMTOM_INCIDENT_DAILY} đợt Incidents hôm nay. Tạm dừng Incidents.", flush=True)
+    if not can_poll_tomtom_flow and not single_test:
+        print(f"[{ts_str}] 🚦 [BUDGET GOVERNOR] Hạn mức Flow: Hôm nay {flow_used_today}/{MAX_TOMTOM_FLOW_DAILY} reqs | Tháng {flow_used_month}/{MAX_TOMTOM_FLOW_MONTHLY} reqs. Tạm dừng Flow để bảo lưu ngân sách.", flush=True)
+
+    if not can_poll_tomtom_incident and not single_test:
+        print(f"[{ts_str}] 🚨 [BUDGET GOVERNOR] Hạn mức Incidents: Hôm nay {incident_used_today}/{MAX_TOMTOM_INCIDENT_DAILY} reqs | Tháng {incident_used_month}/{MAX_TOMTOM_INCIDENT_MONTHLY} reqs. Tạm dừng Incidents.", flush=True)
 
     # 2. Lập lịch riêng biệt cho Flow và Incident (Pacing kỷ luật)
     total_mins = hn_time.hour * 60 + hn_time.minute
@@ -123,15 +136,22 @@ def main():
     if tomtom_key and can_poll_tomtom_flow and should_poll_flow:
         peak_label = "Cao điểm (18p/đợt)" if is_peak else "Thấp điểm (54p/đợt)"
         weekend_label = " (Cuối tuần)" if hn_time.weekday() >= 5 else ""
-        print(f"[{hn_time.strftime('%H:%M:%S')}] 🚦 Thu thập TomTom Flow ({len(HUST_BOTTLENECK_NODES)} nút, {peak_label}{weekend_label})...", flush=True)
+        print(f"[{hn_time.strftime('%H:%M:%S')}] 🚦 Thu thập TomTom Flow ({num_flow_nodes} nút, {peak_label}{weekend_label})...", flush=True)
         traffic_records = execute_tomtom_flow_poll(hn_time, tomtom_key)
-        print(f"   🚦 Hoàn tất Flow: {len(traffic_records)} segments.", flush=True)
+        delta_flow = len(traffic_records)
+        quota_state["flow_today"] += delta_flow
+        quota_state["flow_month"] += delta_flow
+        save_tomtom_quota_state(quota_state)
+        print(f"   🚦 Hoàn tất Flow: {delta_flow} requests (Hôm nay: {quota_state['flow_today']}/{MAX_TOMTOM_FLOW_DAILY}, Tháng: {quota_state['flow_month']}/{MAX_TOMTOM_FLOW_MONTHLY}).", flush=True)
 
     # B. Thu thập TomTom Incident độc lập ở đầu phiên
     if tomtom_key and can_poll_tomtom_incident and should_poll_incident:
         print(f"[{hn_time.strftime('%H:%M:%S')}] 🚨 Thu thập TomTom Incidents (Chu kỳ 18p toàn mạng lưới)...", flush=True)
         incident_records = execute_tomtom_incident_poll(hn_time, tomtom_key)
-        print(f"   🚨 Hoàn tất Incidents: {len(incident_records)} sự cố.", flush=True)
+        quota_state["incident_today"] += 1
+        quota_state["incident_month"] += 1
+        save_tomtom_quota_state(quota_state)
+        print(f"   🚨 Hoàn tất Incidents: {len(incident_records)} sự cố (Hôm nay: {quota_state['incident_today']}/{MAX_TOMTOM_INCIDENT_DAILY}, Tháng: {quota_state['incident_month']}/{MAX_TOMTOM_INCIDENT_MONTHLY}).", flush=True)
 
     # 3. Vòng lặp cào GPS xe buýt với Micro-batch Pacing
     micro_batches = [v_ids[i:i + BUS_MICRO_BATCH_SIZE] for i in range(0, len(v_ids), BUS_MICRO_BATCH_SIZE)]
@@ -187,7 +207,11 @@ def main():
                 print(f"[{round_ts}] 🚨 [DYN-CONGESTION] Giờ cao điểm: Phát hiện ùn tắc tại {len(congestion_eval['congested_nodes'])} nút: {congestion_eval['congested_nodes']}. Kích hoạt Flow bổ sung!", flush=True)
                 dyn_flow = execute_tomtom_flow_poll(cur_hn_time, tomtom_key)
                 traffic_records.extend(dyn_flow)
-                print(f"   🚦 Hoàn tất Flow quét động: {len(dyn_flow)} flow segments.", flush=True)
+                delta_flow = len(dyn_flow)
+                quota_state["flow_today"] += delta_flow
+                quota_state["flow_month"] += delta_flow
+                save_tomtom_quota_state(quota_state)
+                print(f"   🚦 Hoàn tất Flow quét động: {delta_flow} requests (Hôm nay: {quota_state['flow_today']}/{MAX_TOMTOM_FLOW_DAILY}).", flush=True)
 
         round_no += 1
 
