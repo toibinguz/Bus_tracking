@@ -248,7 +248,7 @@ def main():
     if single_test:
         print("\n[INFO] Chế độ --test: Đã ghi file batch cục bộ, KHÔNG đẩy lên Hugging Face.", flush=True)
     else:
-        upload_batches_to_hf_native(bus_chunk, traffic_chunk, incident_chunk, date_tag, time_tag, hf_token)
+        upload_batches_to_hf_native(bus_chunk, traffic_chunk, incident_chunk, date_tag, time_tag, hf_token, quota_state=quota_state)
 
 if __name__ == "__main__":
     main()

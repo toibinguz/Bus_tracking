@@ -149,6 +149,19 @@ def load_tomtom_quota_state():
                     incident_today = state.get("incident_used_today", 0)
         except Exception:
             pass
+    else:
+        try:
+            from .hf_client import fetch_hf_tomtom_quota_state
+            remote_state = fetch_hf_tomtom_quota_state()
+            if remote_state:
+                if remote_state.get("month") == current_month_str:
+                    flow_month = remote_state.get("flow_used_month", 0)
+                    incident_month = remote_state.get("incident_used_month", 0)
+                if remote_state.get("date") == today_str:
+                    flow_today = remote_state.get("flow_used_today", 0)
+                    incident_today = remote_state.get("incident_used_today", 0)
+        except Exception:
+            pass
     return {
         "flow_today": flow_today,
         "flow_month": flow_month,
