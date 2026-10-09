@@ -66,15 +66,15 @@ def fetch_tomtom_incidents(api_key, bbox=HUST_CORRIDOR_BBOX):
     except Exception:
         return []
 
-def execute_tomtom_poll(cur_hn_time, api_key):
-    """Thực hiện một lượt quét đồng bộ 19 Flow Segments + 1 Incident BBox."""
+def execute_tomtom_flow_poll(cur_hn_time, api_key, nodes=None):
+    """Thực hiện một lượt quét Flow Segments cho danh sách nodes (mặc định 19 nodes)."""
     flow_records = []
-    inc_records = []
     if not api_key or TOMTOM_CIRCUIT_OPEN:
-        return flow_records, inc_records
+        return flow_records
+    if nodes is None:
+        nodes = HUST_BOTTLENECK_NODES
 
-    # A. 19 Flow Segments
-    for node in HUST_BOTTLENECK_NODES:
+    for node in nodes:
         res = fetch_tomtom_flow(node["lat"], node["lon"], api_key)
         if res:
             raw_coords = res.get("coordinates", {}).get("coordinate", [])
@@ -92,9 +92,15 @@ def execute_tomtom_poll(cur_hn_time, api_key):
                 "coordinates": seg_coords
             })
         time.sleep(TOMTOM_FLOW_THROTTLE_SEC)
+    return flow_records
 
-    # B. Incident Details
-    raw_incidents = fetch_tomtom_incidents(api_key)
+def execute_tomtom_incident_poll(cur_hn_time, api_key, bbox=HUST_CORRIDOR_BBOX):
+    """Thực hiện một lượt quét Incident Details cho Bounding Box Hà Nội."""
+    inc_records = []
+    if not api_key or TOMTOM_CIRCUIT_OPEN:
+        return inc_records
+
+    raw_incidents = fetch_tomtom_incidents(api_key, bbox=bbox)
     for inc in raw_incidents:
         props = inc.get("properties", {})
         geom = inc.get("geometry", {})
@@ -111,8 +117,13 @@ def execute_tomtom_poll(cur_hn_time, api_key):
             "geometry_type": geom.get("type", "LineString"),
             "coordinates": geom.get("coordinates", [])
         })
+    return inc_records
 
-    return flow_records, inc_records
+def execute_tomtom_poll(cur_hn_time, api_key):
+    """Wrapper tương thích ngược: quét cả 19 Flow Segments và Incident BBox."""
+    flow = execute_tomtom_flow_poll(cur_hn_time, api_key)
+    inc = execute_tomtom_incident_poll(cur_hn_time, api_key)
+    return flow, inc
 
 def load_tomtom_quota_state():
     """Tải trạng thái sử dụng hạn mức TomTom theo Ngày và Tháng."""
