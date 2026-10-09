@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.config import (
     CONFIG_FILE, HF_DATASET_ID,
     MAX_DAILY_TOMTOM_BATCHES, MAX_TOMTOM_FLOW_DAILY,
+    MAX_TOMTOM_INCIDENT_DAILY,
     SESSION_DURATION_SEC, BUS_MICRO_BATCH_SIZE, BUS_MICRO_BATCH_DELAY_SEC,
     BUS_POLL_INTERVAL_SEC, WATCHDOG_MIN_RESPONSE_RATE,
     get_hanoi_time, is_operating_hours, is_peak_hours,
@@ -36,7 +37,8 @@ from core.traffic_client import (
 )
 from core.congestion import evaluate_hotspot_congestion
 from core.hf_client import (
-    get_hf_today_traffic_batch_count, upload_batches_to_hf_native
+    get_hf_today_batch_count, get_hf_today_traffic_batch_count,
+    upload_batches_to_hf_native
 )
 
 def main():
@@ -95,12 +97,16 @@ def main():
 
     # 1. Kiểm tra ngân sách TomTom hôm nay từ Cloud Dataset
     date_tag = hn_time.strftime("%Y-%m-%d")
-    today_traffic_batches = get_hf_today_traffic_batch_count(date_tag, hf_token) if (hf_token and not single_test) else 0
+    today_traffic_batches = get_hf_today_batch_count(date_tag, "traffic", hf_token) if (hf_token and not single_test) else 0
+    today_incident_batches = get_hf_today_batch_count(date_tag, "incidents", hf_token) if (hf_token and not single_test) else 0
     can_poll_tomtom_flow = (today_traffic_batches < MAX_DAILY_TOMTOM_BATCHES) and not TOMTOM_CIRCUIT_OPEN and not no_tomtom
-    can_poll_tomtom_incident = not TOMTOM_CIRCUIT_OPEN and not no_tomtom
+    can_poll_tomtom_incident = (today_incident_batches < MAX_TOMTOM_INCIDENT_DAILY) and not TOMTOM_CIRCUIT_OPEN and not no_tomtom
 
     if today_traffic_batches >= MAX_DAILY_TOMTOM_BATCHES and not single_test:
         print(f"[{ts_str}] 🚦 [BUDGET GOVERNOR] Đã dùng {today_traffic_batches}/{MAX_DAILY_TOMTOM_BATCHES} đợt TomTom Flow hôm nay (~{today_traffic_batches*len(HUST_BOTTLENECK_NODES)}/{MAX_TOMTOM_FLOW_DAILY} flow). Tạm dừng Flow để bảo lưu hạn ngạch.", flush=True)
+
+    if today_incident_batches >= MAX_TOMTOM_INCIDENT_DAILY and not single_test:
+        print(f"[{ts_str}] 🚨 [BUDGET GOVERNOR] Đã dùng {today_incident_batches}/{MAX_TOMTOM_INCIDENT_DAILY} đợt Incidents hôm nay. Tạm dừng Incidents.", flush=True)
 
     # 2. Lập lịch riêng biệt cho Flow và Incident (Pacing kỷ luật)
     total_mins = hn_time.hour * 60 + hn_time.minute

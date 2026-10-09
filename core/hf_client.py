@@ -15,11 +15,11 @@ ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
 ssl_context.verify_mode = ssl.CERT_NONE
 
-def get_hf_today_traffic_batch_count(date_tag, token, dataset_id=HF_DATASET_ID):
-    """Truy vấn số lượng batch traffic đã tải lên Hugging Face hôm nay để kiểm soát hạn mức ngày."""
+def get_hf_today_batch_count(date_tag, category, token, dataset_id=HF_DATASET_ID):
+    """Truy vấn số lượng batch (traffic, incidents, bus) đã tải lên Hugging Face hôm nay."""
     if not token or not dataset_id:
         return 0
-    url = f"https://huggingface.co/api/datasets/{dataset_id}/tree/main/raw_data/{date_tag}/traffic"
+    url = f"https://huggingface.co/api/datasets/{dataset_id}/tree/main/raw_data/{date_tag}/{category}"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     try:
         with urllib.request.urlopen(req, context=ssl_context, timeout=6) as resp:
@@ -32,6 +32,10 @@ def get_hf_today_traffic_batch_count(date_tag, token, dataset_id=HF_DATASET_ID):
     except Exception:
         pass
     return 0
+
+def get_hf_today_traffic_batch_count(date_tag, token, dataset_id=HF_DATASET_ID):
+    """Wrapper tương thích ngược cho traffic flow."""
+    return get_hf_today_batch_count(date_tag, "traffic", token, dataset_id)
 
 def upload_batches_to_hf_native(bus_chunk, traffic_chunk, incident_chunk, date_tag, time_tag, token, dataset_id=HF_DATASET_ID):
     """Đẩy các file batch nén jsonl lên Hugging Face Dataset hoàn toàn bằng standard library qua Commit API."""
