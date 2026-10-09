@@ -241,6 +241,36 @@ def sync_hf_metadata(token=None, dataset_id=HF_DATASET_ID, quota_state=None):
                 }
             })
 
+    # 4. route_31_master_metadata.json (Ground-Truth Tuyến 31)
+    r31_meta_file = "data/metadata/route_31_master_metadata.json"
+    if os.path.exists(r31_meta_file):
+        with open(r31_meta_file, "rb") as f:
+            r_bytes = f.read()
+        if r_bytes:
+            operations.append({
+                "key": "file",
+                "value": {
+                    "path": "metadata/route_31_master_metadata.json",
+                    "encoding": "base64",
+                    "content": base64.b64encode(r_bytes).decode("ascii")
+                }
+            })
+
+    # 5. route_31_geometry.geojson (Bản đồ GIS Tuyến 31)
+    r31_geo_file = "data/metadata/route_31_geometry.geojson"
+    if os.path.exists(r31_geo_file):
+        with open(r31_geo_file, "rb") as f:
+            g_bytes = f.read()
+        if g_bytes:
+            operations.append({
+                "key": "file",
+                "value": {
+                    "path": "metadata/route_31_geometry.geojson",
+                    "encoding": "base64",
+                    "content": base64.b64encode(g_bytes).decode("ascii")
+                }
+            })
+
     # 4. README.md với bảng số lượng request cập nhật
     readme_content = generate_hf_readme(quota_state=quota_state).encode("utf-8")
     operations.append({
