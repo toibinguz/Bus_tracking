@@ -9,4 +9,6 @@ __pycache__/
 data/temp_hf_sync/
 temp_cloud_output/
 data/raw/
+data/telemetry_sync/
+data/osm/raw/
 *.log

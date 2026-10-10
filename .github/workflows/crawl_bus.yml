@@ -38,6 +38,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main || true
           git add data/metadata/
           if ! git diff --staged --quiet; then
             git commit -m "chore(catalog): daily auto-refresh vehicle catalog [skip ci]"

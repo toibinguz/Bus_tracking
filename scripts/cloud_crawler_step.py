@@ -226,6 +226,7 @@ def main():
     # 4. Ghi file batch và đẩy lên Hugging Face qua native Commit API
     tmp_dir = "temp_cloud_output"
     os.makedirs(tmp_dir, exist_ok=True)
+    date_tag = today_str
     time_tag = hn_time.strftime("%H%M%S")
 
     bus_chunk = os.path.join(tmp_dir, f"bus_batch_{time_tag}.jsonl")
