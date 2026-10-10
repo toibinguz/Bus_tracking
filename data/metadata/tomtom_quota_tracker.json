@@ -3,15 +3,15 @@
   "month": "2026-10",
   "flow_daily_budget": 600,
   "flow_monthly_limit": 20000,
-  "flow_used_today": 133,
-  "flow_used_month": 1865,
-  "flow_remaining_today": 467,
-  "flow_remaining_month": 18135,
+  "flow_used_today": 152,
+  "flow_used_month": 1884,
+  "flow_remaining_today": 448,
+  "flow_remaining_month": 18116,
   "incident_daily_budget": 75,
   "incident_monthly_limit": 2500,
   "incident_used_today": 9,
   "incident_used_month": 80,
   "incident_remaining_today": 66,
   "incident_remaining_month": 2420,
-  "last_updated": "2026-10-10 17:47:12"
+  "last_updated": "2026-10-10 17:57:03"
 }
