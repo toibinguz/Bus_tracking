@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-10-11 05:30:04",
+  "timestamp": "2026-10-11 05:39:33",
   "total_configured": 220,
   "active_responding": 220,
-  "active_rolling": 175,
-  "depot_idle": 45,
+  "active_rolling": 182,
+  "depot_idle": 38,
   "offline": 0,
   "reassigned_count": 0,
   "newly_added_count": 0
