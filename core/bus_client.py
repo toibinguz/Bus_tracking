@@ -21,7 +21,7 @@ ssl_context.verify_mode = ssl.CERT_NONE
 
 def fetch_single_bus_raw(v_id):
     """Gửi HTTP request cấp thấp qua raw socket SSL đến BusMap API để tối ưu tốc độ và né WAF."""
-    dev_id = get_busmap_device_id()
+    dev_id = get_busmap_device_id(v_id=v_id)
     raw_req = (
         f"GET /v2/public/busmap/vehicle_hn/get?id={v_id} HTTP/1.1\r\n"
         "Host: api.busmap.city\r\n"
@@ -43,7 +43,7 @@ def fetch_single_bus_raw(v_id):
                 header, _, body = resp.partition(b"\r\n\r\n")
                 if not body: return None
                 if b"429 Too Many Requests" in header or b"LOCKED" in body:
-                    new_dev_id = get_busmap_device_id(force_rotate=True)
+                    new_dev_id = get_busmap_device_id(v_id=v_id, bad_device_id=dev_id, force_rotate=True)
                     # Thử lại 1 lần với device ID mới vừa cấp
                     retry_req = (
                         f"GET /v2/public/busmap/vehicle_hn/get?id={v_id} HTTP/1.1\r\n"

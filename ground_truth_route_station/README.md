@@ -41,28 +41,24 @@ flowchart TD
 
 Trong các phiên làm việc vừa qua, chúng ta đã đạt được các cột mốc kỹ thuật nền tảng:
 
-### 2.1. Giải Quyết Triệt Để Lỗi "Đường Nối Chéo" (Topological Stitching)
-- **Vấn đề của OSM thô:** Khi xuất dữ liệu relation từ OSM, các đoạn đường thành viên (`way`) thường bị cộng đồng xếp lộn xộn, bị vẽ ngược hướng một chiều, hoặc có đoạn đi vòng. Nối tuần tự thông thường tạo ra các đường chéo đâm ngang thành phố nhảy xa 10-15 km.
-- **Giải pháp:** Xây dựng thuật toán **Directed Topological Stitching** (`modules/osm/route_parser.py`):
-  - Khởi đầu từ bến xuất phát, duyệt đồ thị tìm đoạn đường kế tiếp có điểm đầu hoặc điểm cuối tiếp giáp đỉnh hiện tại.
-  - Tự động đảo chiều vectơ (reversal) nếu đoạn đường bị vẽ ngược chiều.
-  - Đạt kết quả kiểm chứng: Tuyến 31 đạt **0.0m khoảng cách nhảy (max jump)**, tạo thành một Polyline trơn tru, chuẩn xác từ Bách Khoa đến Chèm.
+### 2.1. Kiến Trúc Nguyên Bản Nodes & Ways (Triệt tiêu 100% hiện tượng nối xuyên đỉnh)
+- **Vấn đề của thuật toán nối polyline cũ:** Việc gộp/nối cưỡng bức (greedy polyline stitching) tạo ra các đoạn chim bay cắt góc ngã tư và làm mất đoạn ở các relation phức tạp (như Tuyến 08A từng mất 1/2 chiều về).
+- **Giải pháp chuẩn:** Bảo toàn 100% cấu trúc thực tế từng đoạn `ways` và `nodes` của OSM. Mỗi Way được render và tính toán độc lập, khôi phục toàn vẹn chiều dài và trạm dừng trên toàn bộ 192 tuyến Hà Nội.
 
 ### 2.2. Xây Dựng Kiến Trúc Module Hóa Chuẩn Mực
-Tách biệt toàn bộ mã nguồn xử lý thành các package chuyên biệt trong thư mục `ground_truth_route_station/modules/`, hoàn toàn không làm xáo trộn các script crawler trong `scripts/`:
+Tách biệt toàn bộ mã nguồn xử lý thành các package chuyên biệt trong thư mục `ground_truth_route_station/modules/`:
 - **`modules/telemetry/`**:
   - `sync.py`: Tải các batch telemetry từ Hugging Face Dataset theo số lượng mẫu chỉ định (`max_batches`).
-  - `preprocessor.py`: Lọc tọa độ hợp lệ, tách biệt **Pings di chuyển** ($v > 5\text{ km/h}$) dùng để kiểm chứng tim đường và **Pings dừng đỗ (Dwell)** ($v \le 5\text{ km/h}$) dùng để kiểm chứng trạm đón trả khách.
+  - `preprocessor.py`: Lọc tọa độ hợp lệ, tách biệt **Pings di chuyển** ($v > 5\text{ km/h}$) và **Pings dừng đỗ (Dwell)** ($v \le 5\text{ km/h}$).
 - **`modules/osm/`**:
-  - `downloader.py`: Tải dữ liệu Overpass API với cơ chế tự động chuyển đổi qua lại giữa các mirror quốc tế (mail.ru, kumi, overpass-api.de) và giữ nguyên cấu trúc nodes/ways/stops (Uncut).
-  - `route_parser.py`: Trích xuất các tuyến buýt theo mã (`ref`), khử đường chéo và sắp xếp thứ tự trạm dừng đơn điệu tăng dần.
-  - `map_reconstruction.py`: Tải mạng lưới đường bộ đô thị Hà Nội và lập chỉ mục không gian `STRtree` phục vụ map-matching.
+  - `downloader.py`: Tải dữ liệu Overpass API với cơ chế tự động chuyển đổi qua lại giữa các mirror quốc tế (mail.ru, kumi, overpass-api.de).
+  - `map_reconstruction.py`: Tải mạng lưới đường bộ đô thị Hà Nội phục vụ map-matching.
 - **`modules/verification/`**:
-  - `projection.py`: Thuật toán chiếu vuông góc (Orthogonal Projection) hiệu năng cao trên hệ tọa độ Metric phẳng.
-  - `evaluator.py`: Đánh giá sai số khoảng cách trực giao $d_\perp$, phân loại mức độ bám tuyến và đối soát vị trí trạm.
+  - `projection.py`: Thuật toán chiếu vuông góc hình cầu (Spherical / Geodesic Cross-Track Trigonometry) dựa trên lượng giác cầu Napier và khoảng cách Great-Circle.
+  - `evaluator.py`: Đánh giá sai số khoảng cách trực giao $d_\perp$, phân loại mức độ bám tuyến trên từng đoạn Way nguyên bản.
 - **`modules/reporting/`**:
   - `report_generator.py`: Tự động biên soạn báo cáo nghiệm thu chi tiết dạng Markdown.
-- **`run_pipeline.py`**: Trình điều phối CLI duy nhất hỗ trợ chạy từng bước hoặc toàn bộ luồng.
+- **`run_pipeline.py`**: Trình điều phối CLI duy nhất hỗ trợ chọn tuyến linh hoạt qua tham số `--routes`.
 
 ### 2.3. Kiểm Chứng Thực Nghiệm Ban Đầu Trên Dữ Liệu Thật
 - Đã đồng bộ thử nghiệm 182 batch files từ Hugging Face với **332.353 pings GPS hợp lệ** trên 19 tuyến buýt.
@@ -93,24 +89,20 @@ Tách biệt toàn bộ mã nguồn xử lý thành các package chuyên biệt 
    (Projection Point)
 ```
 
-1. **Chiếu sang hệ tọa độ phẳng Metric (Equirectangular chuẩn hóa tâm Hà Nội $\phi_0 = 21.0^\circ$):**
-   $$x = R \cdot (\lambda - \lambda_0) \cos(\phi_0), \quad y = R \cdot (\phi - \phi_0)$$
-   *(Sai số méo hình $< 0.05\%$ trên toàn vùng đô thị Hà Nội)*
+1. **Khoảng cách cung đại tròn (Great-Circle Distance via Haversine) trên mặt cầu WGS-84 ($R = 6,371,008.8\text{ m}$):**
+   $$a = \sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta\lambda}{2}\right), \quad d = 2R \cdot \text{atan2}(\sqrt{a}, \sqrt{1-a})$$
 
-2. **Vectơ đoạn đường và vectơ vị trí:**
-   $$\vec{u} = \vec{AB} = (x_B - x_A, y_B - y_A), \quad \vec{v} = \vec{AP} = (x_P - x_A, y_P - y_A)$$
+2. **Góc phương vị mặt cầu (Spherical Bearing / Azimuth $\theta$):**
+   $$\theta = \text{atan2}\left(\sin(\Delta\lambda)\cos(\phi_2), \; \cos(\phi_1)\sin(\phi_2) - \sin(\phi_1)\cos(\phi_2)\cos(\Delta\lambda)\right)$$
 
-3. **Tham số hình chiếu $t$ dọc đoạn thẳng:**
-   $$t = \frac{\vec{v} \cdot \vec{u}}{\|\vec{u}\|^2} = \frac{(x_P - x_A)(x_B - x_A) + (y_P - y_A)(y_B - y_A)}{(x_B - x_A)^2 + (y_B - y_A)^2}$$
+3. **Sai số vuông góc mặt cầu (Spherical Cross-Track Distance $d_\perp$ via Napier's Rule):**
+   $$\Delta\theta = |\theta_{AP} - \theta_{AB}|, \quad d_\perp = R \cdot \arcsin\left(\sin\left(\frac{d_{AP}}{R}\right) \cdot \sin(\Delta\theta)\right)$$
 
-4. **Kẹp biên đoạn hữu hạn (Clamping):**
-   $$t_{\text{clamped}} = \max(0, \min(1, t))$$
+4. **Khoảng cách dọc tuyến mặt cầu (Along-Track Distance $d_\parallel$):**
+   $$d_\parallel = R \cdot \arccos\left(\frac{\cos(d_{AP}/R)}{\cos(d_\perp/R)}\right)$$
 
-5. **Tọa độ điểm hình chiếu $P'$ trên tim đường:**
-   $$P' = A + t_{\text{clamped}} \cdot \vec{u}$$
-
-6. **Khoảng cách vuông góc thực tế (Perpendicular Distance $d_\perp$):**
-   $$d_\perp = \|P - P'\| = \sqrt{(x_P - x'_{P})^2 + (y_P - y'_{P})^2} \quad (\text{mét})$$
+5. **Tọa độ điểm hình chiếu trực giao $P'(\phi', \lambda')$ trên mặt cầu:**
+   Được nội suy chính xác từ đỉnh $A$ theo phương vị $\theta_{AB}$ với khoảng cách cầu $d_\parallel$ kẹp biên $[0, d_{AB}]$.
 
 ### Tiêu Chuẩn Đánh Giá:
 - **$d_\perp \le 25\text{ m}$ (Strict On-Route):** Ping nằm hoàn toàn trong lòng đường tiêu chuẩn 4-6 làn xe.
@@ -208,3 +200,4 @@ ground_truth_route_station/
    ```bash
    python ground_truth_route_station/run_pipeline.py --step 4
    ```
+

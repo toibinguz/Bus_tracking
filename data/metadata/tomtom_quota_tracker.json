@@ -1,17 +1,17 @@
 {
   "date": "2026-10-12",
   "month": "2026-10",
-  "flow_daily_budget": 600,
-  "flow_monthly_limit": 20000,
+  "flow_daily_budget": 0,
+  "flow_monthly_limit": 0,
   "flow_used_today": 589,
   "flow_used_month": 3252,
-  "flow_remaining_today": 11,
-  "flow_remaining_month": 16748,
-  "incident_daily_budget": 75,
+  "flow_remaining_today": 0,
+  "flow_remaining_month": 0,
+  "incident_daily_budget": 80,
   "incident_monthly_limit": 2500,
   "incident_used_today": 49,
   "incident_used_month": 198,
-  "incident_remaining_today": 26,
+  "incident_remaining_today": 31,
   "incident_remaining_month": 2302,
-  "last_updated": "2026-10-12 20:47:06"
+  "last_updated": "2026-10-12 21:05:21"
 }

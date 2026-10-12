@@ -44,7 +44,8 @@ from modules.reporting.report_generator import generate_markdown_verification_re
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-DEFAULT_TARGET_ROUTES = ["31", "32", "26", "08A", "03A", "21A", "02", "19", "25", "27", "28"]
+# Danh sách tuyến trọng tâm (Để trống để thảo luận và lựa chọn tường minh theo nhu cầu thực tế)
+DEFAULT_TARGET_ROUTES = []
 
 def run_step_0(sample_batches=15):
     print("\n" + "=" * 70)
@@ -152,6 +153,10 @@ def main():
     args = parser.parse_args()
 
     selected_routes = [r.strip() for r in args.routes.split(",") if r.strip()] if args.routes else DEFAULT_TARGET_ROUTES
+    if not selected_routes and args.step in [1, 3, None]:
+        print("[!] CHÚ Ý: Chưa có tuyến trọng tâm nào được chỉ định.")
+        print("    Vui lòng truyền tham số --routes (ví dụ: --routes 08A,32,26) sau khi thảo luận thống nhất.")
+        return
 
     if args.all or args.step is None:
         print("🎯 BẮT ĐẦU CHẠY TOÀN BỘ QUY TRÌNH 5 BƯỚC (BƯỚC 0 -> BƯỚC 4)")

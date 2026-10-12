@@ -74,8 +74,8 @@ def run_daily_catalog_refresh():
     
     print(f"[*] Tổng số xe cấu hình hiện tại: {len(configured_vids)} xe trên {len(target_route_ids)} tuyến hành lang.", flush=True)
 
-    # 1. Khảo sát 220 xe hiện có (Pacing micro-batches để bảo vệ WAF)
-    print("[*] [Pha 1/3] Đang ping kiểm tra trạng thái 220 xe...", flush=True)
+    # 1. Khảo sát danh mục xe hiện có (Pacing micro-batches để bảo vệ WAF)
+    print(f"[*] [Pha 1/3] Đang ping kiểm tra trạng thái {len(configured_vids)} xe...", flush=True)
     audit_results = {}
     micro_batches = [configured_vids[i:i + BUS_MICRO_BATCH_SIZE] for i in range(0, len(configured_vids), BUS_MICRO_BATCH_SIZE)]
 

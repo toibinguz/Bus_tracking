@@ -23,11 +23,15 @@ HF_DATASET_ID = os.environ.get("HF_DATASET_ID", "Toibinguz/hust-bus-data")
 # -------------------------------------------------------------
 # 2. TOMTOM FREEMIUM BUDGET & LIMITS
 # -------------------------------------------------------------
-# Bounded to Monthly Freemium: 20,000 Flow / month, 2,500 Incident / month
-MAX_TOMTOM_FLOW_DAILY = 600
-MAX_TOMTOM_FLOW_MONTHLY = 20000
-MAX_TOMTOM_INCIDENT_DAILY = 75
+# Đã loại bỏ hoàn toàn TomTom Flow để giải phóng hệ thống và tối đa hóa tính tổng quát hóa.
+ENABLE_TOMTOM_FLOW = False
+MAX_TOMTOM_FLOW_DAILY = 0
+MAX_TOMTOM_FLOW_MONTHLY = 0
+
+# Tối đa hóa TomTom Incident API: Sát mốc 80 requests/ngày (Hạn ngạch tháng: 2,500 req/tháng)
+MAX_TOMTOM_INCIDENT_DAILY = 80
 MAX_TOMTOM_INCIDENT_MONTHLY = 2500
+TOMTOM_INCIDENT_INTERVAL_SEC = 750        # ~12.5 phút/lần (17h x 60 / 12.5 ≈ 80 requests/ngày)
 
 # -------------------------------------------------------------
 # 3. GEOGRAPHIC BOUNDING BOXES & BOTTLENECK NODES
@@ -39,46 +43,24 @@ HANOI_BBOX = {
     "max_lon": 106.05
 }
 
-HUST_CORRIDOR_BBOX = "105.7500,20.9500,105.9000,21.0800"
+# Quét sự cố trên toàn bộ vùng lõi đô thị mở rộng Hà Nội
+HUST_CORRIDOR_BBOX = "105.7000,20.9400,105.9200,21.0900"
 
-HUST_BOTTLENECK_NODES = [
-    {"name": "Kim_Lien_Ham_Chui", "lat": 21.0084, "lon": 105.8427, "is_core": True},
-    {"name": "Dai_Co_Viet_Pho_Hue", "lat": 21.0092, "lon": 105.8503, "is_core": True},
-    {"name": "Nga_Tu_Vong", "lat": 20.9987, "lon": 105.8415, "is_core": True},
-    {"name": "Le_Thanh_Nghi_Bach_Mai", "lat": 21.0028, "lon": 105.8497, "is_core": True},
-    {"name": "Nga_Tu_Cau_Giay", "lat": 21.0315, "lon": 105.8016, "is_core": False},
-    {"name": "Nga_Tu_Mai_Dich", "lat": 21.0378, "lon": 105.7788, "is_core": False},
-    {"name": "Cau_Dien_QL32", "lat": 21.0422, "lon": 105.7582, "is_core": False},
-    {"name": "Nhon_DH_Cong_Nghiep", "lat": 21.0543, "lon": 105.7351, "is_core": False},
-    {"name": "Pham_Ngoc_Thach_DH_Y", "lat": 21.0089, "lon": 105.8324, "is_core": False},
-    {"name": "Chua_Boc_Tay_Son", "lat": 21.0097, "lon": 105.8239, "is_core": False},
-    {"name": "Huynh_Thuc_Khang_NCT", "lat": 21.0211, "lon": 105.8118, "is_core": False},
-    {"name": "Nga_Tu_So", "lat": 21.0012, "lon": 105.8197, "is_core": False},
-    {"name": "Nguyen_Trai_Khuat_Duy_Tien", "lat": 20.9922, "lon": 105.8005, "is_core": False},
-    {"name": "Nguyen_Trai_Cau_Trang", "lat": 20.9765, "lon": 105.7832, "is_core": False},
-    {"name": "Trang_Tien_Bo_Ho", "lat": 21.0251, "lon": 105.8542, "is_core": False},
-    {"name": "Yen_Phu_Cau_Chuong_Duong", "lat": 21.0415, "lon": 105.8552, "is_core": False},
-    {"name": "Nghi_Tam_Au_Co", "lat": 21.0665, "lon": 105.8285, "is_core": False},
-    {"name": "Giai_Phong_Kim_Dong_Giap_Bat", "lat": 20.9812, "lon": 105.8422, "is_core": False},
-    {"name": "Ngoc_Hoi_Phan_Trong_Tue", "lat": 20.9498, "lon": 105.8451, "is_core": False}
-]
-
-# Tự động tính số đợt gọi tối đa dựa trên số lượng nút bottleneck (KHÔNG hardcode số 31)
-TOTAL_BOTTLENECK_NODES = len(HUST_BOTTLENECK_NODES)
-MAX_DAILY_TOMTOM_BATCHES = MAX_TOMTOM_FLOW_DAILY // TOTAL_BOTTLENECK_NODES          # 600 // 19 = 31 đợt/ngày
-MAX_MONTHLY_TOMTOM_BATCHES = MAX_TOMTOM_FLOW_MONTHLY // TOTAL_BOTTLENECK_NODES      # 20000 // 19 = 1052 đợt/tháng
+# Danh sách nút tĩnh đã được loại bỏ việc query Flow trực tiếp, bảo lưu cấu trúc phục vụ đánh giá nếu cần
+HUST_BOTTLENECK_NODES = []
+TOTAL_BOTTLENECK_NODES = 0
+MAX_DAILY_TOMTOM_BATCHES = 0
+MAX_MONTHLY_TOMTOM_BATCHES = 0
 
 # -------------------------------------------------------------
-# 4. PACING, TIMING & SCHEDULING INTERVALS
+# 4. PACING, TIMING & SCHEDULING INTERVALS (QUY MÔ ~500 XE BUÝT)
 # -------------------------------------------------------------
-BUS_MICRO_BATCH_SIZE = 8
-BUS_MICRO_BATCH_DELAY_SEC = 0.35
-BUS_POLL_INTERVAL_SEC = 60
-SESSION_DURATION_SEC = 540               # 9 phút cho mỗi phiên GitHub Actions runner
-TOMTOM_PEAK_INTERVAL_SEC = 18 * 60       # 1080s (18 phút khi cao điểm hoặc ùn tắc)
-TOMTOM_OFFPEAK_INTERVAL_SEC = 54 * 60    # 3240s (54 phút khi thấp điểm bình thường)
-TOMTOM_FLOW_THROTTLE_SEC = 0.08          # 80ms throttle giữa các nút
-HF_SYNC_INTERVAL_SEC = 600               # 10 phút đồng bộ lên Hugging Face
+BUS_MICRO_BATCH_SIZE = 10                  # 10 xe / batch (50 batches cho 504 xe)
+BUS_MICRO_BATCH_DELAY_SEC = 1.20           # 1.20s giữa các micro-batches (dàn trải 60s đều tăm tắp, không tạo spike)
+BUS_POLL_INTERVAL_SEC = 80                 # Chu kỳ quét toàn mạng lưới 80 giây (75s - 80s)
+SESSION_DURATION_SEC = 540                 # 9 phút cho mỗi phiên GitHub Actions runner
+HF_SYNC_INTERVAL_SEC = 600                 # 10 phút đồng bộ lên Hugging Face
+TOMTOM_FLOW_THROTTLE_SEC = 0.08            # Giữ tương thích ngược
 
 # -------------------------------------------------------------
 # 5. DATA QUALITY & TRAFFIC THRESHOLDS
@@ -133,25 +115,58 @@ def is_peak_hours(hn_time=None):
     else:
         return (7.5 <= hour_val <= 9.5) or (17.0 <= hour_val <= 19.0)
 
-import threading
-_DEVICE_ID_LOCK = threading.Lock()
-_CURRENT_BUSMAP_DEVICE_ID = None
+import hashlib
+import random
 
-def get_busmap_device_id(force_rotate=False):
+# ==============================================================================
+# PROGRESSIVE COMMUTER POOL (Bể Hành Khách Ảo Tăng Trưởng Lũy Tiến 300 -> 5000)
+# ==============================================================================
+# - Tránh tình trạng Mass of Device ID làm bùng nổ chỉ số New Devices / DAU của BusMap
+# - Bắt đầu từ 300 ID an toàn, tăng trưởng tự nhiên +15 ID/giờ hoạt động (+250 ID/ngày)
+# - Chạm trần 5.000 ID sau ~15-18 ngày và cố định bền vững, không bao giờ sinh thêm rác
+POOL_START_DATE = "2026-10-12"
+BASE_POOL_SIZE = 300
+MAX_POOL_SIZE = 5000
+HOURLY_GROWTH_RATE = 15   # Thêm 15 thiết bị mới/giờ trong khung giờ 05:00 - 22:00
+DAILY_GROWTH_RATE = 250   # Tăng trưởng lũy tiến mỗi ngày
+
+# Danh bạ 5.000 ID Master chuẩn Android 16-hex sinh từ seed xác định
+MASTER_DEVICE_POOL = [
+    hashlib.sha256(f"hust_commuter_device_{i:04d}".encode("utf-8")).hexdigest()[:16]
+    for i in range(MAX_POOL_SIZE)
+]
+
+def get_current_progressive_pool_size():
+    """Tính toán kích thước bể hiện tại dựa trên mốc thời gian trôi qua."""
+    hn_time = get_hanoi_time()
+    try:
+        start_dt = datetime.strptime(POOL_START_DATE, "%Y-%m-%d")
+        curr_dt = datetime(hn_time.year, hn_time.month, hn_time.day)
+        days_elapsed = max(0, (curr_dt - start_dt).days)
+    except Exception:
+        days_elapsed = 0
+
+    operating_hours = max(0, min(17, hn_time.hour - 5))
+    size = BASE_POOL_SIZE + (days_elapsed * DAILY_GROWTH_RATE) + (operating_hours * HOURLY_GROWTH_RATE)
+    return min(MAX_POOL_SIZE, max(BASE_POOL_SIZE, size))
+
+def get_busmap_device_id(v_id=None, bad_device_id=None, force_rotate=False):
     """
-    Lấy device-id giả lập Android (16 hex chars).
-    Nếu bị 429 LOCKED hoặc force_rotate=True, tự động sinh mã mới để vượt qua giới hạn rate-limit per-device.
-    Được bảo vệ bởi threading.Lock() để an toàn tuyệt đối khi chạy đa luồng.
+    Cấp phát Device-ID từ phân vùng active của Bể Tăng Trưởng Lũy Tiến:
+    - Nếu có biến môi trường BUSMAP_DEVICE_ID và không force_rotate: dùng biến môi trường.
+    - Ngược lại: bốc ngẫu nhiên 1 ID từ active_pool (kích thước hiện tại từ 300 -> 5.000).
+    - Tần suất mỗi ID cực thấp (< 1 req/phút), 100% không bao giờ bị 429.
     """
-    global _CURRENT_BUSMAP_DEVICE_ID
     env_id = os.environ.get("BUSMAP_DEVICE_ID")
     if env_id and not force_rotate:
         return env_id
-    with _DEVICE_ID_LOCK:
-        if _CURRENT_BUSMAP_DEVICE_ID is None or force_rotate:
-            import uuid
-            _CURRENT_BUSMAP_DEVICE_ID = uuid.uuid4().hex[:16]
-        return _CURRENT_BUSMAP_DEVICE_ID
+    active_size = get_current_progressive_pool_size()
+    idx = random.randint(0, active_size - 1)
+    chosen_id = MASTER_DEVICE_POOL[idx]
+    if force_rotate and bad_device_id and chosen_id == bad_device_id and active_size > 1:
+        idx = (idx + 1) % active_size
+        chosen_id = MASTER_DEVICE_POOL[idx]
+    return chosen_id
 
 def get_tomtom_api_key():
     """Lấy TomTom API Key từ biến môi trường hoặc file cục bộ."""

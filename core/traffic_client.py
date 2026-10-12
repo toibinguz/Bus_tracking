@@ -12,6 +12,7 @@ import urllib.error
 from datetime import datetime
 from .config import (
     TOMTOM_QUOTA_FILE,
+    ENABLE_TOMTOM_FLOW,
     MAX_TOMTOM_FLOW_DAILY,
     MAX_TOMTOM_FLOW_MONTHLY,
     MAX_TOMTOM_INCIDENT_DAILY,
@@ -68,9 +69,9 @@ def fetch_tomtom_incidents(api_key, bbox=HUST_CORRIDOR_BBOX):
         return []
 
 def execute_tomtom_flow_poll(cur_hn_time, api_key, nodes=None):
-    """Thực hiện một lượt quét Flow Segments cho danh sách nodes (mặc định 19 nodes)."""
+    """Thực hiện một lượt quét Flow Segments. Trả về rỗng nếu Flow đã bị vô hiệu hóa."""
     flow_records = []
-    if not api_key or TOMTOM_CIRCUIT_OPEN:
+    if not ENABLE_TOMTOM_FLOW or not api_key or TOMTOM_CIRCUIT_OPEN:
         return flow_records
     if nodes is None:
         nodes = HUST_BOTTLENECK_NODES

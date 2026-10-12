@@ -10,8 +10,7 @@ import logging
 from typing import Dict, Any, List, Optional
 import numpy as np
 
-from .projection import RoutePolylineProjector, to_metric_xy
-from ..osm.route_parser import haversine_distance_m
+from .projection import RoutePolylineProjector, haversine_distance_m
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +51,9 @@ def evaluate_route_telemetry(
     # Build projectors for each variant (Outbound vs Inbound)
     variant_projectors = []
     for v_idx, v in enumerate(variants):
-        coords = v.get("coordinates", [])
-        if len(coords) >= 2:
-            proj = RoutePolylineProjector(coords)
+        geom_input = v.get("ways") if v.get("ways") else v.get("coordinates", [])
+        if len(geom_input) >= 1:
+            proj = RoutePolylineProjector(geom_input)
             variant_projectors.append({
                 "variant_idx": v_idx,
                 "name": v.get("name", f"Variant {v_idx}"),
