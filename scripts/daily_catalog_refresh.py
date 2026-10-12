@@ -133,7 +133,7 @@ def run_daily_catalog_refresh():
                 })
                 existing_vid_set.add(cv_id)
 
-    print(f"   -> Tìm thấy {len(new_discovered_vehicles)} xe hoạt động hợp lệ bổ sung trên 19 tuyến.", flush=True)
+    print(f"   -> Tìm thấy {len(new_discovered_vehicles)} xe hoạt động hợp lệ bổ sung trên {len(target_route_ids)} tuyến.", flush=True)
 
     # 3. Cập nhật file cấu hình nếu có bổ sung
     if new_discovered_vehicles:
@@ -146,11 +146,12 @@ def run_daily_catalog_refresh():
                 "route_no": nv["route_no"]
             })
         config["total_vehicles"] = len(config["vehicles"])
-        config["last_catalog_refresh"] = ts_str
-        save_cluster_config(config, CONFIG_FILE)
         print(f"[OK] Đã cập nhật tổng số xe lên {config['total_vehicles']} xe!", flush=True)
     else:
-        print("[OK] Danh mục 220 xe ổn định, không có biến động cần cập nhật.", flush=True)
+        print(f"[OK] Danh mục {len(configured_vids)} xe ổn định, không có biến động cần cập nhật.", flush=True)
+
+    config["last_catalog_refresh"] = ts_str
+    save_cluster_config(config, CONFIG_FILE)
 
     # Lưu log báo cáo sức khỏe danh mục
     health_report = {

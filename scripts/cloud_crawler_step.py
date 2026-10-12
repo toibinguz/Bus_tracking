@@ -70,9 +70,10 @@ def main():
     today_str = hn_time.strftime("%Y-%m-%d")
     last_refresh = config.get("last_catalog_refresh", "")
 
-    # 🌅 Tự động làm mới danh bạ đầu ngày: Kích hoạt ở phiên đầu tiên trong ngày (05:00 AM+)
-    if is_operating_hours(hn_time) and not last_refresh.startswith(today_str) and not single_test:
-        print(f"[{ts_str}] 🌅 Phiên đầu ngày ({today_str}): Tự động rà soát & làm mới danh mục 220 xe buýt...", flush=True)
+    # 🌅 Tự động làm mới danh bạ đầu ngày: Chỉ kích hoạt ở khung giờ sáng (05:00 - 07:00 AM) ở phiên đầu tiên trong ngày
+    is_morning_window = (5 <= hn_time.hour < 7)
+    if is_morning_window and not last_refresh.startswith(today_str) and not single_test:
+        print(f"[{ts_str}] 🌅 Phiên đầu ngày ({today_str}): Tự động rà soát & làm mới danh mục {len(config.get('vehicles', []))} xe buýt...", flush=True)
         try:
             from scripts.daily_catalog_refresh import run_daily_catalog_refresh
             run_daily_catalog_refresh()
@@ -145,7 +146,10 @@ def main():
                 futures = {executor.submit(fetch_single_bus_raw, vid): vid for vid in batch}
                 for fut in futures:
                     vid = futures[fut]
-                    raw_res = fut.result()
+                    try:
+                        raw_res = fut.result(timeout=2.5)
+                    except Exception:
+                        raw_res = None
                     if raw_res:
                         clean_rec = sanitize_and_validate_telemetry(
                             raw_res, vid, target_route_ids, kinematic_cache, cur_hn_time.isoformat()
