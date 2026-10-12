@@ -140,8 +140,8 @@ def main():
         depot_count = 0
         stale_count = 0
 
-        for batch in micro_batches:
-            with ThreadPoolExecutor(max_workers=BUS_MICRO_BATCH_SIZE) as executor:
+        with ThreadPoolExecutor(max_workers=BUS_MICRO_BATCH_SIZE) as executor:
+            for batch in micro_batches:
                 futures = {executor.submit(fetch_single_bus_raw, vid): vid for vid in batch}
                 for fut in futures:
                     vid = futures[fut]
@@ -160,9 +160,9 @@ def main():
                             elif st == "STALE_PING":
                                 stale_count += 1
 
-            if not single_test:
-                import random
-                time.sleep(max(0.1, BUS_MICRO_BATCH_DELAY_SEC + random.uniform(-0.04, 0.06)))
+                if not single_test:
+                    import random
+                    time.sleep(max(0.05, BUS_MICRO_BATCH_DELAY_SEC + random.uniform(-0.02, 0.03)))
 
         all_session_bus_records.extend(round_bus_records)
         round_elapsed = time.time() - round_start

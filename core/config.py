@@ -55,9 +55,9 @@ MAX_MONTHLY_TOMTOM_BATCHES = 0
 # -------------------------------------------------------------
 # 4. PACING, TIMING & SCHEDULING INTERVALS (QUY MÔ ~500 XE BUÝT)
 # -------------------------------------------------------------
-BUS_MICRO_BATCH_SIZE = 10                  # 10 xe / batch (50 batches cho 504 xe)
-BUS_MICRO_BATCH_DELAY_SEC = 1.20           # 1.20s giữa các micro-batches (dàn trải 60s đều tăm tắp, không tạo spike)
-BUS_POLL_INTERVAL_SEC = 80                 # Chu kỳ quét toàn mạng lưới 80 giây (75s - 80s)
+BUS_MICRO_BATCH_SIZE = 18                  # 18 xe / batch (28 batches cho 504 xe)
+BUS_MICRO_BATCH_DELAY_SEC = 0.40           # 0.40s giữa các micro-batches (dàn đều ~30s cào 504 xe)
+BUS_POLL_INTERVAL_SEC = 75                 # Chu kỳ quét chuẩn 75 giây toàn mạng lưới (30s cào + 45s nghỉ)
 SESSION_DURATION_SEC = 540                 # 9 phút cho mỗi phiên GitHub Actions runner
 HF_SYNC_INTERVAL_SEC = 600                 # 10 phút đồng bộ lên Hugging Face
 TOMTOM_FLOW_THROTTLE_SEC = 0.08            # Giữ tương thích ngược
