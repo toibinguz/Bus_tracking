@@ -152,7 +152,7 @@ def main():
                         raw_res = None
                     if raw_res:
                         clean_rec = sanitize_and_validate_telemetry(
-                            raw_res, vid, target_route_ids, kinematic_cache, cur_hn_time.isoformat()
+                            raw_res, vid, target_route_ids, kinematic_cache
                         )
                         if clean_rec:
                             round_bus_records.append(clean_rec)

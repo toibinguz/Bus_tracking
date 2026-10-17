@@ -13,3 +13,9 @@ data/telemetry_sync/
 data/osm/raw/
 ground_truth_route_station/output/
 *.log
+batch_*.jsonl
+*.aux
+*.out
+*.nav
+*.snm
+*.toc

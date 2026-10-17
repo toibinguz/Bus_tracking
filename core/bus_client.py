@@ -12,7 +12,7 @@ from .config import (
     HANOI_BBOX, CONFIG_FILE,
     GPS_DRIFT_MAX_SPEED_KMPH, BUS_STOPPED_SPEED_KMPH,
     STALE_DELTA_T_MIN_SEC, STALE_DELTA_T_MAX_SEC,
-    EMA_ALPHA, get_busmap_device_id
+    EMA_ALPHA, get_busmap_device_id, get_hanoi_time
 )
 
 ssl_context = ssl.create_default_context()
@@ -90,11 +90,17 @@ def fetch_single_bus_raw(v_id):
                             if body2:
                                 data2 = json.loads(body2.decode("utf-8", errors="ignore"))
                                 if data2 and isinstance(data2, list) and len(data2) > 0:
-                                    return data2[0]
+                                    item2 = data2[0]
+                                    if isinstance(item2, dict):
+                                        item2["_crawled_at"] = get_hanoi_time().isoformat()
+                                    return item2
                     return None
                 data = json.loads(body.decode("utf-8", errors="ignore"))
                 if data and isinstance(data, list) and len(data) > 0:
-                    return data[0]
+                    item = data[0]
+                    if isinstance(item, dict):
+                        item["_crawled_at"] = get_hanoi_time().isoformat()
+                    return item
     except Exception:
         return None
     return None
@@ -110,13 +116,15 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
     return R * c
 
-def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache, crawl_time_iso):
+def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache, crawl_time_iso=None):
     """
     Chuẩn hóa tọa độ WGS84, tự nội suy vận tốc thực tế v_calc và làm mịn EMA,
     gắn cờ kiểm soát chất lượng dữ liệu (Quality Status).
+    Mỗi bản ghi xe sử dụng đúng mốc thời gian phản hồi thực tế của riêng xe đó (_crawled_at).
     """
     if not raw:
         return None
+    actual_crawl_time_iso = raw.get("_crawled_at") or crawl_time_iso or get_hanoi_time().isoformat()
 
     # BusMap đảo ngược Lat và Lng: raw["Lat"] là Kinh độ (Lon), raw["Lng"] là Vĩ độ (Lat)
     try:
@@ -212,7 +220,7 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
         "current_station_id": station_id,
         "next_station_id": raw.get("nextStationId", 0),
         "device_update_time": last_update,
-        "crawled_at": crawl_time_iso,
+        "crawled_at": actual_crawl_time_iso,
         "quality_status": quality_status
     }
 

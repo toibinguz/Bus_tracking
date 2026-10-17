@@ -1,0 +1,469 @@
+\documentclass[aspectratio=169,10pt]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, backgrounds, fit}
+
+% ==================== THEME & COLOR CONFIGURATION ====================
+\usetheme{Madrid}
+\usecolortheme{whale}
+
+\definecolor{HustBlue}{RGB}{20, 50, 95}
+\definecolor{HustRed}{RGB}{180, 40, 40}
+\definecolor{DarkGreen}{RGB}{30, 110, 60}
+\definecolor{AccentAmber}{RGB}{210, 120, 20}
+\definecolor{LightGray}{RGB}{245, 247, 250}
+\definecolor{BorderGray}{RGB}{210, 215, 225}
+
+\setbeamercolor{palette primary}{bg=HustBlue,fg=white}
+\setbeamercolor{palette secondary}{bg=HustBlue!85,fg=white}
+\setbeamercolor{palette tertiary}{bg=HustBlue!70,fg=white}
+\setbeamercolor{title}{bg=HustBlue,fg=white}
+\setbeamercolor{frametitle}{bg=HustBlue,fg=white}
+\setbeamercolor{structure}{fg=HustBlue}
+\setbeamercolor{block title}{bg=HustBlue,fg=white}
+\setbeamercolor{block body}{bg=HustBlue!6,fg=black}
+\setbeamercolor{block title example}{bg=DarkGreen,fg=white}
+\setbeamercolor{block body example}{bg=DarkGreen!6,fg=black}
+\setbeamercolor{block title alerted}{bg=HustRed,fg=white}
+\setbeamercolor{block body alerted}{bg=HustRed!6,fg=black}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{
+    \leavevmode%
+    \hbox{%
+    \begin{beamercolorbox}[wd=.35\paperwidth,ht=2.5ex,dp=1ex,left]{author in head/foot}%
+        \hspace*{2ex}\scriptsize Học phần: Lưu trữ và Xử lý Dữ liệu Lớn
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.40\paperwidth,ht=2.5ex,dp=1ex,center]{title in head/foot}%
+        \scriptsize Đề xuất Kiến trúc Dự báo ETA Xe Buýt
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.25\paperwidth,ht=2.5ex,dp=1ex,right]{date in head/foot}%
+        \scriptsize Trang \insertframenumber{} / \inserttotalframenumber\hspace*{2ex}
+    \end{beamercolorbox}}%
+    \vskip0pt%
+}
+
+% ==================== TITLE PAGE INFO ====================
+\title[\textbf{Kiến trúc Dự báo ETA Xe Buýt}]{\textbf{ĐỀ XUẤT THIẾT KẾ KIẾN TRÚC HỆ THỐNG DỰ BÁO THỜI GIAN ĐẾN CỦA XE BUÝT (ETA)}}
+\subtitle{Tiếp cận dựa trên Dữ liệu Lớn và Kiến trúc Lambda}
+\author{\textbf{Nhóm Sinh Viên Thực Hiện}}
+\institute{Đại học Bách khoa Hà Nội -- Trường Công nghệ Thông tin và Truyền thông}
+\date{Tháng 10 Năm 2026}
+
+\begin{document}
+
+% ------------------------------------------------------------
+% SLIDE 1: TITLE SLIDE
+% ------------------------------------------------------------
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+% ------------------------------------------------------------
+% SLIDE 2: ĐẶT VẤN ĐỀ & BỐI CẢNH THỰC TẾ
+% ------------------------------------------------------------
+\begin{frame}{1. Đặt Vấn Đề và Bối Cảnh Kỹ Thuật}
+\begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+        \begin{block}{Thách thức Giao thông Đô thị}
+            \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
+                \item Hành khách cần chỉ số \textbf{ETA chính xác} để chủ động hành trình.
+                \item Giao thông Hà Nội biến động mạnh theo khung giờ cao điểm và sự cố đột xuất.
+            \end{itemize}
+        \end{block}
+        \vspace{2pt}
+        \begin{alertblock}{Hạn chế của API Mở (BusMap)}
+            \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
+                \item Bản chất \textbf{Stateless Snapshots}: chỉ trả về tọa độ tức thời tại lúc gọi.
+                \item \textbf{Không lưu lịch sử}: không thể phân tích phân phối vận tốc theo giờ.
+                \item \textbf{Thiếu ngữ cảnh}: không có dữ liệu sự cố tắc nghẽn trên hành lang.
+            \end{itemize}
+        \end{alertblock}
+    \end{column}
+
+    \begin{column}{0.50\textwidth}
+        \begin{exampleblock}{Mục tiêu Giải pháp Dữ liệu Lớn}
+            \centering
+            \begin{tikzpicture}[scale=0.85, every node/.style={transform shape}]
+                \node[draw=red!70, fill=red!10, rounded corners, align=center, text width=4.8cm, font=\scriptsize] (stateless) {
+                    \textbf{Hiện trạng: API Stateless}\\
+                    Ảnh chụp tức thời $\to$ Mất dấu hành trình\\
+                    $\implies$ Dự báo ETA sai số cao khi có ùn tắc
+                };
+                
+                \node[below=0.4cm of stateless, draw=HustBlue, fill=HustBlue!10, rounded corners, align=center, text width=4.8cm, font=\scriptsize] (solution) {
+                    \textbf{Mục tiêu: Nền tảng Lambda 24/7}\\
+                    Lưu trữ chuỗi thời gian phân tán\\
+                    + Kết hợp Sự cố giao thông TomTom\\
+                    $\implies$ Dự báo ETA thích ứng biến động
+                };
+                
+                \draw[-{Latex[length=2.5mm]}, thick, HustRed] (stateless) -- (solution) node[midway, right, font=\tiny\bfseries, text=HustRed] {Chuyển đổi};
+            \end{tikzpicture}
+        \end{exampleblock}
+        \vspace{2pt}
+        \centering\scriptsize \textit{Xây dựng chuỗi khép kín: Crawl $\to$ Ingest $\to$ Store $\to$ Process $\to$ Serve}
+    \end{column}
+\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------
+% SLIDE 3: ĐẶC TRƯNG DỮ LIỆU LỚN (4V)
+% ------------------------------------------------------------
+\begin{frame}{2. Đặc Trưng Dữ Liệu Lớn Thực Nghiệm (Mô Hình 4V)}
+\centering
+\begin{tikzpicture}[
+    box/.style={draw=HustBlue!80, fill=HustBlue!5, rounded corners=4pt, line width=0.8pt, text width=6.8cm, inner sep=6pt, font=\scriptsize},
+    titlebox/.style={font=\bfseries\small, text=HustBlue}
+]
+    % Volume
+    \node[box] (vol) at (0, 1.9) {
+        \textcolor{HustBlue}{\textbf{\large 1. Volume (Quy mô Dữ liệu)}}\\[2pt]
+        $\bullet$ Theo dõi \textbf{504 xe buýt} trên \textbf{49 tuyến nội đô} Hà Nội.\\
+        $\bullet$ Vận hành 17h/ngày (05:00 -- 22:00), chu kỳ 75--80s.\\
+        $\bullet$ Phát sinh \textbf{350.000 -- 400.000 bản ghi/ngày}; tích lũy hàng triệu bản ghi cùng dữ liệu sự cố giao thông.
+    };
+
+    % Velocity
+    \node[box] (vel) at (7.8, 1.9) {
+        \textcolor{HustBlue}{\textbf{\large 2. Velocity (Tốc độ Dòng xe)}}\\[2pt]
+        $\bullet$ Tần suất nạp đạt \textbf{6--7 gói tin/giây} theo từng đợt quét.\\
+        $\bullet$ Đòi hỏi cơ chế thu nạp bền bỉ, hàng đợi đệm phân tán không gây nghẽn và độ trễ chuyển tiếp thấp ($<1$s).
+    };
+
+    % Variety
+    \node[box] (var) at (0, -1.5) {
+        \textcolor{HustBlue}{\textbf{\large 3. Variety (Đa dạng Cấu trúc)}}\\[2pt]
+        $\bullet$ \textbf{Chuỗi thời gian GPS}: bán cấu trúc (JSON).\\
+        $\bullet$ \textbf{TomTom Traffic Incidents}: sự cố, độ trễ, vị trí ùn ứ.\\
+        $\bullet$ \textbf{Mạng lưới tĩnh}: lộ trình tuyến, tọa độ trạm dừng (bảng quan hệ có cấu trúc).
+    };
+
+    % Value
+    \node[box] (val) at (7.8, -1.5) {
+        \textcolor{HustBlue}{\textbf{\large 4. Value (Giá trị Thực tiễn)}}\\[2pt]
+        $\bullet$ Khai phá ma trận thời gian di chuyển cơ sở lịch sử.\\
+        $\bullet$ Nắm bắt tức thì vận tốc dòng xe trên hành lang.\\
+        $\bullet$ Phục vụ hành khách dự báo thời gian chờ thực tế và cảnh báo hành lang ùn tắc cục bộ.
+    };
+\end{tikzpicture}
+\end{frame}
+
+% ------------------------------------------------------------
+% SLIDE 4: Ý TƯỞNG KIẾN TRÚC TỔNG THỂ (LAMBDA)
+% ------------------------------------------------------------
+\begin{frame}{3. Ý Tưởng Kiến Trúc Tổng Thể (Mô Hình Lambda)}
+\centering
+\begin{tikzpicture}[
+    scale=0.88, every node/.style={transform shape},
+    layer/.style={draw=HustBlue, fill=HustBlue!8, rounded corners=5pt, font=\scriptsize, align=center, inner sep=5pt, line width=0.8pt},
+    batch/.style={draw=HustRed, fill=HustRed!8, rounded corners=5pt, font=\scriptsize, align=center, inner sep=5pt, line width=0.8pt},
+    speed/.style={draw=DarkGreen, fill=DarkGreen!8, rounded corners=5pt, font=\scriptsize, align=center, inner sep=5pt, line width=0.8pt},
+    arr/.style={-{Latex[length=2.5mm]}, thick, HustBlue}
+]
+    % Ingestion
+    \node[layer, text width=2.4cm] (crawl) at (-5.8, 0) {
+        \textbf{CRAWL LAYER}\\
+        Telemetry 504 xe\\
+        + TomTom API\\
+        (Thu thập 24/7)
+    };
+
+    \node[layer, text width=2.3cm] (kafka) at (-2.7, 0) {
+        \textbf{QUEUE LAYER}\\
+        \textbf{Apache Kafka}\\
+        Hàng đợi phân tán,\\
+        đệm tải, chia luồng
+    };
+
+    % Batch Stream Split
+    \node[batch, text width=4.3cm] (hdfs) at (1.5, 1.5) {
+        \textbf{BATCH LAYER (HDFS \& Hive)}\\
+        Lưu trữ Parquet Snappy phân vùng\\
+        + Quản lý Schema-on-Read qua Hive\\
+        + \textbf{PySpark}: Ma trận cơ sở lịch sử
+    };
+
+    \node[speed, text width=4.3cm] (speednode) at (1.5, -1.5) {
+        \textbf{SPEED LAYER (Spark Streaming)}\\
+        Xử lý sự kiện GPS \& TomTom thời gian thực\\
+        + Duy trì vị trí tức thời 504 xe\\
+        + Tính độ lệch vận tốc hành lang
+    };
+
+    % Serving
+    \node[layer, text width=2.4cm] (serving) at (5.8, 0) {
+        \textbf{SERVING LAYER}\\
+        Tổng hợp kết quả\\
+        $\text{ETA} = f(\text{Batch}, \text{Real})$\\
+        Tra cứu $< 100$ms
+    };
+
+    % Arrows
+    \draw[arr] (crawl) -- (kafka);
+    \draw[arr, HustRed] (kafka.east) -- ++(0.4,0) |- (hdfs.west) node[above, pos=0.8, font=\tiny\bfseries] {Định kỳ / Lô};
+    \draw[arr, DarkGreen] (kafka.east) -- ++(0.4,0) |- (speednode.west) node[below, pos=0.8, font=\tiny\bfseries] {Luồng liên tục};
+    \draw[arr, HustRed] (hdfs.east) -| (serving.north) node[above, pos=0.2, font=\tiny\bfseries] {Batch View};
+    \draw[arr, DarkGreen] (speednode.east) -| (serving.south) node[below, pos=0.2, font=\tiny\bfseries] {Real-time View};
+
+\end{tikzpicture}
+
+\vspace{0.3cm}
+\begin{block}{Nguyên lý cốt lõi}
+    \centering\footnotesize
+    \textbf{Tách bạch triệt để hai trách nhiệm}: Luồng Lô giữ vai trò \textit{mỏ neo lịch sử chính xác}, Luồng Luồng giữ vai trò \textit{bù đắp biến động tức thời}.
+\end{block}
+\end{frame}
+
+% ------------------------------------------------------------
+% SLIDE 5: KHÂU 1 - THU THẬP & TIẾP NHẬN DỮ LIỆU
+% ------------------------------------------------------------
+\begin{frame}{4. Khâu Thu Thập \& Tiếp Nhận Dữ Liệu (Ingestion Pipeline)}
+\begin{columns}[T]
+    \begin{column}{0.50\textwidth}
+        \begin{block}{1. Thu thập Tự động (Crawl Layer)}
+            \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
+                \item \textbf{Telemetry 504 xe buýt (49 tuyến):} Quét định kỳ mỗi 75--80s, trích xuất tọa độ GPS, vận tốc tức thời, định danh xe và lộ trình.
+                \item \textbf{TomTom Traffic Incidents API:} Quét liên tục các sự kiện dọc tuyến đường (tai nạn, tắc đường, công trường, thời gian chậm trễ).
+            \end{itemize}
+        \end{block}
+        \vspace{2pt}
+        \begin{block}{2. Hàng đợi Phân tán (Apache Kafka)}
+            \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
+                \item \textbf{Lớp đệm chịu tải (Buffer):} Tách rời Producers (Crawler) khỏi Consumers (Hạ tầng lưu trữ \& xử lý).
+                \item \textbf{Chống quá tải:} Hấp thụ các đợt bùng nổ dữ liệu (bursts) mà không gây rớt gói tin.
+            \end{itemize}
+        \end{block}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=0.82, every node/.style={transform shape}]
+            \node[draw=HustBlue, fill=HustBlue!10, rounded corners, text width=4.5cm, align=center, font=\scriptsize] (src1) {
+                \textbf{Bus Telemetry Crawler}\\
+                504 xe buýt nội đô Hà Nội (24/7)
+            };
+            \node[below=0.25cm of src1, draw=AccentAmber!80!black, fill=AccentAmber!15, rounded corners, text width=4.5cm, align=center, font=\scriptsize] (src2) {
+                \textbf{TomTom Traffic Incidents API}\\
+                Dữ liệu sự cố \& độ trễ hành lang
+            };
+
+            \node[below=0.45cm of src2, draw=HustRed, fill=HustRed!10, rounded corners=6pt, text width=4.8cm, align=center, font=\scriptsize, line width=1pt] (kafka) {
+                \textbf{APACHE KAFKA BROKER}\\
+                Đệm hàng đợi phân tán\\
+                $\downarrow$ Phân phối đồng thời
+            };
+
+            \draw[-{Latex[length=2mm]}, thick, HustBlue] (src1) -- (kafka);
+            \draw[-{Latex[length=2mm]}, thick, AccentAmber!80!black] (src2) -- (kafka);
+
+            \node[below left=0.5cm and -0.8cm of kafka, draw=HustRed!80, fill=HustRed!10, rounded corners, font=\tiny\bfseries, text width=2.1cm, align=center] (b) {Tầng Lưu trữ / Lô (HDFS)};
+            \node[below right=0.5cm and -0.8cm of kafka, draw=DarkGreen!80, fill=DarkGreen!10, rounded corners, font=\tiny\bfseries, text width=2.1cm, align=center] (s) {Tầng Tốc độ (Streaming)};
+
+            \draw[-{Latex[length=2mm]}, thick, HustRed] (kafka.south) -| (b.north);
+            \draw[-{Latex[length=2mm]}, thick, DarkGreen] (kafka.south) -| (s.north);
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------
+% SLIDE 6: KHÂU 2 - LƯU TRỮ PHÂN TÁN BẤT BIẾN
+% ------------------------------------------------------------
+\begin{frame}{5. Khâu Lưu Trữ Phân Tán Bất Biến (Storage Layer)}
+\begin{columns}[T]
+    \begin{column}{0.50\textwidth}
+        \begin{block}{Hồ Dữ Liệu Gốc (Hadoop HDFS)}
+            \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
+                \item \textbf{Định dạng Parquet nén Snappy}: Lưu trữ hướng cột, nén dung lượng cao, tối ưu hóa I/O đọc lọc dữ liệu lớn.
+                \item \textbf{Phân vùng Thời gian}:\\
+                \texttt{/master\_data/dt=.../hr=.../}
+                \item \textbf{Partition Pruning}: Chỉ quét đúng ngày/giờ cần tính, bỏ qua 95\% dữ liệu không liên quan.
+            \end{itemize}
+        \end{block}
+        \vspace{2pt}
+        \begin{block}{Quản Trị Bảng với Apache Hive}
+            \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
+                \item \textbf{Schema-on-Read}: Định nghĩa cấu trúc bảng ngoài (\textit{External Table}) trỏ trực tiếp đến Parquet trên HDFS.
+                \item Không sao chép dữ liệu, hỗ trợ truy vấn phân tích bằng SQL chuẩn.
+            \end{itemize}
+        \end{block}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=0.82, every node/.style={transform shape}]
+            % HDFS Tree
+            \node[draw=HustBlue, fill=HustBlue!15, rounded corners, font=\scriptsize\bfseries, text width=5cm, align=center] (root) {
+                Hadoop HDFS Data Lake
+            };
+            
+            \node[below=0.3cm of root, draw=BorderGray, fill=LightGray, rounded corners, font=\tiny\ttfamily, text width=5cm] (part) {
+                /hust\_bus/master\_data/\\
+                \ \ $\llcorner$ dt=2026-10-14/\\
+                \ \ \ \ \ \ $\llcorner$ hr=08/ $\to$ part-000.snappy.parquet\\
+                \ \ \ \ \ \ $\llcorner$ hr=09/ $\to$ part-001.snappy.parquet
+            };
+
+            \node[below=0.35cm of part, draw=DarkGreen!80, fill=DarkGreen!10, rounded corners, font=\scriptsize, text width=5cm, align=center] (hive) {
+                \textbf{Apache Hive Metastore}\\
+                Ánh xạ Schema-on-Read\\
+                \textit{(External Table: bus\_telemetry\_dw)}
+            };
+
+            \node[below=0.25cm of hive, draw=BorderGray, fill=white, rounded corners, font=\tiny, text width=5cm, align=center] (note) {
+                \textit{Lưu trữ bền vững, chống phân mảnh, sẵn sàng tính toán song song}
+            };
+
+            \draw[-{Latex[length=2mm]}, thick, HustBlue] (root) -- (part);
+            \draw[-{Latex[length=2mm]}, thick, DarkGreen] (part) -- (hive);
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------
+% SLIDE 7: KHÂU 3 - XỬ LÝ DỮ LIỆU: 2 LUỒNG THỰC THI
+% ------------------------------------------------------------
+\begin{frame}{6. Khâu Xử Lý Dữ Liệu (Processing Layer: 2 Luồng Lambda)}
+\begin{columns}[T]
+    % Luồng Lô
+    \begin{column}{0.49\textwidth}
+        \begin{block}{\textbf{Luồng Lô (Batch Layer -- PySpark)}}
+            \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
+                \item \textbf{Chu kỳ}: Chạy định kỳ trên dữ liệu lịch sử HDFS.
+                \item \textbf{Làm sạch}: Lọc bản ghi GPS trôi dạt, xe về bãi.
+                \item \textbf{Liên kết}: Ghép nối tọa độ với danh bạ trạm dừng và sự kiện TomTom Incidents.
+                \item \textbf{Đầu ra: Batch View}:
+                $$\text{Ma trận mỏ neo } T_{\text{base}}(S_k \to S_{k+1}, \text{giờ}, \text{thứ})$$
+            \end{itemize}
+        \end{block}
+        \vspace{2pt}
+        \centering
+        \begin{tikzpicture}
+            \node[draw=HustBlue, fill=HustBlue!10, rounded corners, font=\tiny\bfseries, text width=4.6cm, align=center] {
+                Đặc trưng lịch sử dài hạn vững chắc
+            };
+        \end{tikzpicture}
+    \end{column}
+
+    % Luồng Thời Gian Thực
+    \begin{column}{0.49\textwidth}
+        \begin{exampleblock}{\textbf{Luồng Tức Thời (Speed Layer -- Spark Streaming)}}
+            \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
+                \item \textbf{Chu kỳ}: Xử lý liên tục luồng sự kiện từ Kafka.
+                \item \textbf{Động học}: Theo dõi vị trí và vận tốc tức thời của các xe đang lăn bánh.
+                \item \textbf{Sự cố}: Tiếp nhận cảnh báo tắc nghẽn TomTom tức thời trên từng đoạn đường.
+                \item \textbf{Đầu ra: Real-time View}:
+                $$\text{Hệ số bù vận tốc \& sự cố tức thời } \Delta_{\text{real}}$$
+            \end{itemize}
+        \end{exampleblock}
+        \vspace{2pt}
+        \centering
+        \begin{tikzpicture}
+            \node[draw=DarkGreen, fill=DarkGreen!10, rounded corners, font=\tiny\bfseries, text width=4.6cm, align=center] {
+                Bắt trọn biến động giao thông hiện trường
+            };
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------
+% SLIDE 8: KHÂU 4 - GIẢI QUYẾT BÀI TOÁN DỰ BÁO ETA
+% ------------------------------------------------------------
+\begin{frame}{7. Khâu Giải Quyết Bài Toán Dự Báo ETA (Serving Layer)}
+\begin{columns}[T]
+    \begin{column}{0.50\textwidth}
+        \begin{block}{Nguyên lý Phân đoạn Hành trình}
+            \footnotesize
+            Chia lộ trình đến trạm đích $S_{\text{dest}}$ thành các cặp trạm:
+            $$\text{Hành trình} = \sum_{k} (S_k \to S_{k+1})$$
+        \end{block}
+        \vspace{1pt}
+        \begin{block}{Ý tưởng Công thức Tổng hợp ETA}
+            \footnotesize
+            \begin{equation*}
+                \mathbf{ETA} = f(\text{Batch View}, \text{Real-time View})
+            \end{equation*}
+            \begin{itemize}\setlength{\itemsep}{1.5pt}\scriptsize
+                \item \textbf{Batch View (Mỏ neo):} Thời gian chuẩn lịch sử theo phân đoạn và khung giờ.
+                \item \textbf{Real-time View (Hiệu chỉnh):} Điều chỉnh theo vận tốc xe phía trước và sự cố TomTom đang xảy ra.
+            \end{itemize}
+        \end{block}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=0.82, every node/.style={transform shape}]
+            % Segment nodes
+            \node[circle, draw=HustBlue, fill=HustBlue!20, font=\scriptsize\bfseries, inner sep=3pt] (s1) at (0, 2.2) {$S_k$};
+            \node[circle, draw=HustBlue, fill=HustBlue!20, font=\scriptsize\bfseries, inner sep=3pt] (s2) at (4.0, 2.2) {$S_{k+1}$};
+            
+            \draw[line width=1.2pt, HustBlue] (s1) -- (s2) node[midway, above=2pt, font=\tiny\bfseries] {Phân đoạn hành lang $k$};
+            
+            % Bus icon
+            \node[draw=DarkGreen, fill=DarkGreen!20, rounded corners=3pt, font=\tiny\bfseries] at (1.3, 2.65) {Xe buýt \#504};
+            \draw[-{Latex[length=1.5mm]}, DarkGreen, thick] (1.3, 2.45) -- (1.8, 2.45);
+            
+            % Incident icon
+            \node[draw=HustRed, fill=HustRed!20, rounded corners=3pt, font=\tiny\bfseries] at (2.9, 1.75) {TomTom Tắc đường!};
+
+            % Computation box
+            \node[below=0.9cm of s1, xshift=2.0cm, draw=BorderGray, fill=LightGray, rounded corners=5pt, text width=4.8cm, font=\scriptsize, align=center] (box) {
+                \textbf{Tổng hợp Thời gian di chuyển:}\\
+                $T_k = T_{\text{base}}(S_k \to S_{k+1}) \times \alpha_{\text{real}} + \delta_{\text{TomTom}}$\\[3pt]
+                \tiny \textit{Kết hợp mỏ neo lịch sử và sự cố tức thời}
+            };
+
+            \node[below=0.2cm of box, font=\tiny, text=HustBlue, align=center] {
+                Tra cứu Serving trực tiếp từ bộ nhớ ($< 100$ms)
+            };
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------
+% SLIDE 9: ĐỊNH HƯỚNG MỞ RỘNG & TỔNG KẾT
+% ------------------------------------------------------------
+\begin{frame}{8. Định Hướng Mở Rộng \& Tổng Kết Đề Tài}
+\begin{columns}[T]
+    \begin{column}{0.49\textwidth}
+        \begin{block}{Lộ Trình Phát Triển (Roadmap)}
+            \begin{itemize}\setlength{\itemsep}{3pt}\footnotesize
+                \item \textbf{Giai đoạn 1 (Trọng tâm Học phần):}\\
+                Hoàn thiện hạ tầng Dữ liệu Lớn chuẩn mực: Kafka $\to$ HDFS $\to$ Hive $\to$ Spark Batch \& Streaming. Đảm bảo tính toán ổn định và lưu trữ mở rộng.
+                \item \textbf{Giai đoạn 2 (Mở rộng Tương lai):}\\
+                Khi kho HDFS tích lũy đủ dữ liệu lớn (vài tháng) $\to$ Huấn luyện mô hình \textbf{Machine Learning} tự động học tương tác phi tuyến phức tạp (thời tiết, mật độ, sự cố TomTom).
+            \end{itemize}
+        \end{block}
+    \end{column}
+
+    \begin{column}{0.49\textwidth}
+        \begin{exampleblock}{Tổng Kết Giá Trị Dự Án}
+            \begin{itemize}\setlength{\itemsep}{3pt}\footnotesize
+                \item \textbf{Bám sát thực tế:} Giải quyết triệt để bài toán stateless của nguồn dữ liệu mở bằng hạ tầng 24/7.
+                \item \textbf{Đầy đủ chuỗi khép kín:} Crawl $\to$ Đệm $\to$ Lưu trữ $\to$ Xử lý $\to$ Dự báo.
+                \item \textbf{Khả thi \& An toàn:} Sử dụng thuần túy hệ sinh thái cốt lõi của Apache, không chồng chéo công cụ dư thừa.
+            \end{itemize}
+        \end{exampleblock}
+        
+        \vspace{0.15cm}
+        \centering
+        \begin{tikzpicture}
+            \node[draw=HustBlue, fill=HustBlue!10, rounded corners=6pt, font=\small\bfseries, text=HustBlue, inner sep=5pt] {
+                XIN CHÂN THÀNH CẢM ƠN!
+            };
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\end{document}

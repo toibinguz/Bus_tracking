@@ -132,7 +132,7 @@ def main():
                         raw_res = fut.result()
                         if raw_res:
                             clean_rec = sanitize_and_validate_telemetry(
-                                raw_res, vid, target_route_ids, kinematic_cache, now.isoformat()
+                                raw_res, vid, target_route_ids, kinematic_cache
                             )
                             if clean_rec:
                                 bus_records.append(clean_rec)

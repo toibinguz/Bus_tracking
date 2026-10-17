@@ -1,0 +1,103 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage[top=1.5cm,bottom=1.5cm,left=1.8cm,right=1.8cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{titlesec}
+
+\titlespacing*{\section}{0pt}{5.5pt plus 1pt minus 1pt}{2.5pt plus 1pt minus 1pt}
+\titlespacing*{\subsection}{0pt}{4.5pt plus 1pt minus 1pt}{2pt plus 1pt minus 1pt}
+
+\captionsetup{skip=2pt}
+\setlist{topsep=1.5pt,itemsep=1pt,partopsep=0pt,parsep=0pt}
+\setlength{\abovedisplayskip}{3pt}
+\setlength{\belowdisplayskip}{3pt}
+\setlength{\abovedisplayshortskip}{2pt}
+\setlength{\belowdisplayshortskip}{2pt}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\begin{document}
+
+\begin{center}
+{\large \textbf{ĐỀ XUẤT THIẾT KẾ KIẾN TRÚC HỆ THỐNG DỰ BÁO THỜI GIAN ĐẾN CỦA XE BUÝT (ETA) DỰA TRÊN DỮ LIỆU LỚN VÀ KIẾN TRÚC LAMBDA}}\\[3pt]
+{\small Học phần: Lưu trữ và Xử lý Dữ liệu Lớn \quad $\bullet$ \quad Ngày thực hiện: \today}
+\end{center}
+\vspace{-4pt}
+
+\section{Đặt Vấn Đề và Bối Cảnh Thực Tế}
+Trong quản lý giao thông đô thị hiện đại, bài toán ước tính thời gian xe buýt đến trạm (Estimated Time of Arrival -- ETA) đóng vai trò quyết định đến trải nghiệm của hành khách và mức độ sử dụng giao thông công cộng. Tại các đô thị lớn như Hà Nội, thời gian di chuyển của xe buýt chịu tác động mạnh bởi mật độ dòng xe biến thiên theo khung giờ, thời tiết và đặc biệt là các điểm ùn tắc phát sinh bất ngờ.
+
+Tuy nhiên, các dịch vụ mở hiện nay (như BusMap API) chủ yếu chỉ cung cấp thông tin tọa độ tức thời (stateless snapshots) tại thời điểm người dùng truy vấn. Việc thiếu vắng kho lưu trữ hành trình dài hạn khiến hệ thống không thể học được quy luật phân phối vận tốc lịch sử theo từng cung đường. Đồng thời, nếu chỉ dựa vào vị trí xe mà không kết hợp dữ liệu ngữ cảnh giao thông bên ngoài (như tai nạn, ùn ứ trên tuyến), kết quả dự báo ETA sẽ dễ sai lệch lớn khi có sự cố. Do đó, mục tiêu của đề tài là xây dựng một hệ thống dữ liệu lớn hoàn chỉnh theo Kiến trúc Lambda, xâu chuỗi toàn diện từ khâu thu thập dữ liệu thực tế (Crawl), lưu trữ phân tán (Storage), xử lý hai luồng (Batch \& Stream) đến giải quyết bài toán dự báo ETA.
+
+\section{Phân Tích Đặc Trưng Dữ Liệu Lớn (Mô Hình 4V)}
+Dự án được xây dựng dựa trên nguồn dữ liệu thực nghiệm đã và đang được thu thập liên tục từ mạng lưới xe buýt Hà Nội kết hợp dịch vụ dữ liệu giao thông TomTom:
+\begin{itemize}[leftmargin=*,noitemsep,topsep=1.5pt]
+    \item \textbf{Volume (Quy mô dữ liệu):} Hệ thống theo dõi 504 xe buýt trên 49 tuyến nội đô, vận hành liên tục 17 giờ mỗi ngày (05:00 -- 22:00) theo chu kỳ quét 75--80 giây. Mỗi ngày phát sinh khoảng 350.000--400.000 bản ghi định vị GPS; đồng thời thu thập định kỳ các sự kiện giao thông từ TomTom Traffic Incidents, tích lũy thành hàng triệu bản ghi sau nhiều tuần vận hành.
+    \item \textbf{Velocity (Tốc độ phát sinh):} Dòng dữ liệu định vị phát sinh với tần suất trung bình 6--7 bản ghi/giây theo từng đợt quét. Hệ thống đòi hỏi cơ chế thu nạp bền bỉ, không nghẽn hàng đợi và độ trễ chuyển tiếp thấp để phục vụ theo dõi thời gian thực.
+    \item \textbf{Variety (Đa dạng cấu trúc):} Hệ thống tích hợp ba nguồn dữ liệu khác nhau: (1) Chuỗi thời gian viễn thám GPS từ xe buýt (bán cấu trúc JSON); (2) Dữ liệu sự cố và ùn ứ từ TomTom Traffic Incidents API (vị trí sự cố, mức độ trễ, phạm vi ảnh hưởng); (3) Dữ liệu hạ tầng mạng lưới tuyến và trạm dừng cố định (bảng quan hệ có cấu trúc).
+    \item \textbf{Value (Giá trị thực tiễn):} Chuyển đổi chuỗi tọa độ rời rạc và cảnh báo sự cố thô thành thông tin hữu ích cho hành khách: dự báo thời gian chờ thực tế tại từng trạm và cảnh báo trước tình trạng ùn ứ trên tuyến.
+\end{itemize}
+
+\section{Ý Tưởng Thiết Kế Kiến Trúc Hệ Thống (Kiến Trúc Lambda)}
+Hệ thống được thiết kế theo mô hình Lambda nhằm giải quyết bài toán lớn thông qua chuỗi xử lý khép kín: \textbf{Thu thập (Crawl) $\to$ Hàng đợi (Ingestion) $\to$ Lưu trữ (Storage) $\to$ Xử lý phân tán (Processing) $\to$ Phục vụ dự báo (Serving)}.
+
+\subsection{Khâu Thu Thập và Tiếp Nhận Dữ Liệu (Ingestion Pipeline)}
+\begin{itemize}[leftmargin=*,noitemsep,topsep=1.5pt]
+    \item \textbf{Thu thập dữ liệu thực tế (Crawl Layer):} Bộ thu thập chạy tự động theo lịch trình: liên tục truy vấn tọa độ của 504 xe buýt đang hoạt động, đồng thời quét API sự cố giao thông TomTom Traffic Incidents dọc theo các hành lang tuyến nhằm ghi nhận các điểm tắc nghẽn, công trường hoặc sự cố va chạm.
+    \item \textbf{Đệm hàng đợi phân tán (Apache Kafka):} Đóng vai trò lớp trung gian tách rời hoàn toàn tiến trình thu thập (Producers) khỏi các tầng xử lý hạ nguồn (Consumers). Kafka tiếp nhận dòng sự kiện telemetry và cảnh báo sự cố, đảm bảo dữ liệu không bị thất thoát khi có đột biến lưu lượng và hỗ trợ phân phối đồng thời sang cả hai luồng xử lý (Batch và Streaming).
+\end{itemize}
+
+\newpage
+\subsection{Khâu Lưu Trữ Phân Tán Bất Biến (Distributed Storage Layer)}
+\begin{itemize}[leftmargin=*,noitemsep,topsep=1.5pt]
+    \item \textbf{Hồ dữ liệu gốc trên Hadoop HDFS:} Toàn bộ dữ liệu viễn thám thô sau khi thu thập được định kỳ lưu trữ bền vững vào cụm HDFS dưới định dạng Parquet nén Snappy. Định dạng hướng cột (columnar) giúp tiết kiệm dung lượng đĩa và tối ưu hóa tốc độ đọc lọc dữ liệu. Dữ liệu được tổ chức theo cấu trúc phân vùng thời gian (\texttt{dt=YYYY-MM-DD/hr=HH}) nhằm hỗ trợ cơ chế loại bỏ phân vùng không liên quan (Partition Pruning) khi truy vấn.
+    \item \textbf{Quản trị danh mục dữ liệu qua Apache Hive (Schema-on-Read):} Sử dụng Hive Metastore để ánh xạ cấu trúc bảng lên các tệp Parquet lưu trên HDFS. Điều này cho phép người dùng và các tác vụ phân tích truy vấn dữ liệu lịch sử bằng cú pháp SQL quen thuộc mà không cần nhân bản hay sao chép dữ liệu.
+\end{itemize}
+
+\subsection{Khâu Xử Lý Dữ Liệu (Processing Layer: 2 Luồng Thực Thi)}
+Kiến trúc phân tách rạch ròi hai luồng xử lý bổ trợ lẫn nhau:
+\begin{enumerate}[leftmargin=*,noitemsep,topsep=1.5pt]
+    \item \textbf{Luồng Xử lý Lô (Batch Layer -- PySpark):}
+    \begin{itemize}[leftmargin=*,noitemsep]
+        \item Định kỳ chạy trên tập dữ liệu lịch sử bất biến được lưu trên HDFS.
+        \item Thực hiện các tác vụ nặng: lọc bỏ bản ghi GPS sai lệch do lỗi thiết bị, kết hợp dữ liệu tọa độ với danh bạ trạm dừng và lịch sử sự cố giao thông TomTom.
+        \item Xây dựng \textbf{Ma trận thời gian di chuyển cơ sở (Batch View)}: tính toán giá trị trung bình/phân vị thời gian di chuyển giữa các cặp trạm dừng liên tiếp ($S_k \to S_{k+1}$) ứng với từng khung giờ trong ngày và từng thứ trong tuần.
+    \end{itemize}
+    \item \textbf{Luồng Xử lý Thời gian thực (Speed Layer -- Spark Structured Streaming):}
+    \begin{itemize}[leftmargin=*,noitemsep]
+        \item Tiếp nhận liên tục luồng gói tin GPS từ Kafka để duy trì vị trí mới nhất và vận tốc tức thời của các xe buýt đang vận hành trên tuyến.
+        \item Tiếp nhận tức thời các sự kiện ùn tắc từ TomTom Traffic Incidents để cập nhật trạng thái giao thông trên từng đoạn hành lang.
+        \item Xuất ra \textbf{Trạng thái thời gian thực (Real-time View)}: phản ánh độ lệch vận tốc và mức độ trễ tức thời so với điều kiện thông thường, phục vụ tra cứu tức thì với độ trễ thấp.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Khâu Giải Quyết Bài Toán Dự Báo ETA (Serving Layer \& Solution Idea)}
+\begin{itemize}[leftmargin=*,noitemsep,topsep=1.5pt]
+    \item \textbf{Ý tưởng giải quyết bài toán ETA:} Khi người dùng tra cứu thời gian xe buýt đến trạm đích $S_{\text{dest}}$, hệ thống chia hành trình thành chuỗi các phân đoạn liên tiếp. Thời gian dự báo được tổng hợp từ hai luồng theo nguyên lý:
+    \begin{equation}
+        \text{ETA} = f(\text{Batch View}, \text{Real-time View})
+    \end{equation}
+    Trong đó:
+    \begin{itemize}[leftmargin=*,noitemsep]
+        \item \textbf{Batch View} cung cấp thời gian di chuyển mỏ neo (baseline) dựa trên quy luật lịch sử của đoạn đường tại khung giờ tương ứng.
+        \item \textbf{Real-time View} cung cấp mức hiệu chỉnh động học dựa trên vận tốc thực tế của các xe đang chạy phía trước trên cùng hành lang và các cảnh báo tắc nghẽn tức thời từ dữ liệu sự cố TomTom.
+    \end{itemize}
+    \item \textbf{Định hướng mở rộng (Roadmap):} Trong giai đoạn triển khai cốt lõi của môn học, hệ thống tập trung hoàn thiện hạ tầng dữ liệu lớn vững chắc (Kafka $\to$ HDFS $\to$ Hive $\to$ Spark). Khi kho dữ liệu lịch sử trên HDFS tích lũy đủ lớn, hàm kết hợp $f$ có thể được mở rộng từ các luật trọng số điều chỉnh sang các mô hình học máy (Machine Learning) để tự động học các tương tác phi tuyến phức tạp giữa điều kiện thời tiết, sự cố TomTom và độ trễ xe buýt.
+\end{itemize}
+
+\end{document}

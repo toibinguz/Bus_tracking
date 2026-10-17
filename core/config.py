@@ -86,9 +86,11 @@ EMA_ALPHA = 0.65                         # Hệ số làm mịn vận tốc: v_s
 OPERATING_START_HOUR = 5.0
 OPERATING_END_HOUR = 22.0
 
+TZ_HANOI = timezone(timedelta(hours=7))
+
 def get_hanoi_time():
-    """Lấy thời gian chuẩn Hà Nội (UTC + 7)."""
-    return datetime.now(timezone.utc) + timedelta(hours=7)
+    """Lấy thời gian chuẩn Hà Nội (UTC + 7) với tzinfo='+07:00' chính xác."""
+    return datetime.now(TZ_HANOI)
 
 def is_operating_hours(hn_time=None, run_24x7=False):
     """Kiểm tra khung giờ xe buýt vận hành (05:00 - 22:00)."""
