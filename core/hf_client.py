@@ -1,10 +1,9 @@
 """
 Facade Module: core.hf_client (Backward Compatibility Layer)
-Exposes Hugging Face native commit sync, batch counting, and quota sync
-by delegating to core.storage subpackage.
+Delegates directly to module_1_telemetry_and_traffic_ingestion.submodule_1_3_cloud_lake_persistence.
 """
 
-from .storage import (
+from module_1_telemetry_and_traffic_ingestion.submodule_1_3_cloud_lake_persistence import (
     get_hf_today_batch_count,
     get_hf_today_traffic_batch_count,
     fetch_hf_tomtom_quota_state,

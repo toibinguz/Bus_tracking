@@ -29,3 +29,4 @@ Chứa các nghiên cứu và đánh giá tính khả thi đối với các API 
 
 ### 4. `archive/legacy_tests/`
 - `Test_tomtom/`: Chứa các script dựng bản đồ Leaflet thử nghiệm ban đầu (`map_traffic.py`, `map_traffic_hybrid.py`, `map_traffic_offline.py`), bộ đệm ảnh tile OSM ngoại tuyến (`osm_tiles/`), và các file JSON kiểm thử giao thông TomTom.
+

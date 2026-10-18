@@ -1,10 +1,9 @@
 """
 Facade Module: core.traffic_client (Backward Compatibility Layer)
-Exposes TomTom Traffic flow, incident polling, circuit breaker and quota state
-by delegating to core.traffic subpackage.
+Delegates directly to module_1_telemetry_and_traffic_ingestion.submodule_1_2_tomtom_incident_governor.
 """
 
-from .traffic import (
+from module_1_telemetry_and_traffic_ingestion.submodule_1_2_tomtom_incident_governor import (
     fetch_tomtom_flow,
     fetch_tomtom_incidents,
     execute_tomtom_flow_poll,

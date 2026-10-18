@@ -65,6 +65,8 @@ BUS_POLL_INTERVAL_SEC = 75                 # Chu kỳ quét chuẩn 75 giây to�
 SESSION_DURATION_SEC = 540                 # 9 phút cho mỗi phiên GitHub Actions runner
 HF_SYNC_INTERVAL_SEC = 600                 # 10 phút đồng bộ lên Hugging Face
 TOMTOM_FLOW_THROTTLE_SEC = 0.08            # Giữ tương thích ngược
+TOMTOM_PEAK_INTERVAL_SEC = 300             # 5 phút (tương thích ngược)
+TOMTOM_OFFPEAK_INTERVAL_SEC = 600          # 10 phút (tương thích ngược)
 
 # -------------------------------------------------------------
 # 5. DATA QUALITY & TRAFFIC THRESHOLDS

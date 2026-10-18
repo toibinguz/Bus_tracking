@@ -28,21 +28,26 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# Add workspace and module directory to sys.path
+# Add workspace directory to sys.path
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(THIS_DIR)
 sys.path.insert(0, ROOT_DIR)
-sys.path.insert(0, THIS_DIR)
 
-from modules.telemetry.sync import sync_bus_telemetry_from_hf
-from modules.telemetry.preprocessor import preprocess_telemetry_dataset, load_preprocessed_route_pings
-from modules.osm.downloader import download_all_hanoi_bus_routes_uncut
-from modules.osm.route_parser import parse_target_routes
-from modules.osm.map_reconstruction import download_road_network_overpass
-from modules.verification.evaluator import evaluate_route_telemetry
-from modules.reporting.report_generator import generate_markdown_verification_report
+from module_1_telemetry_and_traffic_ingestion import (
+    sync_bus_telemetry_from_hf,
+    preprocess_telemetry_dataset,
+    load_preprocessed_route_pings
+)
+from module_2_osm_ground_truth_and_road_network import (
+    download_all_hanoi_bus_routes_uncut,
+    parse_target_routes,
+    download_road_network_overpass
+)
+from module_3_spatial_matching_and_trajectory_fusion import evaluate_route_telemetry
+from module_4_traffic_analytics_and_visualization import generate_markdown_verification_report
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
 
 # Danh sách tuyến trọng tâm (Để trống để thảo luận và lựa chọn tường minh theo nhu cầu thực tế)
 DEFAULT_TARGET_ROUTES = []

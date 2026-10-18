@@ -25,8 +25,10 @@ if sys.stdout.encoding != 'utf-8':
         pass
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, BASE_DIR)
-from scripts.fuse_telemetry_with_osm import orient_osm_ways
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+from module_2_osm_ground_truth_and_road_network import orient_osm_ways
 
 ROUTES_META_DIR = os.path.join(BASE_DIR, "ground_truth_route_station", "output", "routes")
 FUSED_JSON_PATH = os.path.join(BASE_DIR, "data", "fused_osm", "master_fused_routes_segments.json")
