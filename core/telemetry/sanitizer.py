@@ -127,3 +127,4 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
         "crawled_at": actual_crawl_time_iso,
         "quality_status": quality_status
     }
+

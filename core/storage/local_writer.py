@@ -31,3 +31,4 @@ def save_incidents_batch(records, date_tag, base_dir=INCIDENT_OUTPUT_DIR):
     """Lưu các bản ghi TomTom Incidents vào file phân vùng data/raw/incidents/YYYY-MM-DD.jsonl."""
     target_path = os.path.join(base_dir, f"{date_tag}.jsonl")
     return append_jsonl_records(records, target_path)
+

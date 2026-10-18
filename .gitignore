@@ -1,5 +1,7 @@
 # Secrets (Use GitHub Secrets instead)
 Test_tomtom/TOMTOM_API_KEY.txt
+config/TOMTOM_API_KEY.txt
+archive/**/TOMTOM_API_KEY.txt
 access_token_hf.txt
 
 # Temp & Cache

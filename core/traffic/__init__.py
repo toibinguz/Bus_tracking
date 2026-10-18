@@ -25,3 +25,4 @@ __all__ = [
     "render_tomtom_cli_bar",
     "TOMTOM_CIRCUIT_OPEN"
 ]
+

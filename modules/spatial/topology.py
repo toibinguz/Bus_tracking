@@ -31,3 +31,4 @@ def orient_osm_ways(ways):
         nw["node_ids"] = nids
         oriented.append(nw)
     return oriented
+

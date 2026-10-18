@@ -7,3 +7,4 @@ from .topology import orient_osm_ways
 __all__ = [
     "orient_osm_ways"
 ]
+

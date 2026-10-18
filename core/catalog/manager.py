@@ -52,3 +52,4 @@ def search_vehicles_by_query(query, limit=50):
     except Exception:
         return []
     return []
+

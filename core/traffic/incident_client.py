@@ -213,3 +213,4 @@ def render_tomtom_cli_bar(quota_state, next_poll_seconds, is_congested=False, ci
         f"(Tháng: {quota_state['flow_month']}/{monthly_flow_k}k) | Incidents {quota_state['incident_today']}/{MAX_TOMTOM_INCIDENT_DAILY} | "
         f"Đợt tới: {countdown_str}"
     )
+

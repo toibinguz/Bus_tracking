@@ -16,7 +16,11 @@ TRAFFIC_OUTPUT_DIR = "data/raw/traffic"
 INCIDENT_OUTPUT_DIR = "data/raw/incidents"
 TOMTOM_QUOTA_FILE = "data/metadata/tomtom_quota_tracker.json"
 DAILY_HEALTH_FILE = "data/metadata/daily_catalog_health.json"
-API_KEY_FILE = "Test_tomtom/TOMTOM_API_KEY.txt"
+API_KEY_FILE = "config/TOMTOM_API_KEY.txt"
+LEGACY_API_KEY_FILES = [
+    "Test_tomtom/TOMTOM_API_KEY.txt",
+    "archive/legacy_tests/Test_tomtom/TOMTOM_API_KEY.txt"
+]
 HF_TOKEN_FILE = "access_token_hf.txt"
 HF_DATASET_ID = os.environ.get("HF_DATASET_ID", "Toibinguz/hust-bus-data")
 
@@ -173,13 +177,20 @@ def get_busmap_device_id(v_id=None, bad_device_id=None, force_rotate=False):
 def get_tomtom_api_key():
     """Lấy TomTom API Key từ biến môi trường hoặc file cục bộ."""
     key = os.environ.get("TOMTOM_KEY", "") or os.environ.get("TOMTOM_API_KEY", "")
-    if not key and os.path.exists(API_KEY_FILE):
-        try:
-            with open(API_KEY_FILE, "r", encoding="utf-8") as f:
-                key = f.read().strip()
-        except Exception:
-            pass
-    return key
+    if key:
+        return key
+
+    candidate_files = [API_KEY_FILE] + LEGACY_API_KEY_FILES
+    for path in candidate_files:
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    val = f.read().strip()
+                    if val:
+                        return val
+            except Exception:
+                pass
+    return ""
 
 def get_hf_token():
     """Lấy Hugging Face Token từ biến môi trường hoặc file cục bộ."""
