@@ -50,7 +50,7 @@ Bus_tracking/
 │   ├── visualizations/                           # Bản đồ trực quan hóa HTML nghiệm thu
 │   └── telemetry_audit_2026_10_17_18.db          # SQLite Database chính (.db đã VACUUM)
 ├── models/                                       # Tệp trọng số mô hình ML (.json)
-├── docs/                                         # 48 Tài liệu kỹ thuật chuẩn hóa (Doc 00 - 47)
+├── docs/                                         # 49 Tài liệu kỹ thuật chuẩn hóa (Doc 00 - 48)
 ├── scripts/                                      # CLI entrypoints tinh gọn phục vụ nhóm & CI/CD
 └── archive/                                      # Lưu trữ lịch sử dữ liệu và mã nguồn cũ
 ```
@@ -104,7 +104,7 @@ python scripts/verify_canonical_architecture.py
 
 ---
 
-## 📚 4. Hệ Thống Tài Liệu Kỹ Thuật Chuẩn Hóa (Docs Index 00 - 47)
+## 📚 4. Hệ Thống Tài Liệu Kỹ Thuật Chuẩn Hóa (Docs Index 00 - 48)
 
 Toàn bộ cơ sở lý thuyết, công thức toán học và nhật ký thiết kế hệ thống được đánh số liên tục trong thư mục [`docs/`](docs/):
 
@@ -119,7 +119,7 @@ Toàn bộ cơ sở lý thuyết, công thức toán học và nhật ký thiế
   - Master Ground Truth TimBus (TRAMOC / Sở GTVT): `34_TIMBUS_TRAMOC_GROUND_TRUTH_DISCOVERY.md`, `36_TIMBUS_PIPELINE_AND_DATA_TRACEABILITY.md`, `38_TIMBUS_VS_BUSMAP_IDENTIFIER_MAPPING.md`, `39_MASTER_GROUND_TRUTH_TIMBUS_SPECIFICATION.md`
   - Chiếu hóa Frenet 1D & Đánh giá không gian: `35_LINEAR_REFERENCING_AND_CENTERLINE_PROJECTION_STRATEGY.md`, `37_FRENET_PROJECTION_AND_EMPIRICAL_SPATIAL_EVALUATION.md`, `40_INTERACTIVE_MAP_VALIDATION_REPORT.md`, `41_WORKSPACE_CLEANUP_AND_UNIFIED_DATABASE_STATUS.md`, `42_1D_LINEAR_REFERENCING_AND_DOWNSTREAM_STATION_VIEW.md`
   - Chuẩn hóa Kiến trúc & Dọn dẹp Root: `47_CANONICAL_MODULE_STANDARDIZATION_AND_LEGACY_ARCHIVING.md`
-* **Phần 3 - Lộ Trình & Mô Hình Dự Báo ETA (00, 03, 04, 20 - 24, 31, 45, 46):**
+* **Phần 3 - Lộ Trình & Mô Hình Dự Báo ETA (00, 03, 04, 20 - 24, 31, 45, 46, 48):**
   - Định hướng & Nghiệp vụ: `00_OVERVIEW_ROADMAP.md`, `03_BUS_BUNCHING_AND_DISPATCH_REGULATION.md`, `04_ETA_MODELING_AND_LAMBDA_ARCHITECTURE.md`, `20_DATA_PROCESSING_AND_ETA_PIPELINE_ROADMAP.md`, `31_ETA_ROADMAP_AND_TECHNICAL_OBSTACLES.md`
   - Đặc trưng & Ý kiến Chuyên gia ML: `21_SEGMENTATION_AND_FEATURE_ENGINEERING_SPECIFICATION.md`, `22_ML_EXPERT_CONSULTATION_DOSSIER.md`, `23_ML_EXPERT_CONSULTATION_ANSWERS.md`, `24_ML_CORE_BACKBONE_ARCHITECTURE.md`
-  - Đối soát Tiến độ & Bàn giao Nhóm: `45_COMPREHENSIVE_DOC_AUDIT_AND_PROGRESS_CROSSCHECK.md`, `46_CANONICAL_3_TIER_ARCHITECTURE_AND_MULTI_ROUTE_HANDOVER.md`
+  - Đối soát Tiến độ, Bàn giao Nhóm & Lộ trình Tiếp theo: `45_COMPREHENSIVE_DOC_AUDIT_AND_PROGRESS_CROSSCHECK.md`, `46_CANONICAL_3_TIER_ARCHITECTURE_AND_MULTI_ROUTE_HANDOVER.md`, `48_COMPREHENSIVE_REMAINING_TASKS_AND_SYSTEM_ROADMAP.md`
