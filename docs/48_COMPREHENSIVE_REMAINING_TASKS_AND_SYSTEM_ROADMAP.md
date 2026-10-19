@@ -8,9 +8,10 @@
 
 ```mermaid
 flowchart TD
-    subgraph P1["Trụ Cột 1: Nhân Rộng Đa Tuyến (18 - 24h công)"]
-        T1["Tuyến 02 (Hoàn thiện mẫu 100%)"] --> T2["Nhân rộng Feature Store & ML<br/>sang 47 tuyến còn lại"]
+    subgraph P1["Trụ Cột 1: Ma Trận Thời Gian 48 Tuyến (6 - 8h công - ƯU TIÊN HÀNG ĐẦU)"]
+        T1["Tuyến 02 (Hoàn thiện mẫu)"] --> T2["Trích xuất Ma trận Thời gian Di chuyển<br/>(Travel Time Matrix) cho 47 tuyến"]
         T2 --> T3["Phân công 4 nhóm tuyến<br/>cho các thành viên"]
+        T3 -.-> T4["(Tạm hoãn ML: Đợi sau khi<br/>hoàn tất Ma trận thời gian)"]
     end
 
     subgraph P2["Trụ Cột 2: Phân Tích Độ Lệch & Detour (4 - 6h công)"]
@@ -33,7 +34,7 @@ flowchart TD
         F2 --> F3["Cập nhật DB_PATH tập trung<br/>trong config/system_config.py"]
     end
 
-    P1 --> SYSTEM["HỆ THỐNG DỮ LIỆU LỚN & DỰ BÁO ETA HOÀN CHỈNH<br/>(Tổng quy mô: ~35 - 45 giờ công làm việc)"]
+    P1 --> SYSTEM["HỆ THỐNG DỮ LIỆU LỚN & MA TRẬN THỜI GIAN HOÀN CHỈNH<br/>(Xem chi tiết chiến lược tại Doc 49)"]
     P2 --> SYSTEM
     P3 --> SYSTEM
     P4 --> SYSTEM
@@ -344,12 +345,14 @@ Một thành viên phụ trách gói tuyến chỉ được coi là hoàn thành
 ---
 
 ## BẢNG TỔNG HỢP TOÀN BỘ DỰ ÁN: TIẾN ĐỘ, TIÊU CHÍ CHẤP NHẬN & DỰ TOÁN THỜI GIAN
+> **Xem đặc tả chi tiết Ma trận thời gian tại**: [49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md](49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md)
 
 | Trụ Cột | Hạng Mục Kỹ Thuật | Mức Độ Ưu Tiên | Tiêu Chí Chấp Nhận Cốt Lõi (Key Acceptance Criteria) | Thời Gian Ước Tính | Phụ Trách Đề Xuất |
 | :---: | :--- | :---: | :--- | :---: | :---: |
 | **P5** | Chuẩn hóa file & đổi tên CSDL ➔ `hanoi_bus_system.db` | **P0 (Ngay lập tức)** | - Đổi tên tệp không suy thoái CSDL.<br/>- `verify_canonical_architecture.py` đạt 100% pass. | **1.5 - 2h** | Trưởng nhóm / Core Dev |
 | **P4** | Chuẩn hóa Schema bảng `dim_*`, `fact_*`, `agg_*`, `ml_*` | **P0 (Ngay lập tức)** | - Bảo toàn 100% số lượng pings (285k) và stations (3.646).<br/>- Drop sạch bảng đơn tuyến cũ (`route_02_...`). | **3 - 4h** | Data Engineer |
-| **P1** | Nhân rộng mô hình ETA sang 47 tuyến (Theo 4 Gói WBS) | **P1 (Chiến lược)** | - Huấn luyện xong 48 mô hình `.json`.<br/>- MAE toàn mạng $\le 60\text{s}$ ($\ge +30\%$ over baseline). | **18 - 24h** *(Chia 4 người: ~8h/người)* | Toàn bộ 4 thành viên nhóm |
+| **P1** | **Xây dựng Ma trận Thời gian Di chuyển (Travel Time Matrix)** | **P0 (Cốt lõi môn học)** | - 100% phân đoạn có $T_{\text{median}} > 0$ trong 4 khung giờ.<br/>- Đầy đủ bảng `agg_segment_travel_times` & Parquet Gold.<br/>- Phân tích Top điểm nghẽn & Heatmap toàn mạng. | **6 - 8h** *(Chia 4 người: ~2h/người)* | Toàn bộ 4 thành viên nhóm |
 | **P3** | Tích hợp sự cố TomTom (Spatial Match & Feature Store) | **P1 (Chiến lược)** | - Tự động liên kết sự cố trong $d_\perp \le 300\text{m}$.<br/>- Feature Store có 3 cột sự cố hợp lệ.<br/>- Lớp sự cố hiển thị chuẩn trên Leaflet. | **6 - 8h** | ML Engineer / Backend |
 | **P2** | Phân tích sai số $d_\perp$, phát hiện Detour hệ thống | **P2 (Nâng cao)** | - Gắn nhãn tự động xe quay đầu / về depot.<br/>- Phát hiện các đoạn tim đường TimBus bị lệch thực địa. | **4 - 6h** | GIS / Data Analyst |
-| **TỔNG**| **Toàn Bộ Khối Lượng Kỹ Thuật Còn Lại Của Dự Án** | — | **Hệ thống End-to-End hoàn chỉnh, sẵn sàng nghiệm thu môn học** | **~35 - 45 giờ công** *(~5 - 7 ngày làm việc)* | **Cả nhóm phối hợp** |
+| **P1.b**| *(Tùy chọn tương lai)*: Huấn luyện ML hiệu chỉnh độ lệch ($\Delta t_{\text{ML}}$) | **Tạm hoãn** *(Chờ phê duyệt sau)* | - Huấn luyện mô hình khi Ma trận thời gian đã phủ kín.<br/>- Tối ưu sai số $\text{MAE} \le 40\text{s}$. | — | Xem xét sau |
+| **TỔNG**| **Toàn Bộ Khối Lượng Kỹ Thuật Trọng Tâm Của Dự Án** | — | **Hệ thống End-to-End hoàn chỉnh, sẵn sàng nghiệm thu môn học** | **~20 - 25 giờ công** *(~3 - 4 ngày làm việc)* | **Cả nhóm phối hợp** |
