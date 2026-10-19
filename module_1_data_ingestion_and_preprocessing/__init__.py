@@ -66,10 +66,16 @@ from .step_1_3_telemetry_kinematic_sanitizer.telemetry_sanitizer import (
     sanitize_and_validate_telemetry
 )
 
-from .step_1_4_frenet_spatial_projection.multi_route_projector import (
-    project_route,
-    run_multi_route_projection
-)
+try:
+    from .step_1_4_frenet_spatial_projection.multi_route_projector import (
+        project_route,
+        run_multi_route_projection
+    )
+except ImportError:
+    # Optional dependency: numpy is only required for 1D spatial Frenet projection (Step 1.4)
+    # The Cloud Crawler (Step 1.1) runs on pure standard library without third-party dependencies.
+    project_route = None
+    run_multi_route_projection = None
 
 __all__ = [
     # Step 1.1: Telemetry & Ingestion
