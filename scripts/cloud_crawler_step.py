@@ -1,6 +1,6 @@
 """
 Cloud Crawler Step Entrypoint for GitHub Actions
-Thin facade delegating directly to module_5_system_orchestration_and_runners.runner_5_1_github_actions_cloud_relay.
+Thin facade delegating directly to module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.cloud_crawler_runner.
 Ensures 100% backward compatibility for GitHub Actions workflow (.github/workflows/crawl_bus.yml).
 """
 
@@ -10,7 +10,7 @@ import sys
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from module_5_system_orchestration_and_runners.runner_5_1_github_actions_cloud_relay import main
+from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.cloud_crawler_runner import main
 
 if __name__ == "__main__":
     main()

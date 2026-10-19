@@ -4,18 +4,33 @@ config/TOMTOM_API_KEY.txt
 archive/**/TOMTOM_API_KEY.txt
 access_token_hf.txt
 
-# Temp & Cache
+# Databases & Large Data (Raw Data)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+data/raw/
+data/telemetry_sync/
+data/temp_hf_sync/
+data/lakehouse/
+data/osm/
+data/ground_truth/timbus_official/raw/
+data/ground_truth/*.html
+data/visualizations/*.html
+archive/legacy_dumps/
+archive/legacy_ground_truth/*.html
+archive/legacy_ground_truth/osm_metadata/
+*.parquet
+*.jsonl
+batch_*.jsonl
+temp_cloud_output/
+
+# Temp, Cache & Build
 __pycache__/
 *.py[cod]
 .vscode/
-data/temp_hf_sync/
-temp_cloud_output/
-data/raw/
-data/telemetry_sync/
-data/osm/raw/
-data/ground_truth/*.html
 *.log
-batch_*.jsonl
 *.aux
 *.out
 *.nav

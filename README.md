@@ -1,83 +1,125 @@
-# HUST Bus Tracker & Traffic Congestion Engine
-### Hệ Thống Giám Sát, Dự Báo ETA & Tắc Nghẽn Xe Buýt Cụm Đại Học Bách Khoa Hà Nội
+# Hanoi Bus Big Data & Real-time ETA Prediction System
+### Hệ Thống Giám Sát Thời Gian Thực, Lưu Trữ Dữ Liệu Lớn & Dự Báo ETA Xe Buýt Hà Nội
 
-Dự án nghiên cứu và phát triển kiến trúc Big Data (Lambda Architecture) phục vụ theo dõi thời gian thực, đánh giá mức độ tắc nghẽn và dự báo thời gian xe buýt đến trạm (ETA) cho sinh viên và người dân Thủ đô Hà Nội.
-
----
-
-## 🚌 1. Phạm Vi Trọng Điểm: Cụm Tuyến Bách Khoa (HUST Core Cluster)
-Hệ thống tập trung giám sát mạng lưới 5 tuyến xe buýt huyết mạch tỏa ra 4 hướng từ khuôn viên Đại học Bách Khoa Hà Nội:
-* **Tuyến 32 (13 xe):** BX Giáp Bát ⇄ Nhổn *(trục Giải Phóng - Lê Duẩn - Cầu Giấy - Nhổn)*
-* **Tuyến 31 (5 xe):** Bách Khoa ⇄ Chèm / ĐH Mỏ *(xuất phát từ KTX Bách Khoa, qua Phố Huế - Bờ Hồ - Nghi Tàm)*
-* **Tuyến 08A (11 xe):** Long Biên ⇄ Đông Mỹ *(chạy dọc mặt tiền Giải Phóng, kết nối Long Biên - Thanh Trì)*
-* **Tuyến 26 (12 xe):** Mai Động ⇄ SVĐ Quốc Gia *(tuyến sinh viên qua Đại Cồ Việt - ĐH Y - Chùa Bộc - Cầu Giấy)*
-* **Tuyến 21A (11 xe):** BX Giáp Bát ⇄ BX Yên Nghĩa *(trục Giải Phóng - Ngã Tư Vọng - Trường Chinh - Ngã Tư Sở - Nguyễn Trãi)*
-
-**Quy mô:** **52 xe buýt telemetry hoạt động 24/7**, kiểm soát **~87.2 km** lộ trình và **19 nút giao thắt cổ chai** trọng yếu.
+> **Mục tiêu**: Xây dựng luồng hệ thống dữ liệu lớn khép kín từ đầu đến cuối (End-to-End Vertical Slice):  
+> `Ingestion (BusMap/TomTom) ➔ Master Ground Truth (TimBus) ➔ Big Data Lakehouse (Parquet/DuckDB) ➔ Feature Store ➔ ETA Model (XGBoost) ➔ Evaluation`.  
+> **Căn cứ quy chế hoạt động**: [AGENTS.md](AGENTS.md) & [GEMINI.md](GEMINI.md).
 
 ---
 
-## 🏛️ 2. Cấu Trúc Thư Mục Chuẩn Hóa
+## 🚌 1. Quy Mô & Chỉ Số Dữ Liệu Thực Tế (Empirical Scale)
+
+Dự án không dừng lại ở mức thử nghiệm vài tuyến nhỏ mà đã mở rộng bao phủ toàn bộ mạng lưới vận tải hành khách công cộng thành phố Hà Nội:
+
+| Chỉ Tiêu Kỹ Thuật | Định Lượng Thực Tế | Nguồn / Cơ Chế Xác Thực |
+| :--- | :--- | :--- |
+| **Tuyến buýt giám sát** | **48 tuyến hoạt động** | Các tuyến trục đô thị (01-99), BRT01 và mạng VinBus điện (E01-E11) |
+| **Đoàn xe Telemetry 24/7** | **504 xe buýt** | Thu thập định kỳ qua Raw Socket SSL & DNS Cache tại RAM |
+| **Danh bạ trạm dừng Master** | **3.646 trạm WGS84** | Trích xuất có thẩm quyền từ [TimBus.vn](http://timbus.vn) (TRAMOC / Sở GTVT Hà Nội) |
+| **Điểm tim đường (Centerline)** | **17.631 điểm** | Hình học tim đường chính thức, gán sẵn khoảng cách tích lũy $s$ (mét) |
+| **Telemetry chiếu 1D Frenet** | **285.621 bản ghi** | Ánh xạ vuông góc $s, d_\perp$, tính vận tốc dẫn xuất $\bar{v}$ và dừng đỗ `is_dwell` |
+| **Big Data Lakehouse** | **101 phân vùng Parquet** | Lưu trữ cột Snappy nén theo Medallion Silver Lakehouse |
+| **Độ chính xác ETA (XGBoost)** | **MAE 38.80s (0.65 min)** | Vượt trội **+45.72%** so với Baseline Historical Segment Average |
+
+---
+
+## 🏛️ 2. Kiến Trúc 3 Module Chuẩn Mực (Canonical 3-Tier Architecture)
+
+Toàn bộ workspace đã được dọn dẹp sạch sẽ, đóng gói vào đúng **3 Module duy nhất**:
 
 ```
 Bus_tracking/
-├── .github/
-│   └── workflows/
-│       └── crawl_bus.yml            # CI/CD Cloud Crawler chạy tự động trên GitHub Actions
+├── module_1_data_ingestion_and_preprocessing/    # MODULE 1: Thu thập, Tiền xử lý & Ground Truth
+│   ├── step_1_1_busmap_crawler_and_relay/        # Crawler 24/7, TomTom Governor & HF Dataset Sync
+│   ├── step_1_2_timbus_master_ground_truth/       # Ingestion 48 tuyến, 3.646 trạm WGS84 từ TimBus
+│   ├── step_1_3_telemetry_kinematic_sanitizer/    # Lọc hoán vị Lat/Lon, tính EMA & khử drift
+│   └── step_1_4_frenet_spatial_projection/        # Chiếu 1D Frenet 285k pings & cờ dừng đỗ is_dwell
+├── module_2_big_data_storage_and_lakehouse/      # MODULE 2: Lưu Trữ Dữ Liệu Lớn & Lakehouse
+│   ├── step_2_1_sqlite_operational_store/         # CSDL SQLite (.db), Crosswalk & View trạm kế tiếp
+│   ├── step_2_2_parquet_medallion_lakehouse/      # Engine xuất 101 Phân vùng Snappy Parquet Silver
+│   └── step_2_3_columnar_query_engine/            # Động cơ phân tích cột DuckDB / PySpark
+├── module_3_bus_eta_prediction/                  # MODULE 3: Động Cơ Dự Báo ETA Xe Buýt
+│   ├── step_3_1_historical_baseline_model/        # Baseline ma trận thời gian di chuyển phân đoạn
+│   ├── step_3_2_feature_store_extractor/          # Trích xuất 8 đặc trưng động học & dừng đỗ
+│   ├── step_3_3_machine_learning_models/          # Huấn luyện mô hình XGBoost Regressor (MAE 38.8s)
+│   └── step_3_4_evaluation_and_benchmarking/      # Đánh giá đối chuẩn đa tuyến (MAE, RMSE, MAPE)
 ├── data/
-│   ├── metadata/
-│   │   ├── hust_cluster_config.json # Cấu hình 52 xe buýt & 19 nút giao TomTom
-│   │   ├── routes.json              # Danh mục 230 tuyến xe buýt Hà Nội
-│   │   └── vehicles_catalog.json    # Catalog 935 xe buýt Hà Nội
-│   └── raw/
-│       ├── bus/                     # Dữ liệu GPS xe buýt (.jsonl theo ngày/giờ)
-│       └── traffic/                 # Dữ liệu luồng giao thông TomTom (.jsonl)
-├── docs/                            # 17 Tài liệu nghiên cứu kiến trúc, thuật toán & báo cáo
-├── scripts/
-│   ├── run_production_crawler.py    # Crawler sản xuất chính (chạy local/VPS/Android)
-│   ├── cloud_crawler_step.py        # Crawler cấp độ phút tối ưu cho GitHub Actions
-│   ├── sync_from_hf.py              # Script đồng bộ dữ liệu từ Hugging Face về laptop
-│   ├── init_master_metadata.py      # Khởi tạo dữ liệu danh mục ban đầu
-│   ├── benchmark_multilevel_*.py    # Benchmark kiểm định đa cấp độ tắc nghẽn
-│   ├── start_crawler.bat            # Khởi chạy crawler 1-click trên Windows
-│   └── start_crawler_background.vbs # Khởi chạy ngầm không hiện cửa sổ
-├── archive/                         # Nơi lưu trữ tài liệu khảo sát & script cũ
-│   ├── legacy_dumps/                # Dữ liệu dump ban đầu
-│   └── research_apis/               # Mã nguồn nghiên cứu VietMap, HERE, HF Spaces
-├── Test_tomtom/                     # Chứa TomTom API Key & kiểm thử bản đồ
-├── .gitignore                       # Bảo vệ thông tin bí mật (API Keys, Tokens)
-└── README.md                        # Hướng dẫn tổng quan dự án
+│   ├── ground_truth/timbus_official/             # Master Ground Truth chính thức Sở GTVT
+│   ├── lakehouse/silver/route_telemetry/         # 101 Phân vùng Parquet (Medallion Silver)
+│   ├── metadata/                                 # Cấu hình đoàn xe và hạn mức TomTom
+│   ├── visualizations/                           # Bản đồ trực quan hóa HTML nghiệm thu
+│   └── telemetry_audit_2026_10_17_18.db          # SQLite Database chính (.db đã VACUUM)
+├── models/                                       # Tệp trọng số mô hình ML (.json)
+├── docs/                                         # 48 Tài liệu kỹ thuật chuẩn hóa (Doc 00 - 47)
+├── scripts/                                      # CLI entrypoints tinh gọn phục vụ nhóm & CI/CD
+└── archive/                                      # Lưu trữ lịch sử dữ liệu và mã nguồn cũ
 ```
 
 ---
 
-## 🚀 3. Hướng Dẫn Vận Hành Hệ Thống
+## 🚀 3. Hướng Dẫn Vận Hành Từng Bước (Step-by-Step Pipeline Runbook)
 
-### Cách A: Chạy Thu Thập Trực Tiếp Trên Máy Tính (Local)
-1. Nhấp đúp vào [`scripts/start_crawler.bat`](file:///z:/Desktop/Bus_tracking/scripts/start_crawler.bat) để xem màn hình dòng lệnh trực quan.
-2. Hoặc nhấp đúp vào [`scripts/start_crawler_background.vbs`](file:///z:/Desktop/Bus_tracking/scripts/start_crawler_background.vbs) để chạy ẩn hoàn toàn dưới nền.
-3. Script tự động hoạt động từ **05:00 đến 22:00** và tự động ngủ đêm.
+### Bước 1: Thu Thập & Đồng Bộ Dữ Liệu (Ingestion Layer)
+- **Chạy Cloud Crawler 24/7 trên GitHub Actions**: Tự động kích hoạt qua workflow [`.github/workflows/crawl_bus.yml`](.github/workflows/crawl_bus.yml).
+- **Chạy Crawler trên máy tính cá nhân**:
+  ```powershell
+  python scripts/run_production_crawler.py
+  # Hoặc nhấp đúp: scripts/start_crawler.bat
+  ```
+- **Kéo dữ liệu tích lũy từ Cloud về máy**:
+  ```powershell
+  python scripts/sync_from_hf.py
+  ```
 
-### Cách B: Thu Thập Trên Mây (GitHub Actions ➔ Hugging Face Dataset)
-1. Workflow [`.github/workflows/crawl_bus.yml`](file:///z:/Desktop/Bus_tracking/.github/workflows/crawl_bus.yml) tự động điều phối các phiên chạy cào cấp độ phút (60s/lần) liên tục.
-2. Dữ liệu được lưu trữ an toàn tại Hugging Face Dataset: `Toibinguz/hust-bus-data`.
-3. Khi cần đồng bộ dữ liệu về laptop để huấn luyện mô hình Spark:
-   ```powershell
-   python scripts/sync_from_hf.py
-   ```
+### Bước 2: Nạp Master Ground Truth & Chiếu Tọa Độ 1D Frenet
+- **Nạp toàn bộ 48 tuyến và trạm dừng từ TimBus**:
+  ```powershell
+  python module_1_data_ingestion_and_preprocessing/step_1_2_timbus_master_ground_truth/ingest_all_active_routes.py
+  ```
+- **Chiếu trực giao Telemetry lên tim đường (Frenet Linear Referencing)**:
+  ```powershell
+  python module_1_data_ingestion_and_preprocessing/step_1_4_frenet_spatial_projection/multi_route_projector.py
+  ```
 
-### Cách C: Thu Thập 24/7 Bền Bỉ Trên Điện Thoại Android (Termux)
-1. Cài đặt Termux từ F-Droid / GitHub Releases và cấp quyền Không hạn chế pin (Unrestricted).
-2. Chạy 1 dòng lệnh khởi tạo: `bash scripts/setup_termux.sh`
-3. Chi tiết hướng dẫn xem tại: [`docs/19_TERMUX_ANDROID_24x7_INGESTION_GUIDE.md`](file:///z:/Desktop/Bus_tracking/docs/19_TERMUX_ANDROID_24x7_INGESTION_GUIDE.md)
+### Bước 3: Xuất Dữ Liệu Lớn Sang Columnar Parquet Lakehouse
+- **Chuyển đổi dữ liệu SQLite sang 101 phân vùng Snappy Parquet (Silver Lake)**:
+  ```powershell
+  python module_2_big_data_storage_and_lakehouse/step_2_2_parquet_medallion_lakehouse/lakehouse_exporter.py
+  ```
+
+### Bước 4: Huấn Luyện & Đánh Giá Mô Hình Dự Báo ETA
+- **Huấn luyện mô hình XGBoost ETA cho tuyến chỉ định (ví dụ Tuyến 02)**:
+  ```powershell
+  python module_3_bus_eta_prediction/step_3_3_machine_learning_models/train_eta_model.py --route 02
+  ```
+- **Đánh giá đối chuẩn sai số so với Baseline Historical Segment Average**:
+  ```powershell
+  python module_3_bus_eta_prediction/step_3_4_evaluation_and_benchmarking/benchmark_evaluator.py --routes 02
+  ```
+
+### Bước 5: Kiểm Tra Toàn Bộ Kiến Trúc Hệ Thống (Health Check)
+```powershell
+python scripts/verify_canonical_architecture.py
+```
 
 ---
 
-## 📚 4. Hệ Thống Tài Liệu Kỹ Thuật (Docs Index)
-Toàn bộ cơ sở lý thuyết, công thức toán học và tài liệu thiết kế hệ thống nằm trong thư mục [`docs/`](file:///z:/Desktop/Bus_tracking/docs/):
-* **Lộ trình & Kiến trúc:** `00_OVERVIEW_ROADMAP.md`, `04_ETA_MODELING_AND_LAMBDA_ARCHITECTURE.md`
-* **Bus-as-a-Probe & BusMap API:** `01_BUSMAP_INGESTION_STRATEGY.md`, `05_BUSMAP_API_FAILURE_ANALYSIS.md`, `06_EXTRACTED_APIS_AND_SYSTEM_DISCOVERY.md`
-* **Lý thuyết Tắc nghẽn & TomTom:** `02_TOMTOM_TWO_TIER_TRAFFIC_OPTIMIZATION.md`, `09_TOMTOM_FLOW_INTERPOLATION_THEORY.md`, `10_TOMTOM_EMPIRICAL_VALIDATION_REPORT.md`
-* **Quy mô Cụm Bách Khoa:** `13_CONGESTION_COVERAGE_CAPACITY_ANALYSIS.md`, `14_HUST_CLUSTER_ROUTES_SELECTION_AND_SPATIAL_FEASIBILITY.md`
-* **Hướng dẫn Triển khai:** `15_24x7_CRAWLER_DEPLOYMENT_GUIDE.md`, `18_GITHUB_ACTIONS_CLOUD_CRAWLER_SETUP.md`, `19_TERMUX_ANDROID_24x7_INGESTION_GUIDE.md`
+## 📚 4. Hệ Thống Tài Liệu Kỹ Thuật Chuẩn Hóa (Docs Index 00 - 47)
 
+Toàn bộ cơ sở lý thuyết, công thức toán học và nhật ký thiết kế hệ thống được đánh số liên tục trong thư mục [`docs/`](docs/):
+
+* **Phần 1 - Thu Thập Dữ Liệu & Tiền Xử Lý (00 - 18, 25, 43, 44):**
+  - Khảo sát & Giao thức: `01_BUSMAP_INGESTION_STRATEGY.md`, `05_BUSMAP_API_FAILURE_ANALYSIS.md`, `06_EXTRACTED_APIS_AND_SYSTEM_DISCOVERY.md`, `08_DATA_CRAWLING_PIPELINE_PROCEDURE.md`
+  - TomTom & Congestion: `02_TOMTOM_TWO_TIER_TRAFFIC_OPTIMIZATION.md`, `09_TOMTOM_FLOW_INTERPOLATION_THEORY.md`, `10_TOMTOM_EMPIRICAL_VALIDATION_REPORT.md`, `11_CONGESTION_DATA_SOURCES_AND_PROJECT_SCOPING.md`, `12_HERE_API_FREE_PLAN_EXPLOITATION_STRATEGY.md`, `13_CONGESTION_COVERAGE_CAPACITY_ANALYSIS.md`, `14_HUST_CLUSTER_ROUTES_SELECTION_AND_SPATIAL_FEASIBILITY.md`, `25_CLOUD_CRAWLER_SEMAPHORE_AND_TOMTOM_GOVERNOR.md`
+  - Triển khai & Vận hành 24/7: `15_24x7_CRAWLER_DEPLOYMENT_GUIDE.md`, `16_HUGGING_FACE_SPACES_DEPLOYMENT_GUIDE.md`, `17_GITHUB_ACTIONS_CLOUD_CRAWLER_SETUP.md`, `18_TERMUX_ANDROID_24x7_INGESTION_GUIDE.md`
+  - Phân tích Độ trễ Telemetry: `43_TELEMETRY_LATENCY_AND_DISCONTINUITY_ANALYSIS.md`, `44_DELTA_T_AND_DELTA_M_DUAL_PATTERN_ANALYSIS.md`
+* **Phần 2 - Bản Đồ, Master Ground Truth & Big Data Lakehouse (19, 26 - 30, 32 - 42, 47):**
+  - Cấu trúc Module & Hồ sơ dữ liệu: `19_WORKSPACE_MODULAR_ARCHITECTURE_AND_SRP.md`, `27_INTEGRATED_STAGE_ARCHITECTURE_AND_FLEET_SCALE.md`, `28_DATA_CLEANING_AND_FUSION_PIPELINE_SPECIFICATION.md`, `29_BIG_DATA_APACHE_ECOSYSTEM_AND_SCALABILITY_SPECIFICATION.md`
+  - Khảo sát OSM ban đầu: `26_GROUND_TRUTH_ROUTE_AND_STATION_DETERMINATION_METHODOLOGY.md`, `30_OSM_TELEMETRY_FUSION_AND_AUDIT.md`, `32_STATION_UNIFICATION_AND_DISCREPANCY_ANALYSIS.md`, `33_HANOI_BUS_STATION_CATALOG_SOURCES_AND_ALIGNMENT.md`
+  - Master Ground Truth TimBus (TRAMOC / Sở GTVT): `34_TIMBUS_TRAMOC_GROUND_TRUTH_DISCOVERY.md`, `36_TIMBUS_PIPELINE_AND_DATA_TRACEABILITY.md`, `38_TIMBUS_VS_BUSMAP_IDENTIFIER_MAPPING.md`, `39_MASTER_GROUND_TRUTH_TIMBUS_SPECIFICATION.md`
+  - Chiếu hóa Frenet 1D & Đánh giá không gian: `35_LINEAR_REFERENCING_AND_CENTERLINE_PROJECTION_STRATEGY.md`, `37_FRENET_PROJECTION_AND_EMPIRICAL_SPATIAL_EVALUATION.md`, `40_INTERACTIVE_MAP_VALIDATION_REPORT.md`, `41_WORKSPACE_CLEANUP_AND_UNIFIED_DATABASE_STATUS.md`, `42_1D_LINEAR_REFERENCING_AND_DOWNSTREAM_STATION_VIEW.md`
+  - Chuẩn hóa Kiến trúc & Dọn dẹp Root: `47_CANONICAL_MODULE_STANDARDIZATION_AND_LEGACY_ARCHIVING.md`
+* **Phần 3 - Lộ Trình & Mô Hình Dự Báo ETA (00, 03, 04, 20 - 24, 31, 45, 46):**
+  - Định hướng & Nghiệp vụ: `00_OVERVIEW_ROADMAP.md`, `03_BUS_BUNCHING_AND_DISPATCH_REGULATION.md`, `04_ETA_MODELING_AND_LAMBDA_ARCHITECTURE.md`, `20_DATA_PROCESSING_AND_ETA_PIPELINE_ROADMAP.md`, `31_ETA_ROADMAP_AND_TECHNICAL_OBSTACLES.md`
+  - Đặc trưng & Ý kiến Chuyên gia ML: `21_SEGMENTATION_AND_FEATURE_ENGINEERING_SPECIFICATION.md`, `22_ML_EXPERT_CONSULTATION_DOSSIER.md`, `23_ML_EXPERT_CONSULTATION_ANSWERS.md`, `24_ML_CORE_BACKBONE_ARCHITECTURE.md`
+  - Đối soát Tiến độ & Bàn giao Nhóm: `45_COMPREHENSIVE_DOC_AUDIT_AND_PROGRESS_CROSSCHECK.md`, `46_CANONICAL_3_TIER_ARCHITECTURE_AND_MULTI_ROUTE_HANDOVER.md`

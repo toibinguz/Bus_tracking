@@ -1,8 +1,12 @@
-# BỘ CÔNG CỤ XÁC ĐỊNH HÌNH HỌC TUYẾN & DANH MỤC TRẠM DỪNG XE BUÝT (GROUND-TRUTH)
-### Nghiên Cứu & Phát Triển Thuật Toán Lai: OpenStreetMap + Telemetry GPS Thực Nghiệm
-
-> **Mục tiêu:** Xây dựng quy trình kỹ thuật độc lập, khoa học và thực nghiệm để xác định chính xác 100% hình học tuyến đường (Polyline) và danh bạ trạm dừng vật lý cho **19 tuyến hành lang xe buýt trọng điểm khu vực Bách Khoa (HUST)**.  
-> **Nguyên tắc cốt lõi:** *Không phỏng đoán mò, không tin mù quáng vào OSM, lấy dữ liệu telemetry GPS thực tế từ xe lăn bánh làm thước đo thẩm định tối thượng.*
+# [DEPRECATED & ARCHIVED] BỘ CÔNG CỤ XÁC ĐỊNH HÌNH HỌC TUYẾN & TRẠM DỪNG (OSM LEGACY)
+> [!WARNING] TÀI LIỆU CŨ ĐÃ HẾT HIỆU LỰC (DEPRECATED & ARCHIVED)
+> **Lý do lưu trữ**: Tài liệu này mô tả phương pháp cũ dựa trên OpenStreetMap (OSM) cho 19 tuyến và ngưỡng vận tốc thô GPS ($v \le 5\text{ km/h}$).
+> Toàn bộ phương pháp này **ĐÃ BỊ HỦY BỎ** do OSM thiếu trạm, sai lệch hình học và GPS speed thô không ổn định.
+> 
+> **GROUND TRUTH CHÍNH THỨC HIỆN TẠI**:
+> Xem tài liệu chuẩn tại [docs/39_MASTER_GROUND_TRUTH_TIMBUS_SPECIFICATION.md](file:///z:/Desktop/Bus_tracking/docs/39_MASTER_GROUND_TRUTH_TIMBUS_SPECIFICATION.md) và [data/ground_truth/README.md](file:///z:/Desktop/Bus_tracking/data/ground_truth/README.md).
+> - **Cơ sở dữ liệu gốc tối thượng**: Cổng **TimBus (`timbus.vn`)** thuộc TRAMOC / Sở GTVT Hà Nội với **48 tuyến**, **3.646 trạm dừng WGS84 chính thức** và **17.631 điểm tim đường**.
+> - **Nguyên tắc nhận diện dừng trạm**: Vận tốc dẫn xuất không gian thời gian $\bar{v} = \Delta s / \Delta t$ và ngưỡng dịch chuyển $\Delta s < 15\text{m}, \Delta t \ge 20\text{s}$ (Tuân thủ Điều 6 & 7 của [AGENTS.md](file:///z:/Desktop/Bus_tracking/AGENTS.md)).
 
 ---
 
