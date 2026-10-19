@@ -10,7 +10,7 @@ import ssl
 import urllib.request
 import urllib.parse
 import urllib.error
-from core.config import (
+from config import (
     HF_DATASET_ID,
     TOMTOM_QUOTA_FILE,
     CONFIG_FILE,
@@ -22,6 +22,7 @@ from core.config import (
     get_hanoi_time,
     get_hf_token
 )
+
 
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False

@@ -1,0 +1,8375 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841298,
+            20.980179
+          ],
+          [
+            105.841302,
+            20.980336
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 955750000,
+        "street_name": "Làn 4",
+        "highway": "service",
+        "length_m": 17.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841302,
+            20.980336
+          ],
+          [
+            105.841304,
+            20.980411
+          ],
+          [
+            105.841308,
+            20.980534
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1290902314,
+        "street_name": "Làn 4",
+        "highway": "service",
+        "length_m": 22.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841308,
+            20.980534
+          ],
+          [
+            105.841308,
+            20.980538
+          ],
+          [
+            105.841309,
+            20.980598
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1290902315,
+        "street_name": "Làn 4",
+        "highway": "service",
+        "length_m": 7.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841309,
+            20.980598
+          ],
+          [
+            105.84131,
+            20.980652
+          ],
+          [
+            105.84131,
+            20.980654
+          ],
+          [
+            105.841314,
+            20.980808
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1094396493,
+        "street_name": "Làn 4",
+        "highway": "service",
+        "length_m": 23.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841314,
+            20.980808
+          ],
+          [
+            105.841215,
+            20.980836
+          ],
+          [
+            105.841202,
+            20.98084
+          ],
+          [
+            105.841173,
+            20.980848
+          ],
+          [
+            105.841133,
+            20.980863
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 955749998,
+        "street_name": "Lối ra sân xe buýt",
+        "highway": "service",
+        "length_m": 19.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841133,
+            20.980863
+          ],
+          [
+            105.840884,
+            20.980865
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1298906824,
+        "street_name": "",
+        "highway": "primary_link",
+        "length_m": 25.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.840884,
+            20.980865
+          ],
+          [
+            105.840868,
+            20.979828
+          ],
+          [
+            105.840863,
+            20.979565
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1298906827,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 144.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.840863,
+            20.979565
+          ],
+          [
+            105.840862,
+            20.979455
+          ],
+          [
+            105.840848,
+            20.978594
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1390293016,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 108.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.840848,
+            20.978594
+          ],
+          [
+            105.840847,
+            20.978533
+          ],
+          [
+            105.84083,
+            20.977466
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 705812470,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 125.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.84083,
+            20.977466
+          ],
+          [
+            105.840825,
+            20.977167
+          ],
+          [
+            105.840822,
+            20.976973
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 705812469,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 54.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.840822,
+            20.976973
+          ],
+          [
+            105.840819,
+            20.976841
+          ],
+          [
+            105.840815,
+            20.976557
+          ],
+          [
+            105.840797,
+            20.975246
+          ],
+          [
+            105.840772,
+            20.973384
+          ],
+          [
+            105.84077,
+            20.973274
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 37371053,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 411.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.84077,
+            20.973274
+          ],
+          [
+            105.840768,
+            20.972434
+          ],
+          [
+            105.840789,
+            20.972215
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1301686342,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 117.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.840789,
+            20.972215
+          ],
+          [
+            105.840818,
+            20.971903
+          ],
+          [
+            105.840891,
+            20.971515
+          ],
+          [
+            105.841051,
+            20.970916
+          ],
+          [
+            105.8412,
+            20.970404
+          ],
+          [
+            105.841244,
+            20.970245
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 809463692,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 224.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.840926,
+            20.970217
+          ],
+          [
+            105.840971,
+            20.97022
+          ],
+          [
+            105.840977,
+            20.97022
+          ],
+          [
+            105.840998,
+            20.97022
+          ],
+          [
+            105.841134,
+            20.970225
+          ],
+          [
+            105.841244,
+            20.970245
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 953158804,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 33.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.838603,
+            20.97103
+          ],
+          [
+            105.838662,
+            20.97099
+          ],
+          [
+            105.838876,
+            20.970802
+          ],
+          [
+            105.83902,
+            20.970666
+          ],
+          [
+            105.839255,
+            20.970533
+          ],
+          [
+            105.839461,
+            20.970435
+          ],
+          [
+            105.839712,
+            20.970308
+          ],
+          [
+            105.83992,
+            20.970231
+          ],
+          [
+            105.840126,
+            20.970181
+          ],
+          [
+            105.840352,
+            20.970171
+          ],
+          [
+            105.840609,
+            20.970185
+          ],
+          [
+            105.840756,
+            20.970212
+          ],
+          [
+            105.840926,
+            20.970217
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 953158805,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 270.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.838603,
+            20.97103
+          ],
+          [
+            105.838566,
+            20.971053
+          ],
+          [
+            105.838521,
+            20.971074
+          ],
+          [
+            105.838379,
+            20.971085
+          ],
+          [
+            105.836545,
+            20.970963
+          ],
+          [
+            105.836142,
+            20.970934
+          ],
+          [
+            105.83592,
+            20.970922
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 954882988,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 280.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.83592,
+            20.970922
+          ],
+          [
+            105.835712,
+            20.970911
+          ],
+          [
+            105.834901,
+            20.970851
+          ],
+          [
+            105.834631,
+            20.970782
+          ],
+          [
+            105.834154,
+            20.970629
+          ],
+          [
+            105.833223,
+            20.970314
+          ],
+          [
+            105.832668,
+            20.970126
+          ],
+          [
+            105.832184,
+            20.969973
+          ],
+          [
+            105.832097,
+            20.969945
+          ],
+          [
+            105.831904,
+            20.969883
+          ],
+          [
+            105.831611,
+            20.969794
+          ],
+          [
+            105.830557,
+            20.969462
+          ],
+          [
+            105.830385,
+            20.969443
+          ],
+          [
+            105.830248,
+            20.969446
+          ],
+          [
+            105.830172,
+            20.969461
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 251941419,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 623.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.830172,
+            20.969461
+          ],
+          [
+            105.829941,
+            20.969507
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1465787847,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 24.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.829941,
+            20.969507
+          ],
+          [
+            105.82965,
+            20.969447
+          ],
+          [
+            105.829581,
+            20.969436
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1053943228,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 38.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.829581,
+            20.969436
+          ],
+          [
+            105.829309,
+            20.969321
+          ],
+          [
+            105.829085,
+            20.969222
+          ],
+          [
+            105.828928,
+            20.969149
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 954882989,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 74.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.828928,
+            20.969149
+          ],
+          [
+            105.828712,
+            20.969232
+          ],
+          [
+            105.828648,
+            20.969263
+          ],
+          [
+            105.828289,
+            20.969455
+          ],
+          [
+            105.828052,
+            20.969577
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 106112628,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 102.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.828052,
+            20.969577
+          ],
+          [
+            105.827598,
+            20.969812
+          ],
+          [
+            105.827216,
+            20.970007
+          ],
+          [
+            105.827058,
+            20.970087
+          ],
+          [
+            105.826842,
+            20.970198
+          ],
+          [
+            105.826798,
+            20.970221
+          ],
+          [
+            105.826535,
+            20.97034
+          ],
+          [
+            105.826358,
+            20.970421
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1227978411,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 199.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.826358,
+            20.970421
+          ],
+          [
+            105.826213,
+            20.970486
+          ],
+          [
+            105.826053,
+            20.970547
+          ],
+          [
+            105.825876,
+            20.970611
+          ],
+          [
+            105.825699,
+            20.970675
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1472390235,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 74.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.825699,
+            20.970675
+          ],
+          [
+            105.825341,
+            20.970805
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1381161254,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 39.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.825341,
+            20.970805
+          ],
+          [
+            105.825245,
+            20.970833
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 600485835,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 10.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.825245,
+            20.970833
+          ],
+          [
+            105.824763,
+            20.970982
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 600485834,
+        "street_name": "Cầu Dậu",
+        "highway": "primary",
+        "length_m": 52.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.824763,
+            20.970982
+          ],
+          [
+            105.824586,
+            20.971036
+          ],
+          [
+            105.824412,
+            20.971083
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 570582401,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 38.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.824412,
+            20.971083
+          ],
+          [
+            105.824256,
+            20.971128
+          ],
+          [
+            105.823974,
+            20.971214
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 703452750,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 47.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.823974,
+            20.971214
+          ],
+          [
+            105.823556,
+            20.971346
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 703452749,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 45.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.823556,
+            20.971346
+          ],
+          [
+            105.823183,
+            20.971452
+          ],
+          [
+            105.822662,
+            20.971604
+          ],
+          [
+            105.822489,
+            20.971659
+          ],
+          [
+            105.822442,
+            20.971674
+          ],
+          [
+            105.822097,
+            20.971779
+          ],
+          [
+            105.821892,
+            20.97184
+          ],
+          [
+            105.821731,
+            20.971891
+          ],
+          [
+            105.821646,
+            20.97192
+          ],
+          [
+            105.821113,
+            20.972086
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 374529795,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 266.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.821113,
+            20.972086
+          ],
+          [
+            105.819907,
+            20.972454
+          ],
+          [
+            105.819579,
+            20.97256
+          ],
+          [
+            105.819208,
+            20.972698
+          ],
+          [
+            105.818786,
+            20.972871
+          ],
+          [
+            105.818525,
+            20.972993
+          ],
+          [
+            105.818323,
+            20.97309
+          ],
+          [
+            105.817933,
+            20.973296
+          ],
+          [
+            105.817617,
+            20.973481
+          ],
+          [
+            105.817193,
+            20.973766
+          ],
+          [
+            105.816983,
+            20.973913
+          ],
+          [
+            105.816756,
+            20.974093
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 241572102,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 508.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.816756,
+            20.974093
+          ],
+          [
+            105.816619,
+            20.974207
+          ],
+          [
+            105.816341,
+            20.974443
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 701392349,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 58.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.816341,
+            20.974443
+          ],
+          [
+            105.816251,
+            20.974529
+          ],
+          [
+            105.816055,
+            20.9747
+          ],
+          [
+            105.815891,
+            20.974847
+          ],
+          [
+            105.815785,
+            20.974948
+          ],
+          [
+            105.815692,
+            20.975048
+          ],
+          [
+            105.815518,
+            20.975245
+          ],
+          [
+            105.815402,
+            20.975395
+          ],
+          [
+            105.814804,
+            20.976182
+          ],
+          [
+            105.814557,
+            20.976515
+          ],
+          [
+            105.813651,
+            20.977736
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 701392350,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 461.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.813651,
+            20.977736
+          ],
+          [
+            105.81336,
+            20.978139
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 701427379,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 54.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.81336,
+            20.978139
+          ],
+          [
+            105.813124,
+            20.978471
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 701427380,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 44.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.813124,
+            20.978471
+          ],
+          [
+            105.813067,
+            20.978551
+          ],
+          [
+            105.812864,
+            20.97882
+          ],
+          [
+            105.812636,
+            20.979121
+          ],
+          [
+            105.812583,
+            20.979191
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 702872000,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 97.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.812583,
+            20.979191
+          ],
+          [
+            105.812519,
+            20.97928
+          ],
+          [
+            105.812345,
+            20.97951
+          ],
+          [
+            105.812331,
+            20.979528
+          ],
+          [
+            105.811688,
+            20.980401
+          ],
+          [
+            105.810973,
+            20.981361
+          ],
+          [
+            105.810564,
+            20.981911
+          ],
+          [
+            105.810357,
+            20.982188
+          ],
+          [
+            105.810202,
+            20.982401
+          ],
+          [
+            105.8101,
+            20.982541
+          ],
+          [
+            105.809597,
+            20.983228
+          ],
+          [
+            105.808045,
+            20.985355
+          ],
+          [
+            105.807536,
+            20.98604
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 702813310,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 924.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.807536,
+            20.98604
+          ],
+          [
+            105.807338,
+            20.98631
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 702813309,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 36.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.807338,
+            20.98631
+          ],
+          [
+            105.807224,
+            20.986463
+          ],
+          [
+            105.80702,
+            20.986736
+          ],
+          [
+            105.806612,
+            20.987336
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 702813306,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 136.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.806612,
+            20.987336
+          ],
+          [
+            105.806506,
+            20.987486
+          ],
+          [
+            105.806238,
+            20.987854
+          ],
+          [
+            105.805675,
+            20.988586
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 702848697,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 169.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.805675,
+            20.988586
+          ],
+          [
+            105.805619,
+            20.98866
+          ],
+          [
+            105.805492,
+            20.988824
+          ],
+          [
+            105.805287,
+            20.989093
+          ],
+          [
+            105.805168,
+            20.989248
+          ],
+          [
+            105.804908,
+            20.989507
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 439088446,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 129.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.804908,
+            20.989507
+          ],
+          [
+            105.804881,
+            20.989541
+          ],
+          [
+            105.804464,
+            20.990135
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 702880304,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 83.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.804464,
+            20.990135
+          ],
+          [
+            105.80406,
+            20.99069
+          ],
+          [
+            105.803938,
+            20.990864
+          ],
+          [
+            105.803914,
+            20.990922
+          ],
+          [
+            105.803825,
+            20.99111
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 702848696,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 127.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.803825,
+            20.99111
+          ],
+          [
+            105.803742,
+            20.991282
+          ],
+          [
+            105.803669,
+            20.991406
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 961861930,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 36.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.803669,
+            20.991406
+          ],
+          [
+            105.803421,
+            20.991721
+          ],
+          [
+            105.803295,
+            20.991856
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 702880303,
+        "street_name": "Đường Khuất Duy Tiến",
+        "highway": "trunk",
+        "length_m": 63.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.803295,
+            20.991856
+          ],
+          [
+            105.802973,
+            20.991627
+          ],
+          [
+            105.802789,
+            20.991495
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 702880302,
+        "street_name": "Đường Nguyễn Trãi",
+        "highway": "trunk",
+        "length_m": 66.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.802789,
+            20.991495
+          ],
+          [
+            105.802642,
+            20.991313
+          ],
+          [
+            105.802577,
+            20.991234
+          ],
+          [
+            105.802354,
+            20.991076
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 399820831,
+        "street_name": "Đường Nguyễn Trãi",
+        "highway": "trunk",
+        "length_m": 65.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.802354,
+            20.991076
+          ],
+          [
+            105.802332,
+            20.99106
+          ],
+          [
+            105.801129,
+            20.990209
+          ],
+          [
+            105.801056,
+            20.990157
+          ],
+          [
+            105.799988,
+            20.989402
+          ],
+          [
+            105.799657,
+            20.989135
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 711700503,
+        "street_name": "Đường Nguyễn Trãi",
+        "highway": "trunk",
+        "length_m": 353.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.799657,
+            20.989135
+          ],
+          [
+            105.798654,
+            20.988422
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 457757021,
+        "street_name": "Đường Nguyễn Trãi",
+        "highway": "trunk",
+        "length_m": 130.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.798654,
+            20.988422
+          ],
+          [
+            105.79794,
+            20.987914
+          ],
+          [
+            105.796865,
+            20.98715
+          ],
+          [
+            105.796509,
+            20.986896
+          ],
+          [
+            105.796299,
+            20.986746
+          ],
+          [
+            105.79623,
+            20.986698
+          ],
+          [
+            105.796172,
+            20.986657
+          ],
+          [
+            105.795973,
+            20.986515
+          ],
+          [
+            105.79552,
+            20.986193
+          ],
+          [
+            105.794888,
+            20.985743
+          ],
+          [
+            105.794806,
+            20.985685
+          ],
+          [
+            105.79471,
+            20.985616
+          ],
+          [
+            105.794358,
+            20.985362
+          ],
+          [
+            105.793581,
+            20.984813
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1290144946,
+        "street_name": "Đường Nguyễn Trãi",
+        "highway": "trunk",
+        "length_m": 662.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.793581,
+            20.984813
+          ],
+          [
+            105.793142,
+            20.984501
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1466411476,
+        "street_name": "Đường Nguyễn Trãi",
+        "highway": "trunk",
+        "length_m": 57.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.793142,
+            20.984501
+          ],
+          [
+            105.793127,
+            20.984491
+          ],
+          [
+            105.792879,
+            20.984314
+          ],
+          [
+            105.79243,
+            20.983995
+          ],
+          [
+            105.792324,
+            20.983912
+          ],
+          [
+            105.79203,
+            20.983681
+          ],
+          [
+            105.791802,
+            20.983503
+          ],
+          [
+            105.791473,
+            20.983245
+          ],
+          [
+            105.791154,
+            20.982995
+          ],
+          [
+            105.790945,
+            20.982833
+          ],
+          [
+            105.79082,
+            20.982734
+          ],
+          [
+            105.790104,
+            20.982172
+          ],
+          [
+            105.789899,
+            20.982012
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 239370942,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 436.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.789899,
+            20.982012
+          ],
+          [
+            105.789659,
+            20.981824
+          ],
+          [
+            105.78953,
+            20.981723
+          ],
+          [
+            105.789486,
+            20.981687
+          ],
+          [
+            105.789072,
+            20.981351
+          ],
+          [
+            105.788459,
+            20.980854
+          ],
+          [
+            105.788292,
+            20.980719
+          ],
+          [
+            105.788128,
+            20.980586
+          ],
+          [
+            105.78787,
+            20.980377
+          ],
+          [
+            105.787401,
+            20.979996
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 974572935,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 342.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.787401,
+            20.979996
+          ],
+          [
+            105.787339,
+            20.979946
+          ],
+          [
+            105.786954,
+            20.979634
+          ],
+          [
+            105.786616,
+            20.97936
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1242183437,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 107.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.786616,
+            20.97936
+          ],
+          [
+            105.786574,
+            20.979326
+          ],
+          [
+            105.786398,
+            20.979192
+          ],
+          [
+            105.785979,
+            20.978864
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 693652773,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 86.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.785979,
+            20.978864
+          ],
+          [
+            105.785435,
+            20.978443
+          ],
+          [
+            105.785009,
+            20.978113
+          ],
+          [
+            105.78473,
+            20.977897
+          ],
+          [
+            105.783986,
+            20.977319
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1305064571,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 269.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.783986,
+            20.977319
+          ],
+          [
+            105.783721,
+            20.977114
+          ],
+          [
+            105.782781,
+            20.976385
+          ],
+          [
+            105.782038,
+            20.975809
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1109636292,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 262.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.782038,
+            20.975809
+          ],
+          [
+            105.781832,
+            20.97565
+          ],
+          [
+            105.781799,
+            20.975625
+          ],
+          [
+            105.781745,
+            20.975582
+          ],
+          [
+            105.781,
+            20.974995
+          ],
+          [
+            105.780871,
+            20.974894
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1335957666,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 158.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.780871,
+            20.974894
+          ],
+          [
+            105.780666,
+            20.974732
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1326204766,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 27.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.780666,
+            20.974732
+          ],
+          [
+            105.780584,
+            20.974668
+          ],
+          [
+            105.780544,
+            20.974636
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 220005738,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 16.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.780544,
+            20.974636
+          ],
+          [
+            105.780041,
+            20.974288
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 616826560,
+        "street_name": "Cầu Trắng",
+        "highway": "trunk",
+        "length_m": 65.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.780041,
+            20.974288
+          ],
+          [
+            105.779966,
+            20.974237
+          ],
+          [
+            105.779754,
+            20.97409
+          ],
+          [
+            105.779094,
+            20.973634
+          ],
+          [
+            105.778907,
+            20.973502
+          ],
+          [
+            105.778785,
+            20.973416
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 344413424,
+        "street_name": "Đường Quang Trung",
+        "highway": "trunk",
+        "length_m": 162.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.778785,
+            20.973416
+          ],
+          [
+            105.778744,
+            20.973463
+          ],
+          [
+            105.778715,
+            20.973495
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 344413323,
+        "street_name": "Phố Chu Văn An",
+        "highway": "primary",
+        "length_m": 11.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.778715,
+            20.973495
+          ],
+          [
+            105.778677,
+            20.97354
+          ],
+          [
+            105.778211,
+            20.974106
+          ],
+          [
+            105.778133,
+            20.974201
+          ],
+          [
+            105.777958,
+            20.974415
+          ],
+          [
+            105.777735,
+            20.974702
+          ],
+          [
+            105.777346,
+            20.975196
+          ],
+          [
+            105.777281,
+            20.975277
+          ],
+          [
+            105.777261,
+            20.975301
+          ],
+          [
+            105.777017,
+            20.975596
+          ],
+          [
+            105.776989,
+            20.975638
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1254786896,
+        "street_name": "Phố Chu Văn An",
+        "highway": "primary",
+        "length_m": 298.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.776989,
+            20.975638
+          ],
+          [
+            105.776785,
+            20.975905
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 344411389,
+        "street_name": "Cầu Am",
+        "highway": "primary",
+        "length_m": 36.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.776785,
+            20.975905
+          ],
+          [
+            105.776761,
+            20.975934
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709779713,
+        "street_name": "Đường Vạn Phúc",
+        "highway": "primary",
+        "length_m": 4.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.776761,
+            20.975934
+          ],
+          [
+            105.776671,
+            20.97606
+          ],
+          [
+            105.77652,
+            20.976263
+          ],
+          [
+            105.776471,
+            20.976328
+          ],
+          [
+            105.776405,
+            20.976412
+          ],
+          [
+            105.7763,
+            20.976554
+          ],
+          [
+            105.776117,
+            20.976775
+          ],
+          [
+            105.775798,
+            20.977086
+          ],
+          [
+            105.775193,
+            20.977702
+          ],
+          [
+            105.774884,
+            20.977977
+          ],
+          [
+            105.774735,
+            20.978109
+          ],
+          [
+            105.774693,
+            20.978148
+          ],
+          [
+            105.774515,
+            20.978282
+          ],
+          [
+            105.774375,
+            20.978359
+          ],
+          [
+            105.77411,
+            20.978457
+          ],
+          [
+            105.774028,
+            20.978487
+          ],
+          [
+            105.773909,
+            20.978533
+          ],
+          [
+            105.773815,
+            20.97857
+          ],
+          [
+            105.773625,
+            20.978652
+          ],
+          [
+            105.773311,
+            20.978797
+          ],
+          [
+            105.773001,
+            20.979017
+          ],
+          [
+            105.772897,
+            20.979104
+          ],
+          [
+            105.772706,
+            20.979314
+          ],
+          [
+            105.772562,
+            20.97951
+          ],
+          [
+            105.772488,
+            20.979645
+          ],
+          [
+            105.772474,
+            20.979672
+          ],
+          [
+            105.772251,
+            20.980048
+          ],
+          [
+            105.772042,
+            20.980346
+          ],
+          [
+            105.771986,
+            20.980428
+          ],
+          [
+            105.771601,
+            20.980958
+          ],
+          [
+            105.771249,
+            20.981442
+          ],
+          [
+            105.771212,
+            20.981491
+          ],
+          [
+            105.770875,
+            20.981974
+          ],
+          [
+            105.770543,
+            20.98244
+          ],
+          [
+            105.770436,
+            20.982592
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 687216053,
+        "street_name": "Đường Vạn Phúc",
+        "highway": "primary",
+        "length_m": 1008.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.770436,
+            20.982592
+          ],
+          [
+            105.770357,
+            20.9827
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1240199928,
+        "street_name": "Đường Vạn Phúc",
+        "highway": "primary",
+        "length_m": 14.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.770357,
+            20.9827
+          ],
+          [
+            105.770266,
+            20.982651
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 955805192,
+        "street_name": "Phố Tố Hữu",
+        "highway": "primary",
+        "length_m": 10.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.770266,
+            20.982651
+          ],
+          [
+            105.770167,
+            20.982591
+          ],
+          [
+            105.769569,
+            20.982226
+          ],
+          [
+            105.769013,
+            20.981892
+          ],
+          [
+            105.76849,
+            20.981538
+          ],
+          [
+            105.768076,
+            20.981229
+          ],
+          [
+            105.767979,
+            20.981156
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 756588020,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 290.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.767979,
+            20.981156
+          ],
+          [
+            105.766891,
+            20.980312
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709781969,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 146.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.766891,
+            20.980312
+          ],
+          [
+            105.76623,
+            20.979804
+          ],
+          [
+            105.765953,
+            20.979591
+          ],
+          [
+            105.765887,
+            20.97954
+          ],
+          [
+            105.765844,
+            20.979507
+          ],
+          [
+            105.765777,
+            20.979457
+          ],
+          [
+            105.765581,
+            20.979302
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709781970,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 176.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.765581,
+            20.979302
+          ],
+          [
+            105.765443,
+            20.979187
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709681294,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 19.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.765443,
+            20.979187
+          ],
+          [
+            105.765315,
+            20.979087
+          ],
+          [
+            105.765066,
+            20.978891
+          ],
+          [
+            105.76492,
+            20.978776
+          ],
+          [
+            105.764387,
+            20.978364
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1427960775,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 142.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.764387,
+            20.978364
+          ],
+          [
+            105.764047,
+            20.978105
+          ],
+          [
+            105.763981,
+            20.978055
+          ],
+          [
+            105.763819,
+            20.977936
+          ],
+          [
+            105.763444,
+            20.977648
+          ],
+          [
+            105.762223,
+            20.976683
+          ],
+          [
+            105.761999,
+            20.97652
+          ],
+          [
+            105.76194,
+            20.976474
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709681295,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 329.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.76194,
+            20.976474
+          ],
+          [
+            105.761839,
+            20.976398
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709676993,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 13.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.761839,
+            20.976398
+          ],
+          [
+            105.761631,
+            20.976228
+          ],
+          [
+            105.761587,
+            20.976197
+          ],
+          [
+            105.761563,
+            20.976176
+          ],
+          [
+            105.761464,
+            20.976091
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1209721204,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 51.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.761464,
+            20.976091
+          ],
+          [
+            105.761334,
+            20.975987
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1209721205,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 17.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.761334,
+            20.975987
+          ],
+          [
+            105.761228,
+            20.975909
+          ],
+          [
+            105.760741,
+            20.975531
+          ],
+          [
+            105.760472,
+            20.975323
+          ],
+          [
+            105.759108,
+            20.974232
+          ],
+          [
+            105.758584,
+            20.97382
+          ],
+          [
+            105.758456,
+            20.973726
+          ],
+          [
+            105.758435,
+            20.973711
+          ],
+          [
+            105.75837,
+            20.973665
+          ],
+          [
+            105.758307,
+            20.97362
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709676994,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 410.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.758307,
+            20.97362
+          ],
+          [
+            105.758075,
+            20.973443
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709676998,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 31.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.758075,
+            20.973443
+          ],
+          [
+            105.757153,
+            20.972753
+          ],
+          [
+            105.757095,
+            20.97271
+          ],
+          [
+            105.757026,
+            20.972655
+          ],
+          [
+            105.756962,
+            20.972604
+          ],
+          [
+            105.755994,
+            20.971817
+          ],
+          [
+            105.755792,
+            20.971623
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709676997,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 311.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.755792,
+            20.971623
+          ],
+          [
+            105.755533,
+            20.971378
+          ],
+          [
+            105.755376,
+            20.971222
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 406325505,
+        "street_name": "Cầu Kênh La Khê",
+        "highway": "primary",
+        "length_m": 62.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.755376,
+            20.971222
+          ],
+          [
+            105.754926,
+            20.97072
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709681291,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 72.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.754926,
+            20.97072
+          ],
+          [
+            105.754851,
+            20.970629
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 709681290,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 12.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.754851,
+            20.970629
+          ],
+          [
+            105.754751,
+            20.970508
+          ],
+          [
+            105.754713,
+            20.970452
+          ],
+          [
+            105.75447,
+            20.970084
+          ],
+          [
+            105.754362,
+            20.969922
+          ],
+          [
+            105.754244,
+            20.969744
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 406325512,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 116.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.754244,
+            20.969744
+          ],
+          [
+            105.754048,
+            20.969448
+          ],
+          [
+            105.75396,
+            20.969341
+          ],
+          [
+            105.753827,
+            20.96921
+          ],
+          [
+            105.753682,
+            20.969084
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1105712689,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 94.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.753682,
+            20.969084
+          ],
+          [
+            105.753541,
+            20.969076
+          ],
+          [
+            105.753426,
+            20.969047
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 974086958,
+        "street_name": "",
+        "highway": "primary",
+        "length_m": 27.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.753426,
+            20.969047
+          ],
+          [
+            105.753334,
+            20.968977
+          ],
+          [
+            105.75327,
+            20.968911
+          ],
+          [
+            105.753223,
+            20.968834
+          ],
+          [
+            105.753194,
+            20.96875
+          ],
+          [
+            105.753184,
+            20.968662
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 157665744,
+        "street_name": "Vòng xuyến La Khê",
+        "highway": "primary",
+        "length_m": 51.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.753184,
+            20.968662
+          ],
+          [
+            105.753191,
+            20.96859
+          ],
+          [
+            105.75321,
+            20.96852
+          ],
+          [
+            105.753242,
+            20.968454
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 974086959,
+        "street_name": "Vòng xuyến La Khê",
+        "highway": "primary",
+        "length_m": 24.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.753242,
+            20.968454
+          ],
+          [
+            105.7532,
+            20.968271
+          ],
+          [
+            105.753142,
+            20.968074
+          ],
+          [
+            105.752966,
+            20.967765
+          ],
+          [
+            105.752674,
+            20.967251
+          ],
+          [
+            105.751341,
+            20.965175
+          ],
+          [
+            105.751006,
+            20.964747
+          ],
+          [
+            105.750974,
+            20.964706
+          ],
+          [
+            105.75067,
+            20.964442
+          ],
+          [
+            105.750339,
+            20.964168
+          ],
+          [
+            105.750173,
+            20.964043
+          ],
+          [
+            105.749846,
+            20.963818
+          ],
+          [
+            105.749004,
+            20.963337
+          ],
+          [
+            105.748211,
+            20.962903
+          ],
+          [
+            105.747089,
+            20.962282
+          ],
+          [
+            105.746919,
+            20.962185
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 157665745,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 988.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.746919,
+            20.962185
+          ],
+          [
+            105.74681,
+            20.962122
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 955882977,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 13.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.74681,
+            20.962122
+          ],
+          [
+            105.746721,
+            20.962073
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 955882978,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 10.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.746721,
+            20.962073
+          ],
+          [
+            105.745179,
+            20.961235
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 955805194,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 185.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.745179,
+            20.961235
+          ],
+          [
+            105.74283,
+            20.959888
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 251931733,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 286.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.74283,
+            20.959888
+          ],
+          [
+            105.741725,
+            20.959273
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 251931741,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 133.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.741725,
+            20.959273
+          ],
+          [
+            105.741411,
+            20.959098
+          ],
+          [
+            105.740701,
+            20.958697
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 670059083,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 124.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.740701,
+            20.958697
+          ],
+          [
+            105.740163,
+            20.958392
+          ],
+          [
+            105.739568,
+            20.958053
+          ],
+          [
+            105.738846,
+            20.957642
+          ],
+          [
+            105.738468,
+            20.957447
+          ],
+          [
+            105.738399,
+            20.957398
+          ],
+          [
+            105.738305,
+            20.957252
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 670059095,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 298.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.737609,
+            20.956867
+          ],
+          [
+            105.738305,
+            20.957252
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 1373569364,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 84.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.737609,
+            20.956867
+          ],
+          [
+            105.737305,
+            20.957343
+          ],
+          [
+            105.736699,
+            20.95829
+          ],
+          [
+            105.736667,
+            20.958343
+          ],
+          [
+            105.73661,
+            20.958433
+          ],
+          [
+            105.735769,
+            20.959746
+          ],
+          [
+            105.735367,
+            20.960389
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "relation_id": 13009894,
+        "way_id": 595927134,
+        "street_name": "",
+        "highway": "residential",
+        "length_m": 455.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.840843,
+          20.979661
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 738814324,
+        "sequence": 1,
+        "name": "Đối diện Bến xe Giáp Bát - Giải Phóng (cột trước)",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.84077,
+          20.976318
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 738813337,
+        "sequence": 2,
+        "name": "Ga Giáp Bát - Đối diện 1035 Giải Phóng",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.830975,
+          20.969607
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 738814832,
+        "sequence": 3,
+        "name": "Đối diện đài tưởng niệm chủ tịch HCM - đường Nguyễn Hữu Thọ",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.826315,
+          20.970505
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8236303286,
+        "sequence": 4,
+        "name": "Điểm xén hè (Toà nhà CT2 - KĐT Bắc Linh Đàm) - Cầu Dậu",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.82056,
+          20.972333
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983480,
+        "sequence": 5,
+        "name": "KĐT Kim Văn-Kim Lũ",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.81473,
+          20.976397
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983481,
+        "sequence": 6,
+        "name": "Trường Đại học Thăng Long",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.810963,
+          20.981462
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983482,
+        "sequence": 7,
+        "name": "Trước ngã 3 Nguyễn Xiển - Hoàng Đạo Thành",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.808157,
+          20.985309
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983483,
+        "sequence": 8,
+        "name": "Hầm đường bộ số 4 - Nguyễn Xiển",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.804743,
+          20.989882
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983484,
+        "sequence": 9,
+        "name": "Viện Công nghệ Thực phẩm Trung ương",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.801519,
+          20.99052
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 444394994,
+        "sequence": 10,
+        "name": "Bách hóa Thanh Xuân - đường Nguyễn Trãi",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.79779,
+          20.987886
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 444394979,
+        "sequence": 11,
+        "name": "216 Nguyễn Trãi - Nhà Văn hóa tổ dân phố số 8 & 9 Phường Trung Văn",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.794904,
+          20.985863
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8770675677,
+        "sequence": 12,
+        "name": "Công ty CP Công trình GT 873 - Nguyễn Trãi",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.79154,
+          20.983357
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 444394956,
+        "sequence": 13,
+        "name": "Số 10 Trần Phú - Siêu thị Việt Long",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.788002,
+          20.980523
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 444394950,
+        "sequence": 14,
+        "name": "Học viện công nghệ bưu chính viễn thông - Trần Phú (Hà Đông)",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.784442,
+          20.97767
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8770675678,
+        "sequence": 15,
+        "name": "Ga Văn Quán",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.781537,
+          20.975472
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8770675679,
+        "sequence": 16,
+        "name": "Khách sạn Sông Nhuệ (148 Trần Phú- Hà Đông)",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.778333,
+          20.974072
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983485,
+        "sequence": 17,
+        "name": "Số 2 Chu Văn An - Hà Đông",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.775697,
+          20.977369
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983486,
+        "sequence": 18,
+        "name": "Cầu Cong - Vạn Phúc",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.772529,
+          20.979804
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983487,
+        "sequence": 19,
+        "name": "Chùa Vạn Phúc - Hà Đông",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.77086,
+          20.982179
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983488,
+        "sequence": 20,
+        "name": "Số 170 - 172 Vạn Phúc - Hà Đông",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.767559,
+          20.980925
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983489,
+        "sequence": 21,
+        "name": "Điểm xén hè qua ngã 4 Vạn Phúc - Tố Hữu",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.762347,
+          20.976836
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983490,
+        "sequence": 22,
+        "name": "Gần đường vào Khu đô thị Dương Nội",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.759538,
+          20.974762
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983491,
+        "sequence": 23,
+        "name": "Nhà chờ gần Nam Cường Building",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.757624,
+          20.973255
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983492,
+        "sequence": 24,
+        "name": "Nhà chờ gần đường vào Khu đô thị An Hưng",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.754716,
+          20.970577
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983493,
+        "sequence": 25,
+        "name": "Qua 100m cầu La Khê",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.751925,
+          20.966243
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8845983494,
+        "sequence": 26,
+        "name": "Nghĩa trang La Khê",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.747603,
+          20.96269
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8944376751,
+        "sequence": 27,
+        "name": "Tòa nhà CT7F The Sparks Nam Cường",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.740241,
+          20.958507
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8944376752,
+        "sequence": 28,
+        "name": "Công ty Cây xanh Việt Nam",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.840795,
+          20.971809
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 4421384524,
+        "sequence": 29,
+        "name": "Đối diện 1251 Giải Phóng",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.836222,
+          20.97097
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 0,
+        "stop_id": 8821681975,
+        "sequence": 30,
+        "name": "Gần đường vào KĐT Đại Kim - 45 Nguyễn Hữu Thọ",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.737609,
+            20.956867
+          ],
+          [
+            105.737305,
+            20.957343
+          ],
+          [
+            105.736699,
+            20.95829
+          ],
+          [
+            105.736667,
+            20.958343
+          ],
+          [
+            105.73661,
+            20.958433
+          ],
+          [
+            105.735769,
+            20.959746
+          ],
+          [
+            105.735367,
+            20.960389
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 595927134,
+        "street_name": "",
+        "highway": "residential",
+        "length_m": 455.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.737609,
+            20.956867
+          ],
+          [
+            105.738305,
+            20.957252
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1373569364,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 84.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.738305,
+            20.957252
+          ],
+          [
+            105.738491,
+            20.957286
+          ],
+          [
+            105.738702,
+            20.957404
+          ],
+          [
+            105.738909,
+            20.957519
+          ],
+          [
+            105.739638,
+            20.957923
+          ],
+          [
+            105.740237,
+            20.958256
+          ],
+          [
+            105.740644,
+            20.958482
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 251931738,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 279.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.740644,
+            20.958482
+          ],
+          [
+            105.740889,
+            20.958612
+          ],
+          [
+            105.74156,
+            20.959008
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 670059074,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 111.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.74156,
+            20.959008
+          ],
+          [
+            105.741737,
+            20.959109
+          ],
+          [
+            105.742987,
+            20.959826
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 670059101,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 173.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.742987,
+            20.959826
+          ],
+          [
+            105.743281,
+            20.959993
+          ],
+          [
+            105.745339,
+            20.96116
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 251931730,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 285.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.745339,
+            20.96116
+          ],
+          [
+            105.746637,
+            20.961888
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 251931756,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 157.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.746637,
+            20.961888
+          ],
+          [
+            105.747538,
+            20.962393
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 955882979,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 109.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.747538,
+            20.962393
+          ],
+          [
+            105.748275,
+            20.962805
+          ],
+          [
+            105.748351,
+            20.962846
+          ],
+          [
+            105.748482,
+            20.962923
+          ],
+          [
+            105.748672,
+            20.963026
+          ],
+          [
+            105.748731,
+            20.963057
+          ],
+          [
+            105.74886,
+            20.963126
+          ],
+          [
+            105.749071,
+            20.963244
+          ],
+          [
+            105.749925,
+            20.963711
+          ],
+          [
+            105.75069,
+            20.964247
+          ],
+          [
+            105.750823,
+            20.964385
+          ],
+          [
+            105.751054,
+            20.964606
+          ],
+          [
+            105.751337,
+            20.96499
+          ],
+          [
+            105.75164,
+            20.965432
+          ],
+          [
+            105.751686,
+            20.965499
+          ],
+          [
+            105.751698,
+            20.965517
+          ],
+          [
+            105.752163,
+            20.96621
+          ],
+          [
+            105.752784,
+            20.967196
+          ],
+          [
+            105.753311,
+            20.967988
+          ],
+          [
+            105.75341,
+            20.968081
+          ],
+          [
+            105.75346,
+            20.968117
+          ],
+          [
+            105.753511,
+            20.968154
+          ],
+          [
+            105.753685,
+            20.968239
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 670059104,
+        "street_name": "Phố Nguyễn Trác",
+        "highway": "secondary",
+        "length_m": 933.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.753685,
+            20.968239
+          ],
+          [
+            105.753776,
+            20.968257
+          ],
+          [
+            105.75383,
+            20.968276
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 955882980,
+        "street_name": "Vòng xuyến La Khê",
+        "highway": "primary",
+        "length_m": 15.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.75383,
+            20.968276
+          ],
+          [
+            105.753866,
+            20.968295
+          ],
+          [
+            105.753949,
+            20.968353
+          ],
+          [
+            105.754012,
+            20.968419
+          ],
+          [
+            105.754064,
+            20.968511
+          ],
+          [
+            105.75409,
+            20.968612
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 885892456,
+        "street_name": "Vòng xuyến La Khê",
+        "highway": "primary",
+        "length_m": 48.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.75409,
+            20.968612
+          ],
+          [
+            105.754092,
+            20.968699
+          ],
+          [
+            105.754074,
+            20.968785
+          ],
+          [
+            105.754038,
+            20.968865
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 885892450,
+        "street_name": "Vòng xuyến La Khê",
+        "highway": "primary",
+        "length_m": 29.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.754038,
+            20.968865
+          ],
+          [
+            105.754077,
+            20.969037
+          ],
+          [
+            105.754106,
+            20.969166
+          ],
+          [
+            105.75414,
+            20.969267
+          ],
+          [
+            105.754253,
+            20.969479
+          ],
+          [
+            105.754547,
+            20.969947
+          ],
+          [
+            105.754602,
+            20.970031
+          ],
+          [
+            105.754882,
+            20.970455
+          ],
+          [
+            105.75496,
+            20.970543
+          ],
+          [
+            105.754991,
+            20.970576
+          ],
+          [
+            105.755041,
+            20.970633
+          ],
+          [
+            105.75505,
+            20.970642
+          ],
+          [
+            105.755472,
+            20.971113
+          ],
+          [
+            105.755529,
+            20.971167
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 709681288,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 302.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.755529,
+            20.971167
+          ],
+          [
+            105.755906,
+            20.971548
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 500044376,
+        "street_name": "Cầu Kênh La Khê",
+        "highway": "primary",
+        "length_m": 57.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.755906,
+            20.971548
+          ],
+          [
+            105.756061,
+            20.971687
+          ],
+          [
+            105.756214,
+            20.971818
+          ],
+          [
+            105.756558,
+            20.972081
+          ],
+          [
+            105.757064,
+            20.972503
+          ],
+          [
+            105.758013,
+            20.973234
+          ],
+          [
+            105.758153,
+            20.973344
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 709676996,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 307.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.758153,
+            20.973344
+          ],
+          [
+            105.758247,
+            20.973415
+          ],
+          [
+            105.758382,
+            20.97352
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 709676995,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 30.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.758382,
+            20.97352
+          ],
+          [
+            105.758511,
+            20.973623
+          ],
+          [
+            105.759569,
+            20.974455
+          ],
+          [
+            105.760115,
+            20.974899
+          ],
+          [
+            105.76106,
+            20.975592
+          ],
+          [
+            105.761334,
+            20.975792
+          ],
+          [
+            105.761366,
+            20.975813
+          ],
+          [
+            105.761453,
+            20.975887
+          ],
+          [
+            105.761522,
+            20.97594
+          ],
+          [
+            105.761574,
+            20.975981
+          ],
+          [
+            105.761702,
+            20.97608
+          ],
+          [
+            105.761995,
+            20.976315
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 709676992,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 487.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.761995,
+            20.976315
+          ],
+          [
+            105.76206,
+            20.976367
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 709676991,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 8.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.76206,
+            20.976367
+          ],
+          [
+            105.762609,
+            20.976801
+          ],
+          [
+            105.763089,
+            20.977191
+          ],
+          [
+            105.763931,
+            20.977831
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 709681293,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 253.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.763931,
+            20.977831
+          ],
+          [
+            105.764089,
+            20.977951
+          ],
+          [
+            105.764146,
+            20.977996
+          ],
+          [
+            105.76538,
+            20.978964
+          ],
+          [
+            105.765516,
+            20.979069
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1427960778,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 214.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.765516,
+            20.979069
+          ],
+          [
+            105.765685,
+            20.9792
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 709681292,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 22.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.765685,
+            20.9792
+          ],
+          [
+            105.766233,
+            20.979626
+          ],
+          [
+            105.766971,
+            20.980229
+          ],
+          [
+            105.767698,
+            20.980779
+          ],
+          [
+            105.768065,
+            20.98106
+          ],
+          [
+            105.768165,
+            20.98114
+          ],
+          [
+            105.768738,
+            20.98155
+          ],
+          [
+            105.769168,
+            20.981829
+          ],
+          [
+            105.769683,
+            20.982135
+          ],
+          [
+            105.769881,
+            20.982254
+          ],
+          [
+            105.770246,
+            20.982474
+          ],
+          [
+            105.770354,
+            20.98254
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 457742014,
+        "street_name": "Phố Nguyễn Thanh Bình",
+        "highway": "primary",
+        "length_m": 611.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.770354,
+            20.98254
+          ],
+          [
+            105.770459,
+            20.982392
+          ],
+          [
+            105.770795,
+            20.981924
+          ],
+          [
+            105.77114,
+            20.981449
+          ],
+          [
+            105.771356,
+            20.981162
+          ],
+          [
+            105.771539,
+            20.980919
+          ],
+          [
+            105.771699,
+            20.98069
+          ],
+          [
+            105.771859,
+            20.980456
+          ],
+          [
+            105.771889,
+            20.980419
+          ],
+          [
+            105.771972,
+            20.980317
+          ],
+          [
+            105.772209,
+            20.979978
+          ],
+          [
+            105.772429,
+            20.979617
+          ],
+          [
+            105.772526,
+            20.979453
+          ],
+          [
+            105.772715,
+            20.979202
+          ],
+          [
+            105.772857,
+            20.979058
+          ],
+          [
+            105.772973,
+            20.978967
+          ],
+          [
+            105.773141,
+            20.978841
+          ],
+          [
+            105.773312,
+            20.978729
+          ],
+          [
+            105.773484,
+            20.978645
+          ],
+          [
+            105.773671,
+            20.978564
+          ],
+          [
+            105.773784,
+            20.978517
+          ],
+          [
+            105.773876,
+            20.978475
+          ],
+          [
+            105.773969,
+            20.978438
+          ],
+          [
+            105.77411,
+            20.978382
+          ],
+          [
+            105.774441,
+            20.978234
+          ],
+          [
+            105.774518,
+            20.978182
+          ],
+          [
+            105.774628,
+            20.978102
+          ],
+          [
+            105.774836,
+            20.977917
+          ],
+          [
+            105.774956,
+            20.977819
+          ],
+          [
+            105.775098,
+            20.977684
+          ],
+          [
+            105.775562,
+            20.97721
+          ],
+          [
+            105.775728,
+            20.977035
+          ],
+          [
+            105.776004,
+            20.976748
+          ],
+          [
+            105.776026,
+            20.976725
+          ],
+          [
+            105.776201,
+            20.976541
+          ],
+          [
+            105.776247,
+            20.976477
+          ],
+          [
+            105.77633,
+            20.976362
+          ],
+          [
+            105.776395,
+            20.97628
+          ],
+          [
+            105.776445,
+            20.976208
+          ],
+          [
+            105.776595,
+            20.976001
+          ],
+          [
+            105.77667,
+            20.97589
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 220005743,
+        "street_name": "Đường Vạn Phúc",
+        "highway": "primary",
+        "length_m": 1006.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.77667,
+            20.97589
+          ],
+          [
+            105.776698,
+            20.975852
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 709779714,
+        "street_name": "Đường Vạn Phúc",
+        "highway": "primary",
+        "length_m": 5.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.776698,
+            20.975852
+          ],
+          [
+            105.776768,
+            20.975758
+          ],
+          [
+            105.776904,
+            20.975577
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 709779715,
+        "street_name": "Cầu Am",
+        "highway": "primary",
+        "length_m": 37.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.776904,
+            20.975577
+          ],
+          [
+            105.776925,
+            20.97555
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1343936336,
+        "street_name": "Phố Chu Văn An",
+        "highway": "primary",
+        "length_m": 3.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.776925,
+            20.97555
+          ],
+          [
+            105.777039,
+            20.975403
+          ],
+          [
+            105.777166,
+            20.975238
+          ],
+          [
+            105.777242,
+            20.97514
+          ],
+          [
+            105.777358,
+            20.975
+          ],
+          [
+            105.777591,
+            20.974719
+          ],
+          [
+            105.777652,
+            20.974645
+          ],
+          [
+            105.777877,
+            20.974361
+          ],
+          [
+            105.77813,
+            20.974049
+          ],
+          [
+            105.778305,
+            20.973832
+          ],
+          [
+            105.778585,
+            20.973472
+          ],
+          [
+            105.778619,
+            20.97343
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 220005739,
+        "street_name": "Phố Chu Văn An",
+        "highway": "primary",
+        "length_m": 294.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.778619,
+            20.97343
+          ],
+          [
+            105.778647,
+            20.973391
+          ],
+          [
+            105.778684,
+            20.973344
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1326411566,
+        "street_name": "Phố Chu Văn An",
+        "highway": "primary",
+        "length_m": 11.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.778684,
+            20.973344
+          ],
+          [
+            105.778848,
+            20.973105
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 600132996,
+        "street_name": "Phố Chu Văn An",
+        "highway": "primary",
+        "length_m": 31.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.778848,
+            20.973105
+          ],
+          [
+            105.778959,
+            20.973184
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 955882982,
+        "street_name": "Đường Quang Trung",
+        "highway": "trunk",
+        "length_m": 14.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.778959,
+            20.973184
+          ],
+          [
+            105.779078,
+            20.973268
+          ],
+          [
+            105.779272,
+            20.973406
+          ],
+          [
+            105.779943,
+            20.973869
+          ],
+          [
+            105.780152,
+            20.974014
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 344413426,
+        "street_name": "Đường Quang Trung",
+        "highway": "trunk",
+        "length_m": 154.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.780152,
+            20.974014
+          ],
+          [
+            105.780625,
+            20.974341
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 220005742,
+        "street_name": "Cầu Trắng",
+        "highway": "trunk",
+        "length_m": 61.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.780625,
+            20.974341
+          ],
+          [
+            105.780744,
+            20.974434
+          ],
+          [
+            105.780809,
+            20.974485
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 616826561,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 24.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.780809,
+            20.974485
+          ],
+          [
+            105.780971,
+            20.974611
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 955842629,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 21.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.780971,
+            20.974611
+          ],
+          [
+            105.781182,
+            20.974775
+          ],
+          [
+            105.781273,
+            20.974846
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1151248817,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 40.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.781273,
+            20.974846
+          ],
+          [
+            105.781924,
+            20.975354
+          ],
+          [
+            105.781983,
+            20.975401
+          ],
+          [
+            105.782016,
+            20.975426
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1307455571,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 100.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.782016,
+            20.975426
+          ],
+          [
+            105.782237,
+            20.975597
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1307455573,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 29.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.782237,
+            20.975597
+          ],
+          [
+            105.782395,
+            20.97572
+          ],
+          [
+            105.782561,
+            20.975849
+          ],
+          [
+            105.782972,
+            20.976166
+          ],
+          [
+            105.783932,
+            20.97691
+          ],
+          [
+            105.784184,
+            20.977106
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 38020420,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 262.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.784184,
+            20.977106
+          ],
+          [
+            105.784717,
+            20.977519
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1318958371,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 71.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.784717,
+            20.977519
+          ],
+          [
+            105.785306,
+            20.977976
+          ],
+          [
+            105.785563,
+            20.978175
+          ],
+          [
+            105.785621,
+            20.97822
+          ],
+          [
+            105.78631,
+            20.978754
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1305064572,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 215.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.78631,
+            20.978754
+          ],
+          [
+            105.786556,
+            20.978945
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 708941780,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 33.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.786556,
+            20.978945
+          ],
+          [
+            105.786767,
+            20.979108
+          ],
+          [
+            105.786798,
+            20.979133
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1109636291,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 32.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.786798,
+            20.979133
+          ],
+          [
+            105.787079,
+            20.979361
+          ],
+          [
+            105.787368,
+            20.979596
+          ],
+          [
+            105.787542,
+            20.979737
+          ],
+          [
+            105.787608,
+            20.97979
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1242183436,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 111.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.787608,
+            20.97979
+          ],
+          [
+            105.78808,
+            20.980173
+          ],
+          [
+            105.788486,
+            20.980502
+          ],
+          [
+            105.788625,
+            20.980615
+          ],
+          [
+            105.788656,
+            20.98064
+          ],
+          [
+            105.789026,
+            20.98094
+          ],
+          [
+            105.789696,
+            20.981483
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1109636297,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 287.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.789696,
+            20.981483
+          ],
+          [
+            105.789717,
+            20.9815
+          ],
+          [
+            105.790033,
+            20.981748
+          ],
+          [
+            105.790108,
+            20.981807
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 710270798,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 55.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.790108,
+            20.981807
+          ],
+          [
+            105.790153,
+            20.981842
+          ],
+          [
+            105.791956,
+            20.983255
+          ],
+          [
+            105.792479,
+            20.983665
+          ],
+          [
+            105.792609,
+            20.983767
+          ],
+          [
+            105.793105,
+            20.98412
+          ],
+          [
+            105.793371,
+            20.984309
+          ],
+          [
+            105.793869,
+            20.984663
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 710270797,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 503.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.793869,
+            20.984663
+          ],
+          [
+            105.794274,
+            20.984951
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1466411477,
+        "street_name": "Đường Trần Phú",
+        "highway": "trunk",
+        "length_m": 52.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.794274,
+            20.984951
+          ],
+          [
+            105.794879,
+            20.985382
+          ],
+          [
+            105.794975,
+            20.98545
+          ],
+          [
+            105.795065,
+            20.985514
+          ],
+          [
+            105.795333,
+            20.985705
+          ],
+          [
+            105.795595,
+            20.985891
+          ],
+          [
+            105.796164,
+            20.986295
+          ],
+          [
+            105.796187,
+            20.986312
+          ],
+          [
+            105.796351,
+            20.986429
+          ],
+          [
+            105.796413,
+            20.986473
+          ],
+          [
+            105.796475,
+            20.986517
+          ],
+          [
+            105.796558,
+            20.986576
+          ],
+          [
+            105.796782,
+            20.986735
+          ],
+          [
+            105.797326,
+            20.987123
+          ],
+          [
+            105.798235,
+            20.987769
+          ],
+          [
+            105.798887,
+            20.988232
+          ],
+          [
+            105.799158,
+            20.988426
+          ],
+          [
+            105.799423,
+            20.988614
+          ],
+          [
+            105.799833,
+            20.988906
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 239370934,
+        "street_name": "Đường Nguyễn Trãi",
+        "highway": "trunk",
+        "length_m": 725.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.799833,
+            20.988906
+          ],
+          [
+            105.800209,
+            20.98912
+          ],
+          [
+            105.800697,
+            20.989461
+          ],
+          [
+            105.801309,
+            20.989888
+          ],
+          [
+            105.801863,
+            20.990275
+          ],
+          [
+            105.802414,
+            20.99066
+          ],
+          [
+            105.80262,
+            20.990803
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 710332807,
+        "street_name": "Đường Nguyễn Trãi",
+        "highway": "trunk",
+        "length_m": 358.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.80262,
+            20.990803
+          ],
+          [
+            105.802903,
+            20.990836
+          ],
+          [
+            105.803103,
+            20.990822
+          ],
+          [
+            105.803241,
+            20.990806
+          ],
+          [
+            105.803382,
+            20.990777
+          ],
+          [
+            105.803574,
+            20.99073
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 457741984,
+        "street_name": "",
+        "highway": "trunk_link",
+        "length_m": 100.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.803574,
+            20.99073
+          ],
+          [
+            105.803612,
+            20.990693
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 955882984,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 5.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.803612,
+            20.990693
+          ],
+          [
+            105.803771,
+            20.990478
+          ],
+          [
+            105.803814,
+            20.990422
+          ],
+          [
+            105.804125,
+            20.990016
+          ],
+          [
+            105.80418,
+            20.989943
+          ],
+          [
+            105.804484,
+            20.989528
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 706445530,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 158.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.804484,
+            20.989528
+          ],
+          [
+            105.80469,
+            20.989223
+          ],
+          [
+            105.804804,
+            20.989054
+          ],
+          [
+            105.804911,
+            20.988905
+          ],
+          [
+            105.80499,
+            20.988795
+          ],
+          [
+            105.805033,
+            20.988736
+          ],
+          [
+            105.805551,
+            20.988044
+          ],
+          [
+            105.806143,
+            20.987251
+          ],
+          [
+            105.80625,
+            20.987099
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1240365574,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 326.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.80625,
+            20.987099
+          ],
+          [
+            105.806611,
+            20.986592
+          ],
+          [
+            105.807001,
+            20.986105
+          ],
+          [
+            105.807121,
+            20.985943
+          ],
+          [
+            105.807384,
+            20.985591
+          ],
+          [
+            105.807706,
+            20.985153
+          ],
+          [
+            105.807713,
+            20.985146
+          ],
+          [
+            105.808412,
+            20.984214
+          ],
+          [
+            105.80847,
+            20.984136
+          ],
+          [
+            105.808911,
+            20.983512
+          ],
+          [
+            105.808948,
+            20.98346
+          ],
+          [
+            105.809103,
+            20.983239
+          ],
+          [
+            105.809198,
+            20.983125
+          ],
+          [
+            105.80952,
+            20.982685
+          ],
+          [
+            105.809643,
+            20.982517
+          ],
+          [
+            105.809871,
+            20.982225
+          ],
+          [
+            105.810187,
+            20.981798
+          ],
+          [
+            105.81052,
+            20.981337
+          ],
+          [
+            105.810688,
+            20.981104
+          ],
+          [
+            105.811215,
+            20.980374
+          ],
+          [
+            105.811597,
+            20.979845
+          ],
+          [
+            105.812119,
+            20.979127
+          ],
+          [
+            105.812262,
+            20.97893
+          ],
+          [
+            105.812412,
+            20.97874
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 408780538,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 1128.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.812412,
+            20.97874
+          ],
+          [
+            105.812606,
+            20.978476
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 911435187,
+        "street_name": "Đường Nguyễn Xiển",
+        "highway": "primary",
+        "length_m": 35.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.812606,
+            20.978476
+          ],
+          [
+            105.813009,
+            20.977948
+          ],
+          [
+            105.813026,
+            20.977924
+          ],
+          [
+            105.813162,
+            20.977739
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1094542159,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 100.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.813162,
+            20.977739
+          ],
+          [
+            105.813911,
+            20.976726
+          ],
+          [
+            105.814569,
+            20.975843
+          ],
+          [
+            105.815027,
+            20.975241
+          ],
+          [
+            105.815225,
+            20.974999
+          ],
+          [
+            105.815401,
+            20.974804
+          ],
+          [
+            105.815645,
+            20.974545
+          ],
+          [
+            105.816064,
+            20.974153
+          ],
+          [
+            105.816249,
+            20.973992
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 709258847,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 527.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.816249,
+            20.973992
+          ],
+          [
+            105.816547,
+            20.973748
+          ],
+          [
+            105.817105,
+            20.973375
+          ],
+          [
+            105.817159,
+            20.973343
+          ],
+          [
+            105.817706,
+            20.973009
+          ],
+          [
+            105.817744,
+            20.972986
+          ],
+          [
+            105.818303,
+            20.97268
+          ],
+          [
+            105.81895,
+            20.972406
+          ],
+          [
+            105.81936,
+            20.972261
+          ],
+          [
+            105.819767,
+            20.972117
+          ],
+          [
+            105.819819,
+            20.972099
+          ],
+          [
+            105.82005,
+            20.972017
+          ],
+          [
+            105.820166,
+            20.971981
+          ],
+          [
+            105.821026,
+            20.971711
+          ],
+          [
+            105.82115,
+            20.971668
+          ],
+          [
+            105.821609,
+            20.971524
+          ],
+          [
+            105.821901,
+            20.971449
+          ],
+          [
+            105.822119,
+            20.971386
+          ],
+          [
+            105.82256,
+            20.97126
+          ],
+          [
+            105.822699,
+            20.971217
+          ],
+          [
+            105.823042,
+            20.971117
+          ],
+          [
+            105.823313,
+            20.971032
+          ],
+          [
+            105.823516,
+            20.970967
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 408780568,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 833.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.823516,
+            20.970967
+          ],
+          [
+            105.824094,
+            20.970783
+          ],
+          [
+            105.824163,
+            20.970761
+          ],
+          [
+            105.824374,
+            20.970699
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1291700966,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 94.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.824374,
+            20.970699
+          ],
+          [
+            105.824466,
+            20.97067
+          ],
+          [
+            105.824653,
+            20.970611
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 570582400,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 30.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.824653,
+            20.970611
+          ],
+          [
+            105.825171,
+            20.970451
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 600485833,
+        "street_name": "Cầu Dậu",
+        "highway": "primary",
+        "length_m": 56.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.825171,
+            20.970451
+          ],
+          [
+            105.825239,
+            20.970427
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 707885909,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 7.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.825239,
+            20.970427
+          ],
+          [
+            105.825373,
+            20.970386
+          ],
+          [
+            105.825444,
+            20.970364
+          ],
+          [
+            105.825474,
+            20.970353
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 570582399,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 25.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.825474,
+            20.970353
+          ],
+          [
+            105.825563,
+            20.970324
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1238274480,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 9.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.825563,
+            20.970324
+          ],
+          [
+            105.82568,
+            20.970286
+          ],
+          [
+            105.826098,
+            20.970134
+          ],
+          [
+            105.826212,
+            20.970092
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1472390234,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 72.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.826212,
+            20.970092
+          ],
+          [
+            105.826351,
+            20.970039
+          ],
+          [
+            105.82674,
+            20.969871
+          ],
+          [
+            105.827041,
+            20.969722
+          ],
+          [
+            105.82719,
+            20.969648
+          ],
+          [
+            105.827249,
+            20.969617
+          ],
+          [
+            105.827282,
+            20.9696
+          ],
+          [
+            105.827441,
+            20.969514
+          ],
+          [
+            105.827554,
+            20.969453
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1381161255,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 156.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.827554,
+            20.969453
+          ],
+          [
+            105.828432,
+            20.968987
+          ],
+          [
+            105.828524,
+            20.968931
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 945783775,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 116.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.828524,
+            20.968931
+          ],
+          [
+            105.828637,
+            20.968874
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 840413516,
+        "street_name": "Đường Nghiêm Xuân Yêm",
+        "highway": "primary",
+        "length_m": 13.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.828637,
+            20.968874
+          ],
+          [
+            105.828845,
+            20.968985
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 954185954,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 24.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.828845,
+            20.968985
+          ],
+          [
+            105.829046,
+            20.969096
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1188024866,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 24.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.829046,
+            20.969096
+          ],
+          [
+            105.829164,
+            20.96915
+          ],
+          [
+            105.829449,
+            20.96928
+          ],
+          [
+            105.829619,
+            20.969338
+          ],
+          [
+            105.829654,
+            20.969345
+          ],
+          [
+            105.829675,
+            20.969348
+          ],
+          [
+            105.829755,
+            20.969356
+          ],
+          [
+            105.829806,
+            20.969356
+          ],
+          [
+            105.830471,
+            20.969358
+          ],
+          [
+            105.830809,
+            20.969455
+          ],
+          [
+            105.831709,
+            20.969724
+          ],
+          [
+            105.832131,
+            20.969857
+          ],
+          [
+            105.832364,
+            20.969931
+          ],
+          [
+            105.833165,
+            20.970191
+          ],
+          [
+            105.83394,
+            20.970458
+          ],
+          [
+            105.834571,
+            20.970656
+          ],
+          [
+            105.83486,
+            20.970742
+          ],
+          [
+            105.835039,
+            20.970769
+          ],
+          [
+            105.835295,
+            20.970786
+          ],
+          [
+            105.835718,
+            20.970804
+          ],
+          [
+            105.835922,
+            20.970812
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 600494888,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 745.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.835922,
+            20.970812
+          ],
+          [
+            105.836151,
+            20.970818
+          ],
+          [
+            105.836672,
+            20.970848
+          ],
+          [
+            105.837259,
+            20.970884
+          ],
+          [
+            105.837671,
+            20.970912
+          ],
+          [
+            105.838394,
+            20.970972
+          ],
+          [
+            105.838525,
+            20.970984
+          ],
+          [
+            105.838603,
+            20.97103
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 954882987,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 280.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.838603,
+            20.97103
+          ],
+          [
+            105.838662,
+            20.97099
+          ],
+          [
+            105.838876,
+            20.970802
+          ],
+          [
+            105.83902,
+            20.970666
+          ],
+          [
+            105.839255,
+            20.970533
+          ],
+          [
+            105.839461,
+            20.970435
+          ],
+          [
+            105.839712,
+            20.970308
+          ],
+          [
+            105.83992,
+            20.970231
+          ],
+          [
+            105.840126,
+            20.970181
+          ],
+          [
+            105.840352,
+            20.970171
+          ],
+          [
+            105.840609,
+            20.970185
+          ],
+          [
+            105.840756,
+            20.970212
+          ],
+          [
+            105.840926,
+            20.970217
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 953158805,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 270.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.840926,
+            20.970217
+          ],
+          [
+            105.840971,
+            20.97022
+          ],
+          [
+            105.840977,
+            20.97022
+          ],
+          [
+            105.840998,
+            20.97022
+          ],
+          [
+            105.841134,
+            20.970225
+          ],
+          [
+            105.841244,
+            20.970245
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 953158804,
+        "street_name": "Phố Nguyễn Hữu Thọ",
+        "highway": "secondary",
+        "length_m": 33.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841244,
+            20.970245
+          ],
+          [
+            105.84129,
+            20.970096
+          ],
+          [
+            105.84139,
+            20.969752
+          ],
+          [
+            105.841737,
+            20.968393
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 635124756,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 212.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841737,
+            20.968393
+          ],
+          [
+            105.841941,
+            20.968421
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 223809016,
+        "street_name": "",
+        "highway": "primary_link",
+        "length_m": 21.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841941,
+            20.968421
+          ],
+          [
+            105.841889,
+            20.968654
+          ],
+          [
+            105.841832,
+            20.968908
+          ],
+          [
+            105.841786,
+            20.969105
+          ],
+          [
+            105.841643,
+            20.969669
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 954882982,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 142.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841643,
+            20.969669
+          ],
+          [
+            105.841512,
+            20.970151
+          ],
+          [
+            105.84147,
+            20.970298
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 706480073,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 72.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.84147,
+            20.970298
+          ],
+          [
+            105.841445,
+            20.970391
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 821757223,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 10.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841445,
+            20.970391
+          ],
+          [
+            105.841427,
+            20.970455
+          ],
+          [
+            105.841317,
+            20.970848
+          ],
+          [
+            105.841197,
+            20.971261
+          ],
+          [
+            105.841124,
+            20.971504
+          ],
+          [
+            105.841034,
+            20.971933
+          ],
+          [
+            105.841004,
+            20.972447
+          ],
+          [
+            105.841006,
+            20.972876
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1523464636,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 281.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841006,
+            20.972876
+          ],
+          [
+            105.841008,
+            20.973276
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 705815858,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 44.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841008,
+            20.973276
+          ],
+          [
+            105.841009,
+            20.973381
+          ],
+          [
+            105.84102,
+            20.973979
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 705814526,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 78.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.84102,
+            20.973979
+          ],
+          [
+            105.841034,
+            20.974703
+          ],
+          [
+            105.841041,
+            20.975072
+          ],
+          [
+            105.841048,
+            20.975386
+          ],
+          [
+            105.841061,
+            20.976019
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 705814527,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 226.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841061,
+            20.976019
+          ],
+          [
+            105.841071,
+            20.9765
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 706480072,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 53.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841071,
+            20.9765
+          ],
+          [
+            105.841072,
+            20.976563
+          ],
+          [
+            105.841076,
+            20.976837
+          ],
+          [
+            105.841078,
+            20.976971
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 703496254,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 52.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841078,
+            20.976971
+          ],
+          [
+            105.841081,
+            20.977167
+          ],
+          [
+            105.841094,
+            20.978126
+          ],
+          [
+            105.841098,
+            20.978382
+          ],
+          [
+            105.8411,
+            20.978501
+          ],
+          [
+            105.841101,
+            20.978593
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 703496255,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 180.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841101,
+            20.978593
+          ],
+          [
+            105.841113,
+            20.979453
+          ],
+          [
+            105.841115,
+            20.979566
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 705812473,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 108.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841115,
+            20.979566
+          ],
+          [
+            105.841117,
+            20.979713
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 945322271,
+        "street_name": "Đường Giải Phóng",
+        "highway": "primary",
+        "length_m": 16.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841117,
+            20.979713
+          ],
+          [
+            105.84116,
+            20.979764
+          ],
+          [
+            105.841179,
+            20.979782
+          ],
+          [
+            105.841289,
+            20.979799
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 599514302,
+        "street_name": "Lối vào sân xe buýt",
+        "highway": "service",
+        "length_m": 21.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841289,
+            20.979799
+          ],
+          [
+            105.841296,
+            20.98013
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1094396495,
+        "street_name": "Làn 4",
+        "highway": "service",
+        "length_m": 36.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.841296,
+            20.98013
+          ],
+          [
+            105.841298,
+            20.980179
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "relation_id": 13009895,
+        "way_id": 1290902313,
+        "street_name": "Làn 4",
+        "highway": "service",
+        "length_m": 5.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.740391,
+          20.958275
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8943744747,
+        "sequence": 1,
+        "name": "Đối diện Công ty Cây xanh Việt Nam",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.74843,
+          20.962851
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689632,
+        "sequence": 2,
+        "name": "Nhà chờ đối diện cổng The Sparks Nam Cường",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.752508,
+          20.966599
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689633,
+        "sequence": 3,
+        "name": "Đối diện nghĩa trang La Khê",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.755225,
+          20.970769
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689634,
+        "sequence": 4,
+        "name": "350 Tố Hữu",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.757385,
+          20.972676
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689635,
+        "sequence": 5,
+        "name": "Đối diện đường vào Khu đô thị An Hưng",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.7607,
+          20.975211
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689636,
+        "sequence": 6,
+        "name": "Đối diện Nam Cường Building",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.764791,
+          20.978379
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689637,
+        "sequence": 7,
+        "name": "Điểm xén hè gần đường vào KĐT Dương Nội - Tố Hữu",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.76881,
+          20.981482
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689638,
+        "sequence": 8,
+        "name": "Trước ngã 4 Vạn Phúc - Tố Hữu 50m",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.77084,
+          20.981772
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689639,
+        "sequence": 9,
+        "name": "Số 51 Vạn Phúc (Hà Đông) - Tòa nhà Landmark",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.774031,
+          20.978355
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689640,
+        "sequence": 10,
+        "name": "Số 63 Vạn Phúc (Hà Đông) - Siêu thị Vinmart Vạn Phúc",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.778252,
+          20.973828
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689641,
+        "sequence": 11,
+        "name": "Nhà văn hóa Công đoàn Hà Nội",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.782651,
+          20.975828
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8770739153,
+        "sequence": 12,
+        "name": "Liên minh các HTX Hà Nội - Số 1 Trần Phú (Hà Đông)",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.784806,
+          20.977514
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846358794,
+        "sequence": 13,
+        "name": "Ga Văn Quán - 149 Trần Phú",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.78718,
+          20.979451
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8770739154,
+        "sequence": 14,
+        "name": "Siêu thị Nguyễn Kim - Km10 Nguyễn Trãi (Hà Đông)",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.789224,
+          20.981091
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 444394880,
+        "sequence": 15,
+        "name": "Đại học Kiến Trúc - Trần Phú (Hà Đông)",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.791515,
+          20.982879
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8770739155,
+        "sequence": 16,
+        "name": "Học viện An ninh nhân dân - Trần Phú (Hà Đông)",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.792903,
+          20.983959
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8939177164,
+        "sequence": 17,
+        "name": "Ga Phùng Khoang - 81 Trần Phú",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.79607,
+          20.986233
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8770739156,
+        "sequence": 18,
+        "name": "517 Nguyễn Trãi - Đối diện Đại học Hà Nội",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.799167,
+          20.988391
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 738814455,
+        "sequence": 19,
+        "name": "495 Nguyễn Trãi",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.80173,
+          20.990188
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 444394809,
+        "sequence": 20,
+        "name": "477 Nguyễn Trãi - Học viện Khoa học Xã hội",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.804468,
+          20.989465
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689642,
+        "sequence": 21,
+        "name": "100 Nguyễn Xiển",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.807237,
+          20.985645
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689643,
+        "sequence": 22,
+        "name": "Công ty Cổ phần Thiên Phú",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.811792,
+          20.979441
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689644,
+        "sequence": 23,
+        "name": "Hầm đường bộ số 3 - Nghiêm Xuân Yêm",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.814555,
+          20.975741
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689645,
+        "sequence": 24,
+        "name": "Trường Đại học Thăng Long",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.821057,
+          20.971654
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8846689646,
+        "sequence": 25,
+        "name": "Trung tâm Huấn luyện và Thi đấu Thể thao Công an nhân dân",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.826089,
+          20.970057
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 738814966,
+        "sequence": 26,
+        "name": "Điểm xén hè (Cửa hàng xăng dầu số 75) - Số 6 Cầu Dậu",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.831334,
+          20.969564
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8829926857,
+        "sequence": 27,
+        "name": "Đối diện Ao sen Làng Đại Từ - Nguyễn Hữu Thọ",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.836269,
+          20.970766
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 8829926858,
+        "sequence": 28,
+        "name": "Đối diện đường vào KĐT Đại Kim - 45 Nguyễn Hữu Thọ",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.841073,
+          20.971923
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 1755811863,
+        "sequence": 29,
+        "name": "1245 Giải Phóng",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.775869,
+          20.976821
+        ]
+      },
+      "properties": {
+        "route_ref": "22B",
+        "variant": 1,
+        "stop_id": 13159384054,
+        "sequence": 30,
+        "name": "Chung cư Goldsilk Complex Hà Đông - đường Vạn Phúc",
+        "role": "platform"
+      }
+    }
+  ]
+}

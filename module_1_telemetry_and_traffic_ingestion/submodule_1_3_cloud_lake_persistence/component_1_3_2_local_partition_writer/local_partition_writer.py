@@ -5,7 +5,8 @@ Ghi nối đuôi (append-only) an toàn các bản ghi jsonl phân vùng theo ng
 
 import os
 import json
-from core.config import BUS_OUTPUT_DIR, TRAFFIC_OUTPUT_DIR, INCIDENT_OUTPUT_DIR
+from config import BUS_OUTPUT_DIR, TRAFFIC_OUTPUT_DIR, INCIDENT_OUTPUT_DIR
+
 
 def append_jsonl_records(records, out_file_path):
     """Ghi danh sách bản ghi nối đuôi vào file JSONL."""

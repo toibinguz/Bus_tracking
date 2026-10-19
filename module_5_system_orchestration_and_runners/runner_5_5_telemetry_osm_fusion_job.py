@@ -25,9 +25,9 @@ if sys.stdout.encoding != 'utf-8':
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(THIS_DIR)
 sys.path.insert(0, ROOT_DIR)
-sys.path.insert(0, os.path.join(ROOT_DIR, "ground_truth_route_station"))
 
 from module_3_spatial_matching_and_trajectory_fusion import RoutePolylineProjector, haversine_distance_m
+
 from module_2_osm_ground_truth_and_road_network import orient_osm_ways
 
 EXCLUDED_ROUTES = {"E10TC", "123", "E11", "61", "17", "56B", "122", "28", "27"}
@@ -166,11 +166,13 @@ def main():
 
         candidates = [rno, rno.lstrip("0"), "0" + rno if len(rno) == 1 else rno]
         osm_path = next(
-            (f"ground_truth_route_station/output/routes/route_{c}_metadata.json"
-             for c in candidates
-             if os.path.exists(f"ground_truth_route_station/output/routes/route_{c}_metadata.json")),
+            (p for c in candidates for p in [
+                f"data/ground_truth/routes/route_{c}_metadata.json",
+                f"ground_truth_route_station/output/routes/route_{c}_metadata.json"
+            ] if os.path.exists(p)),
             None
         )
+
         if not osm_path:
             continue
 

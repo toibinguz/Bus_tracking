@@ -30,11 +30,12 @@ if BASE_DIR not in sys.path:
 
 from module_2_osm_ground_truth_and_road_network import orient_osm_ways
 
-ROUTES_META_DIR = os.path.join(BASE_DIR, "ground_truth_route_station", "output", "routes")
+ROUTES_META_DIR = os.path.join(BASE_DIR, "data", "ground_truth", "routes") if os.path.exists(os.path.join(BASE_DIR, "data", "ground_truth", "routes")) else os.path.join(BASE_DIR, "ground_truth_route_station", "output", "routes")
 FUSED_JSON_PATH = os.path.join(BASE_DIR, "data", "fused_osm", "master_fused_routes_segments.json")
 DEV_JSON_PATH = os.path.join(BASE_DIR, "data", "fused_osm", "deviation_analysis_2026_10_17.json")
 BATCH_DIR = os.path.join(BASE_DIR, "data", "telemetry_sync", "raw_batches", "2026-10-17", "bus")
-OUTPUT_HTML_PATH = os.path.join(BASE_DIR, "ground_truth_route_station", "output", "hanoi_bus_telemetry_2026_10_17_map.html")
+OUTPUT_HTML_PATH = os.path.join(BASE_DIR, "data", "ground_truth", "hanoi_bus_telemetry_2026_10_17_map.html")
+
 
 # Mức 1: Loại bỏ thêm 6 tuyến có đoạn detour/cụt bản đồ cố định lớn để giữ 40 tuyến sạch tuyệt đối
 MUC1_EXCLUDED_ROUTES = {"E10TC", "123", "E11", "61", "17", "56B", "122", "28", "27"}

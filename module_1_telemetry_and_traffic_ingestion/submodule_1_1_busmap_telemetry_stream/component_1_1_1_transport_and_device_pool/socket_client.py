@@ -8,7 +8,8 @@ import ssl
 import json
 import time
 from .device_pool import get_busmap_device_id
-from core.config import get_hanoi_time
+from config import get_hanoi_time
+
 
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False

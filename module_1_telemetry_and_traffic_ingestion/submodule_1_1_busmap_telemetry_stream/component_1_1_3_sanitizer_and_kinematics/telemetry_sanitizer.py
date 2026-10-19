@@ -10,7 +10,7 @@ Module 1.1.3: Realtime Telemetry Sanitizer & Kinematic Filter
 import time
 from datetime import datetime
 from .kinematic_engine import haversine_distance
-from core.config import (
+from config import (
     HANOI_BBOX,
     GPS_DRIFT_MAX_SPEED_KMPH,
     BUS_STOPPED_SPEED_KMPH,
@@ -19,6 +19,7 @@ from core.config import (
     EMA_ALPHA,
     get_hanoi_time
 )
+
 
 def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache, crawl_time_iso=None):
     """

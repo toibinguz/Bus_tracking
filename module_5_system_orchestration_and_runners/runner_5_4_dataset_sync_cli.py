@@ -20,7 +20,7 @@ if sys.stdout.encoding != 'utf-8':
 # Add parent directory to sys.path so core package is importable
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.config import HF_DATASET_ID, get_hf_token
+from config import HF_DATASET_ID, get_hf_token
 
 DATASET_ID = HF_DATASET_ID
 LOCAL_RAW_DIR = "data/raw"

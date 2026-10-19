@@ -13,7 +13,7 @@ temp_cloud_output/
 data/raw/
 data/telemetry_sync/
 data/osm/raw/
-ground_truth_route_station/output/
+data/ground_truth/*.html
 *.log
 batch_*.jsonl
 *.aux

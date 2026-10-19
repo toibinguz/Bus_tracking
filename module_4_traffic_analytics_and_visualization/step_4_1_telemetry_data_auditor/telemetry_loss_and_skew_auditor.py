@@ -141,11 +141,13 @@ def main():
         rno = rinfo["route_no"]
         candidates = [rno, rno.lstrip("0"), "0" + rno if len(rno) == 1 else rno]
         osm_path = next(
-            (f"ground_truth_route_station/output/routes/route_{c}_metadata.json"
-             for c in candidates
-             if os.path.exists(f"ground_truth_route_station/output/routes/route_{c}_metadata.json")),
+            (p for c in candidates for p in [
+                f"data/ground_truth/routes/route_{c}_metadata.json",
+                f"ground_truth_route_station/output/routes/route_{c}_metadata.json"
+            ] if os.path.exists(p)),
             None
         )
+
         with open(osm_path, encoding="utf-8") as f:
             osm_meta = json.load(f)
 

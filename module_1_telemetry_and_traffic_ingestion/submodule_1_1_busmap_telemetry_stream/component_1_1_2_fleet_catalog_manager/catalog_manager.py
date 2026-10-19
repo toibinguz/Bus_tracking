@@ -6,7 +6,8 @@ Quản lý danh bạ xe buýt 19 tuyến hành lang HUST và truy vấn tìm ki�
 import json
 import socket
 import ssl
-from core.config import CONFIG_FILE
+from config import CONFIG_FILE
+
 from ..component_1_1_1_transport_and_device_pool import get_busmap_device_id
 
 ssl_context = ssl.create_default_context()

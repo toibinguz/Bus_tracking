@@ -19,7 +19,7 @@ if sys.stdout.encoding != 'utf-8':
 # Ensure parent directory is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.config import (
+from config import (
     CONFIG_FILE, HF_DATASET_ID,
     MAX_DAILY_TOMTOM_BATCHES, MAX_TOMTOM_FLOW_DAILY, MAX_TOMTOM_FLOW_MONTHLY,
     MAX_TOMTOM_INCIDENT_DAILY, MAX_TOMTOM_INCIDENT_MONTHLY,
@@ -29,19 +29,16 @@ from core.config import (
     get_tomtom_api_key, get_hf_token, HUST_BOTTLENECK_NODES,
     get_current_progressive_pool_size, MAX_POOL_SIZE
 )
-from core.bus_client import (
-    fetch_single_bus_raw, sanitize_and_validate_telemetry, load_cluster_config
-)
-from core.traffic_client import (
+from module_1_telemetry_and_traffic_ingestion import (
+    fetch_single_bus_raw, sanitize_and_validate_telemetry, load_cluster_config,
     execute_tomtom_flow_poll, execute_tomtom_incident_poll,
     execute_tomtom_poll, TOMTOM_CIRCUIT_OPEN,
-    load_tomtom_quota_state, save_tomtom_quota_state
-)
-from core.congestion import evaluate_hotspot_congestion
-from core.hf_client import (
+    load_tomtom_quota_state, save_tomtom_quota_state,
     get_hf_today_batch_count, get_hf_today_traffic_batch_count,
     upload_batches_to_hf_native
 )
+from module_4_traffic_analytics_and_visualization import evaluate_hotspot_congestion
+
 
 def main():
     hn_time = get_hanoi_time()

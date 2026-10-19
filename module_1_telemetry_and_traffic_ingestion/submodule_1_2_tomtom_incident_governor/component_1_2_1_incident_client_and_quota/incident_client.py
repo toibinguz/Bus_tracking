@@ -10,7 +10,7 @@ import ssl
 import urllib.request
 import urllib.parse
 import urllib.error
-from core.config import (
+from config import (
     TOMTOM_QUOTA_FILE,
     ENABLE_TOMTOM_FLOW,
     MAX_TOMTOM_FLOW_DAILY,
@@ -22,6 +22,7 @@ from core.config import (
     HUST_BOTTLENECK_NODES,
     get_hanoi_time
 )
+
 
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False

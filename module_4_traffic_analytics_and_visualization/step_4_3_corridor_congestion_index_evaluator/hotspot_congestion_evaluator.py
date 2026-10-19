@@ -2,7 +2,7 @@
 Module 4.3: Traffic Congestion Assessment Engine (Multi-source Bus Probe & Incident Fusion)
 """
 
-from core.config import (
+from config import (
     HUST_BOTTLENECK_NODES,
     HOTSPOT_RADIUS_METERS,
     INCIDENT_PROXIMITY_METERS,
@@ -14,6 +14,7 @@ from core.config import (
     INCIDENT_CRITICAL_MAGNITUDE,
     INCIDENT_CRITICAL_DELAY_SEC
 )
+
 from module_1_telemetry_and_traffic_ingestion import haversine_distance
 
 def evaluate_hotspot_congestion(bus_records, bottleneck_nodes=HUST_BOTTLENECK_NODES, radius_meters=HOTSPOT_RADIUS_METERS, recent_incidents=None):

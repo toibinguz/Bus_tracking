@@ -8,7 +8,8 @@ import os
 import hashlib
 import random
 from datetime import datetime
-from core.config import get_hanoi_time
+from config import get_hanoi_time
+
 
 POOL_START_DATE = "2026-10-12"
 BASE_POOL_SIZE = 300

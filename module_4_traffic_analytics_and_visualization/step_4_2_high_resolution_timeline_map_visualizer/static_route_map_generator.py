@@ -26,9 +26,10 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-ROUTES_DIR = Path("ground_truth_route_station/output/routes")
-CATALOG_PATH = Path("ground_truth_route_station/output/master_bus_routes_catalog.json")
-OUTPUT_HTML = Path("ground_truth_route_station/output/hanoi_bus_routes_map.html")
+ROUTES_DIR = Path("data/ground_truth/routes") if Path("data/ground_truth/routes").exists() else Path("ground_truth_route_station/output/routes")
+CATALOG_PATH = Path("data/ground_truth/master_bus_routes_catalog.json") if Path("data/ground_truth/master_bus_routes_catalog.json").exists() else Path("ground_truth_route_station/output/master_bus_routes_catalog.json")
+OUTPUT_HTML = Path("data/ground_truth/hanoi_bus_routes_map.html")
+
 
 HUST_ROUTES = {"31", "32", "26", "08A", "03A", "21A", "02", "19", "22A", "25", "27", "28", "35A", "35B", "41", "51", "BRT01", "E01", "E07TC"}
 
@@ -1079,5 +1080,9 @@ def build_interactive_map():
     print(f"🎉 Đã sinh thành công Bản Đồ Tương Tác: {OUTPUT_HTML.resolve()}")
     return OUTPUT_HTML
 
+def main():
+    return build_interactive_map()
+
 if __name__ == "__main__":
-    build_interactive_map()
+    main()
+

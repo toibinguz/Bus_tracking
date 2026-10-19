@@ -20,7 +20,7 @@ if sys.stdout.encoding != 'utf-8':
 # Ensure parent directory is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.config import (
+from config import (
     CONFIG_FILE, BUS_OUTPUT_DIR, TRAFFIC_OUTPUT_DIR, INCIDENT_OUTPUT_DIR,
     MAX_TOMTOM_FLOW_DAILY, MAX_TOMTOM_FLOW_MONTHLY,
     MAX_TOMTOM_INCIDENT_DAILY, MAX_TOMTOM_INCIDENT_MONTHLY,
@@ -32,16 +32,15 @@ from core.config import (
     is_operating_hours, is_peak_hours,
     get_tomtom_api_key, get_hf_token
 )
-from core.bus_client import (
-    fetch_single_bus_raw, sanitize_and_validate_telemetry, load_cluster_config
-)
-from core.traffic_client import (
+from module_1_telemetry_and_traffic_ingestion import (
+    fetch_single_bus_raw, sanitize_and_validate_telemetry, load_cluster_config,
     fetch_tomtom_flow, fetch_tomtom_incidents,
     load_tomtom_quota_state, save_tomtom_quota_state,
-    render_tomtom_cli_bar, TOMTOM_CIRCUIT_OPEN
+    render_tomtom_cli_bar, TOMTOM_CIRCUIT_OPEN,
+    upload_batches_to_hf_native
 )
-from core.congestion import evaluate_hotspot_congestion
-from core.hf_client import upload_batches_to_hf_native
+from module_4_traffic_analytics_and_visualization import evaluate_hotspot_congestion
+
 
 def main():
     run_24x7 = "--24x7" in sys.argv or "--always" in sys.argv

@@ -28,8 +28,9 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-LOG_FILE = Path("ground_truth_route_station/logs/osm_extraction.log")
+LOG_FILE = Path("data/ground_truth/logs/osm_extraction.log")
 LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+
 
 logger = logging.getLogger("osm_extractor")
 logger.setLevel(logging.DEBUG)
@@ -196,7 +197,7 @@ def phase2_fetch_ways_and_nodes_in_batches(relations: List[Dict[str, Any]], batc
 
 def phase3_parse_and_export_nodes_and_ways(
     all_osm_data: Dict[str, Any],
-    output_dir: Path = Path("ground_truth_route_station/output/routes"),
+    output_dir: Path = Path("data/ground_truth/routes"),
     raw_save_path: Path = Path("data/osm/raw/hanoi_all_bus_routes_raw.json")
 ) -> Dict[str, Any]:
     """
@@ -413,7 +414,7 @@ def phase3_parse_and_export_nodes_and_ways(
             })
 
     # Xuất Master Catalog
-    catalog_path = Path("ground_truth_route_station/output/master_bus_routes_catalog.json")
+    catalog_path = Path("data/ground_truth/master_bus_routes_catalog.json")
     with open(catalog_path, "w", encoding="utf-8") as cf:
         json.dump({
             "extracted_at": time.strftime("%Y-%m-%d %H:%M:%S"),

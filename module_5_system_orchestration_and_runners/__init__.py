@@ -6,5 +6,6 @@ Components:
 - runner_5_3_termux_mobile_daemon: Background Android daemon execution
 - runner_5_4_dataset_sync_cli: Hugging Face dataset download CLI
 - runner_5_5_telemetry_osm_fusion_job: Offline spatial map matching & route centerline fusion job
+- runner_5_6_daily_catalog_refresher: Daily fleet catalog health check & auto-discovery routine
+- runner_5_7_ground_truth_pipeline: Master ground-truth verification pipeline (step 0 -> 4)
 """
-

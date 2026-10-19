@@ -1,0 +1,4229 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.960689,
+            20.992217
+          ],
+          [
+            105.960637,
+            20.992069
+          ],
+          [
+            105.960538,
+            20.991792
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1359074582,
+        "street_name": "Hải Âu 10",
+        "highway": "residential",
+        "length_m": 49.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.960689,
+            20.992217
+          ],
+          [
+            105.960769,
+            20.992307
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1014224397,
+        "street_name": "Đường Sao Biển",
+        "highway": "tertiary",
+        "length_m": 13.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.960769,
+            20.992307
+          ],
+          [
+            105.960298,
+            20.99266
+          ],
+          [
+            105.960172,
+            20.992754
+          ],
+          [
+            105.959836,
+            20.993005
+          ],
+          [
+            105.959689,
+            20.993116
+          ],
+          [
+            105.959541,
+            20.993227
+          ],
+          [
+            105.959209,
+            20.993475
+          ],
+          [
+            105.958711,
+            20.993848
+          ],
+          [
+            105.958285,
+            20.994167
+          ],
+          [
+            105.958131,
+            20.994282
+          ],
+          [
+            105.957924,
+            20.994437
+          ],
+          [
+            105.957568,
+            20.994704
+          ],
+          [
+            105.957422,
+            20.994813
+          ],
+          [
+            105.957287,
+            20.994915
+          ],
+          [
+            105.956593,
+            20.995435
+          ],
+          [
+            105.956457,
+            20.995536
+          ],
+          [
+            105.956304,
+            20.99565
+          ],
+          [
+            105.955953,
+            20.995914
+          ],
+          [
+            105.955789,
+            20.996044
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 854837633,
+        "street_name": "Đường Sao Biển",
+        "highway": "tertiary",
+        "length_m": 663.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.955789,
+            20.996044
+          ],
+          [
+            105.955595,
+            20.996188
+          ],
+          [
+            105.955102,
+            20.996554
+          ],
+          [
+            105.954618,
+            20.996914
+          ],
+          [
+            105.954479,
+            20.997016
+          ],
+          [
+            105.954327,
+            20.997129
+          ],
+          [
+            105.953306,
+            20.997888
+          ],
+          [
+            105.953177,
+            20.997983
+          ],
+          [
+            105.95304,
+            20.998085
+          ],
+          [
+            105.952781,
+            20.998277
+          ],
+          [
+            105.952584,
+            20.998423
+          ],
+          [
+            105.952472,
+            20.998506
+          ],
+          [
+            105.952417,
+            20.998547
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1020774995,
+        "street_name": "Đường Sao Biển",
+        "highway": "tertiary",
+        "length_m": 447.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.952417,
+            20.998547
+          ],
+          [
+            105.952431,
+            20.998568
+          ],
+          [
+            105.952446,
+            20.998627
+          ],
+          [
+            105.952445,
+            20.998687
+          ],
+          [
+            105.952428,
+            20.998745
+          ],
+          [
+            105.952398,
+            20.998797
+          ],
+          [
+            105.952354,
+            20.998841
+          ],
+          [
+            105.9523,
+            20.998873
+          ],
+          [
+            105.95224,
+            20.998893
+          ],
+          [
+            105.952187,
+            20.998898
+          ],
+          [
+            105.952134,
+            20.998893
+          ],
+          [
+            105.952083,
+            20.998878
+          ],
+          [
+            105.952036,
+            20.998854
+          ],
+          [
+            105.952021,
+            20.998842
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 778191230,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 73.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.952021,
+            20.998842
+          ],
+          [
+            105.951995,
+            20.998822
+          ],
+          [
+            105.951962,
+            20.998781
+          ],
+          [
+            105.951939,
+            20.998737
+          ],
+          [
+            105.951928,
+            20.998697
+          ],
+          [
+            105.951924,
+            20.998656
+          ],
+          [
+            105.951927,
+            20.998614
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1308613030,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 28.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.951927,
+            20.998614
+          ],
+          [
+            105.951597,
+            20.998386
+          ],
+          [
+            105.951132,
+            20.998065
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1308613031,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 102.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.943369,
+            20.999786
+          ],
+          [
+            105.943428,
+            20.999711
+          ],
+          [
+            105.943582,
+            20.999515
+          ],
+          [
+            105.944505,
+            20.998337
+          ],
+          [
+            105.944613,
+            20.9982
+          ],
+          [
+            105.944722,
+            20.998061
+          ],
+          [
+            105.944849,
+            20.997899
+          ],
+          [
+            105.94487,
+            20.99787
+          ],
+          [
+            105.944889,
+            20.997842
+          ],
+          [
+            105.944902,
+            20.997819
+          ],
+          [
+            105.944936,
+            20.997757
+          ],
+          [
+            105.944961,
+            20.997695
+          ],
+          [
+            105.945,
+            20.997569
+          ],
+          [
+            105.945021,
+            20.997466
+          ],
+          [
+            105.945032,
+            20.997358
+          ],
+          [
+            105.945032,
+            20.997261
+          ],
+          [
+            105.945025,
+            20.997171
+          ],
+          [
+            105.944993,
+            20.996859
+          ],
+          [
+            105.944987,
+            20.996756
+          ],
+          [
+            105.944985,
+            20.996707
+          ],
+          [
+            105.944986,
+            20.996598
+          ],
+          [
+            105.944997,
+            20.996489
+          ],
+          [
+            105.945002,
+            20.996465
+          ],
+          [
+            105.945021,
+            20.996369
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 761986877,
+        "street_name": "Đường Biển Hồ",
+        "highway": "tertiary",
+        "length_m": 434.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.942917,
+            20.993143
+          ],
+          [
+            105.942899,
+            20.993153
+          ],
+          [
+            105.942871,
+            20.993157
+          ],
+          [
+            105.942843,
+            20.993153
+          ],
+          [
+            105.942826,
+            20.993145
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1417558888,
+        "street_name": "",
+        "highway": "tertiary",
+        "length_m": 10.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.942826,
+            20.993145
+          ],
+          [
+            105.942728,
+            20.993199
+          ],
+          [
+            105.942157,
+            20.993535
+          ],
+          [
+            105.941989,
+            20.993634
+          ],
+          [
+            105.941723,
+            20.993791
+          ],
+          [
+            105.941521,
+            20.993909
+          ],
+          [
+            105.941265,
+            20.994059
+          ],
+          [
+            105.941192,
+            20.994102
+          ],
+          [
+            105.94107,
+            20.994173
+          ],
+          [
+            105.940942,
+            20.994247
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 909583805,
+        "street_name": "Đường Hải Đăng",
+        "highway": "tertiary",
+        "length_m": 230.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.940942,
+            20.994247
+          ],
+          [
+            105.940941,
+            20.994263
+          ],
+          [
+            105.94093,
+            20.99429
+          ],
+          [
+            105.940909,
+            20.994312
+          ],
+          [
+            105.940902,
+            20.994315
+          ],
+          [
+            105.940882,
+            20.994326
+          ],
+          [
+            105.940852,
+            20.994331
+          ],
+          [
+            105.940821,
+            20.994327
+          ],
+          [
+            105.940813,
+            20.994322
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1417558883,
+        "street_name": "",
+        "highway": "tertiary",
+        "length_m": 18.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.940759,
+            20.99424
+          ],
+          [
+            105.940765,
+            20.994213
+          ],
+          [
+            105.94078,
+            20.994189
+          ],
+          [
+            105.940803,
+            20.994171
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1417558886,
+        "street_name": "",
+        "highway": "tertiary",
+        "length_m": 9.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.942068,
+            20.988211
+          ],
+          [
+            105.941912,
+            20.988387
+          ],
+          [
+            105.941664,
+            20.988667
+          ],
+          [
+            105.941363,
+            20.989006
+          ],
+          [
+            105.940783,
+            20.989659
+          ],
+          [
+            105.940691,
+            20.989761
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957454496,
+        "street_name": "Đường Đại Dương",
+        "highway": "residential",
+        "length_m": 223.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.942234,
+            20.988014
+          ],
+          [
+            105.942068,
+            20.988211
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957454501,
+        "street_name": "Đường Đại Dương",
+        "highway": "residential",
+        "length_m": 27.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.942234,
+            20.988014
+          ],
+          [
+            105.942383,
+            20.988242
+          ],
+          [
+            105.943284,
+            20.98961
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1224486135,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 208.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.943284,
+            20.98961
+          ],
+          [
+            105.944034,
+            20.990749
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 854848765,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 148.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944034,
+            20.990749
+          ],
+          [
+            105.944391,
+            20.991292
+          ],
+          [
+            105.94456,
+            20.991548
+          ],
+          [
+            105.944642,
+            20.991673
+          ],
+          [
+            105.944705,
+            20.991768
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1308613033,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 132.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944705,
+            20.991768
+          ],
+          [
+            105.944776,
+            20.991772
+          ],
+          [
+            105.944843,
+            20.991794
+          ],
+          [
+            105.944901,
+            20.991833
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957454503,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 22.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944901,
+            20.991833
+          ],
+          [
+            105.945007,
+            20.991773
+          ],
+          [
+            105.946136,
+            20.991139
+          ],
+          [
+            105.946214,
+            20.991094
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1484464574,
+        "street_name": "Đường Hải Đăng",
+        "highway": "tertiary",
+        "length_m": 159.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.946214,
+            20.991094
+          ],
+          [
+            105.946442,
+            20.990963
+          ],
+          [
+            105.947889,
+            20.990126
+          ],
+          [
+            105.948046,
+            20.990035
+          ],
+          [
+            105.948199,
+            20.989949
+          ],
+          [
+            105.948407,
+            20.989831
+          ],
+          [
+            105.949267,
+            20.989338
+          ],
+          [
+            105.949405,
+            20.989259
+          ],
+          [
+            105.949463,
+            20.989226
+          ],
+          [
+            105.949588,
+            20.989155
+          ],
+          [
+            105.950237,
+            20.988786
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 854837627,
+        "street_name": "Đường Hải Đăng",
+        "highway": "tertiary",
+        "length_m": 490.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.950237,
+            20.988786
+          ],
+          [
+            105.950464,
+            20.988656
+          ],
+          [
+            105.950701,
+            20.988519
+          ],
+          [
+            105.950767,
+            20.988483
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957454504,
+        "street_name": "",
+        "highway": "tertiary",
+        "length_m": 64.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944034,
+            20.990749
+          ],
+          [
+            105.944391,
+            20.991292
+          ],
+          [
+            105.94456,
+            20.991548
+          ],
+          [
+            105.944642,
+            20.991673
+          ],
+          [
+            105.944705,
+            20.991768
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1308613033,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 132.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944705,
+            20.991768
+          ],
+          [
+            105.944776,
+            20.991772
+          ],
+          [
+            105.944843,
+            20.991794
+          ],
+          [
+            105.944901,
+            20.991833
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957454503,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 22.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944901,
+            20.991833
+          ],
+          [
+            105.944929,
+            20.991862
+          ],
+          [
+            105.944958,
+            20.991908
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957454502,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 10.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944958,
+            20.991908
+          ],
+          [
+            105.944975,
+            20.991953
+          ],
+          [
+            105.944982,
+            20.992013
+          ],
+          [
+            105.944972,
+            20.992073
+          ],
+          [
+            105.94495,
+            20.992123
+          ],
+          [
+            105.944938,
+            20.992143
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957454492,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 27.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944938,
+            20.992143
+          ],
+          [
+            105.944909,
+            20.992176
+          ],
+          [
+            105.94486,
+            20.992213
+          ],
+          [
+            105.944802,
+            20.992238
+          ],
+          [
+            105.944747,
+            20.992248
+          ],
+          [
+            105.944717,
+            20.992248
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957184378,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 26.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944717,
+            20.992248
+          ],
+          [
+            105.94467,
+            20.992245
+          ],
+          [
+            105.944604,
+            20.992223
+          ],
+          [
+            105.944547,
+            20.992185
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957184361,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 19.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944547,
+            20.992185
+          ],
+          [
+            105.944506,
+            20.992139
+          ],
+          [
+            105.944478,
+            20.992086
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957184377,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 13.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944478,
+            20.992086
+          ],
+          [
+            105.944465,
+            20.99202
+          ],
+          [
+            105.944472,
+            20.991954
+          ],
+          [
+            105.944487,
+            20.991898
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957454493,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 21.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.944487,
+            20.991898
+          ],
+          [
+            105.944421,
+            20.9918
+          ],
+          [
+            105.944353,
+            20.991699
+          ],
+          [
+            105.944171,
+            20.991423
+          ],
+          [
+            105.943969,
+            20.991117
+          ],
+          [
+            105.943814,
+            20.990882
+          ],
+          [
+            105.943669,
+            20.990661
+          ],
+          [
+            105.943598,
+            20.990559
+          ],
+          [
+            105.94338,
+            20.990226
+          ],
+          [
+            105.943279,
+            20.990068
+          ],
+          [
+            105.9432,
+            20.989944
+          ],
+          [
+            105.943053,
+            20.989723
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 778191221,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 284.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.943053,
+            20.989723
+          ],
+          [
+            105.942906,
+            20.989449
+          ],
+          [
+            105.942864,
+            20.989382
+          ],
+          [
+            105.942679,
+            20.989095
+          ],
+          [
+            105.942644,
+            20.98904
+          ],
+          [
+            105.94228,
+            20.988473
+          ],
+          [
+            105.942184,
+            20.988355
+          ],
+          [
+            105.942068,
+            20.988211
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1224486134,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 197.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.942068,
+            20.988211
+          ],
+          [
+            105.941938,
+            20.987916
+          ],
+          [
+            105.941704,
+            20.987541
+          ],
+          [
+            105.941657,
+            20.987474
+          ],
+          [
+            105.941505,
+            20.987197
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957454494,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 127.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.941505,
+            20.987197
+          ],
+          [
+            105.94135,
+            20.987004
+          ],
+          [
+            105.940968,
+            20.986572
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 777888664,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 89.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.940968,
+            20.986572
+          ],
+          [
+            105.941643,
+            20.985726
+          ],
+          [
+            105.941749,
+            20.985593
+          ],
+          [
+            105.941845,
+            20.985476
+          ],
+          [
+            105.941948,
+            20.985317
+          ],
+          [
+            105.941997,
+            20.985222
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1232411853,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 184.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.941997,
+            20.985222
+          ],
+          [
+            105.942613,
+            20.984466
+          ],
+          [
+            105.943566,
+            20.983443
+          ],
+          [
+            105.943991,
+            20.982939
+          ],
+          [
+            105.944356,
+            20.982408
+          ],
+          [
+            105.945029,
+            20.981424
+          ],
+          [
+            105.945482,
+            20.980755
+          ],
+          [
+            105.946705,
+            20.978759
+          ],
+          [
+            105.947279,
+            20.977872
+          ],
+          [
+            105.949253,
+            20.974399
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1041177008,
+        "street_name": "Lối lên cao tốc Hà Nội - Hải Phòng",
+        "highway": "motorway_link",
+        "length_m": 1423.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.949253,
+            20.974399
+          ],
+          [
+            105.951139,
+            20.970914
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 384534309,
+        "street_name": "Đường cao tốc Hà Nội – Hải Phòng",
+        "highway": "motorway",
+        "length_m": 434.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.951139,
+            20.970914
+          ],
+          [
+            105.951651,
+            20.969959
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 601587064,
+        "street_name": "Cầu B-01",
+        "highway": "motorway",
+        "length_m": 118.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.951651,
+            20.969959
+          ],
+          [
+            105.95456,
+            20.96458
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 601587063,
+        "street_name": "Đường cao tốc Hà Nội - Hải Phòng",
+        "highway": "motorway",
+        "length_m": 670.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.95456,
+            20.96458
+          ],
+          [
+            105.955535,
+            20.962763
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 397140501,
+        "street_name": "Cầu Cửu Cao",
+        "highway": "motorway",
+        "length_m": 226.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.955535,
+            20.962763
+          ],
+          [
+            105.9559,
+            20.962059
+          ],
+          [
+            105.956408,
+            20.961126
+          ],
+          [
+            105.957394,
+            20.959295
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1243235554,
+        "street_name": "Đường cao tốc Hà Nội - Hải Phòng",
+        "highway": "motorway",
+        "length_m": 431.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.957394,
+            20.959295
+          ],
+          [
+            105.957873,
+            20.958288
+          ],
+          [
+            105.95852,
+            20.957078
+          ],
+          [
+            105.958894,
+            20.956169
+          ],
+          [
+            105.958987,
+            20.955987
+          ],
+          [
+            105.959235,
+            20.955465
+          ],
+          [
+            105.95936,
+            20.955145
+          ],
+          [
+            105.959457,
+            20.954833
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1231898027,
+        "street_name": "Lối xuống Vinhome Ocean Park 2",
+        "highway": "motorway_link",
+        "length_m": 541.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.961916,
+            20.950234
+          ],
+          [
+            105.960398,
+            20.953074
+          ],
+          [
+            105.96023,
+            20.953386
+          ],
+          [
+            105.959832,
+            20.954153
+          ],
+          [
+            105.959457,
+            20.954833
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1459073058,
+        "street_name": "Đường tỉnh 382B",
+        "highway": "primary",
+        "length_m": 571.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.961916,
+            20.950234
+          ],
+          [
+            105.961888,
+            20.950169
+          ],
+          [
+            105.961862,
+            20.950125
+          ],
+          [
+            105.961828,
+            20.950082
+          ],
+          [
+            105.96177,
+            20.950032
+          ],
+          [
+            105.961692,
+            20.949983
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1434290368,
+        "street_name": "",
+        "highway": "primary_link",
+        "length_m": 37.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.958998,
+            20.949681
+          ],
+          [
+            105.959022,
+            20.949621
+          ],
+          [
+            105.959064,
+            20.949581
+          ],
+          [
+            105.959129,
+            20.949562
+          ],
+          [
+            105.959193,
+            20.94955
+          ],
+          [
+            105.959304,
+            20.949541
+          ],
+          [
+            105.959391,
+            20.949549
+          ],
+          [
+            105.959612,
+            20.949598
+          ],
+          [
+            105.959726,
+            20.949621
+          ],
+          [
+            105.959834,
+            20.949657
+          ],
+          [
+            105.960118,
+            20.94976
+          ],
+          [
+            105.960406,
+            20.949858
+          ],
+          [
+            105.960603,
+            20.949911
+          ],
+          [
+            105.960721,
+            20.949917
+          ],
+          [
+            105.961055,
+            20.949931
+          ],
+          [
+            105.961692,
+            20.949983
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 958831542,
+        "street_name": "",
+        "highway": "primary_link",
+        "length_m": 293.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.958998,
+            20.949681
+          ],
+          [
+            105.959003,
+            20.949714
+          ],
+          [
+            105.959012,
+            20.949749
+          ],
+          [
+            105.959034,
+            20.949782
+          ],
+          [
+            105.959071,
+            20.949813
+          ],
+          [
+            105.959099,
+            20.949832
+          ],
+          [
+            105.959128,
+            20.949848
+          ],
+          [
+            105.959176,
+            20.949871
+          ],
+          [
+            105.959226,
+            20.94989
+          ],
+          [
+            105.959555,
+            20.950007
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1497585443,
+        "street_name": "",
+        "highway": "primary_link",
+        "length_m": 72.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.96134,
+            20.950156
+          ],
+          [
+            105.960216,
+            20.950053
+          ],
+          [
+            105.959677,
+            20.950019
+          ],
+          [
+            105.959601,
+            20.950011
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1243235557,
+        "street_name": "Tô Quyền",
+        "highway": "secondary",
+        "length_m": 181.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.963472,
+            20.95035
+          ],
+          [
+            105.963062,
+            20.950308
+          ],
+          [
+            105.962357,
+            20.950247
+          ],
+          [
+            105.96134,
+            20.950156
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 397140497,
+        "street_name": "Tô Quyền",
+        "highway": "secondary",
+        "length_m": 222.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.966074,
+            20.950624
+          ],
+          [
+            105.96547,
+            20.950563
+          ],
+          [
+            105.963472,
+            20.95035
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1447879681,
+        "street_name": "Tô Quyền",
+        "highway": "secondary",
+        "length_m": 271.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.975354,
+            20.952738
+          ],
+          [
+            105.975129,
+            20.952661
+          ],
+          [
+            105.973936,
+            20.95242
+          ],
+          [
+            105.973415,
+            20.952302
+          ],
+          [
+            105.973205,
+            20.952255
+          ],
+          [
+            105.972796,
+            20.952165
+          ],
+          [
+            105.970965,
+            20.95178
+          ],
+          [
+            105.969256,
+            20.951408
+          ],
+          [
+            105.968338,
+            20.951208
+          ],
+          [
+            105.968177,
+            20.951174
+          ],
+          [
+            105.966567,
+            20.950838
+          ],
+          [
+            105.966425,
+            20.950795
+          ],
+          [
+            105.966311,
+            20.950744
+          ],
+          [
+            105.966074,
+            20.950624
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1148275948,
+        "street_name": "Tô Quyền",
+        "highway": "primary",
+        "length_m": 993.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.975296,
+            20.952859
+          ],
+          [
+            105.975354,
+            20.952738
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1465071374,
+        "street_name": "Đại lộ Ngọc Trai",
+        "highway": "secondary",
+        "length_m": 14.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.974312,
+            20.955185
+          ],
+          [
+            105.974772,
+            20.954187
+          ],
+          [
+            105.974764,
+            20.954079
+          ],
+          [
+            105.974781,
+            20.95401
+          ],
+          [
+            105.974818,
+            20.953923
+          ],
+          [
+            105.975239,
+            20.952987
+          ],
+          [
+            105.975296,
+            20.952859
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1465071384,
+        "street_name": "Đại Lộ Bốn Mùa",
+        "highway": "secondary",
+        "length_m": 279.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.972263,
+            20.95945
+          ],
+          [
+            105.972721,
+            20.958496
+          ],
+          [
+            105.973281,
+            20.957329
+          ],
+          [
+            105.973292,
+            20.957306
+          ],
+          [
+            105.974312,
+            20.955185
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1460204445,
+        "street_name": "Đại Lộ Bốn Mùa",
+        "highway": "secondary",
+        "length_m": 519.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.976073,
+            20.961051
+          ],
+          [
+            105.97621,
+            20.960768
+          ],
+          [
+            105.976442,
+            20.960292
+          ],
+          [
+            105.976582,
+            20.960003
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1308613054,
+        "street_name": "Phố Biển",
+        "highway": "residential",
+        "length_m": 128.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.976582,
+            20.960003
+          ],
+          [
+            105.976591,
+            20.959983
+          ],
+          [
+            105.976755,
+            20.959645
+          ],
+          [
+            105.977107,
+            20.958928
+          ],
+          [
+            105.97762,
+            20.957879
+          ],
+          [
+            105.978129,
+            20.956814
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1183899058,
+        "street_name": "Phố Biển",
+        "highway": "residential",
+        "length_m": 389.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.978129,
+            20.956814
+          ],
+          [
+            105.978293,
+            20.956476
+          ],
+          [
+            105.978465,
+            20.956121
+          ],
+          [
+            105.978658,
+            20.955724
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1243387895,
+        "street_name": "Phố Biển",
+        "highway": "residential",
+        "length_m": 133.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.978658,
+            20.955724
+          ],
+          [
+            105.979016,
+            20.955876
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1253164442,
+        "street_name": "Phố Biển 19",
+        "highway": "residential",
+        "length_m": 40.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.979016,
+            20.955876
+          ],
+          [
+            105.980185,
+            20.956374
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1253164443,
+        "street_name": "Phố Biển 19",
+        "highway": "residential",
+        "length_m": 133.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.980185,
+            20.956374
+          ],
+          [
+            105.980512,
+            20.956513
+          ],
+          [
+            105.980843,
+            20.956654
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1253164444,
+        "street_name": "Phố Biển 19",
+        "highway": "residential",
+        "length_m": 75.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.980843,
+            20.956654
+          ],
+          [
+            105.982095,
+            20.957148
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1183899056,
+        "street_name": "Phố Biển 19",
+        "highway": "residential",
+        "length_m": 141.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.982095,
+            20.957148
+          ],
+          [
+            105.98308,
+            20.957567
+          ],
+          [
+            105.983382,
+            20.957684
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1253164445,
+        "street_name": "Phố Biển 19",
+        "highway": "residential",
+        "length_m": 146.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.983552,
+            20.957334
+          ],
+          [
+            105.983541,
+            20.957356
+          ],
+          [
+            105.983432,
+            20.957577
+          ],
+          [
+            105.983421,
+            20.9576
+          ],
+          [
+            105.983412,
+            20.957618
+          ],
+          [
+            105.983382,
+            20.957684
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1243235569,
+        "street_name": "Phố Biển 22",
+        "highway": "residential",
+        "length_m": 42.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.983687,
+            20.957034
+          ],
+          [
+            105.983572,
+            20.957295
+          ],
+          [
+            105.983552,
+            20.957334
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1449306596,
+        "street_name": "Phố Biển 22",
+        "highway": "residential",
+        "length_m": 36.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.983687,
+            20.957034
+          ],
+          [
+            105.983781,
+            20.956949
+          ],
+          [
+            105.98384,
+            20.956894
+          ],
+          [
+            105.983913,
+            20.956826
+          ],
+          [
+            105.983988,
+            20.956758
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1465785946,
+        "street_name": "",
+        "highway": "primary",
+        "length_m": 43.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.979576,
+            20.953877
+          ],
+          [
+            105.980137,
+            20.95414
+          ],
+          [
+            105.980174,
+            20.954157
+          ],
+          [
+            105.980474,
+            20.954304
+          ],
+          [
+            105.98074,
+            20.954471
+          ],
+          [
+            105.980851,
+            20.954494
+          ],
+          [
+            105.980901,
+            20.954512
+          ],
+          [
+            105.980945,
+            20.954532
+          ],
+          [
+            105.980968,
+            20.954547
+          ],
+          [
+            105.981207,
+            20.954681
+          ],
+          [
+            105.981418,
+            20.95481
+          ],
+          [
+            105.981708,
+            20.954987
+          ],
+          [
+            105.982058,
+            20.955218
+          ],
+          [
+            105.982539,
+            20.955547
+          ],
+          [
+            105.982592,
+            20.955591
+          ],
+          [
+            105.982938,
+            20.955851
+          ],
+          [
+            105.983395,
+            20.956252
+          ],
+          [
+            105.983988,
+            20.956758
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1183925301,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 562.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.980292,
+            20.95244
+          ],
+          [
+            105.980222,
+            20.952563
+          ],
+          [
+            105.980172,
+            20.95266
+          ],
+          [
+            105.980045,
+            20.952904
+          ],
+          [
+            105.979831,
+            20.953348
+          ],
+          [
+            105.97969,
+            20.953641
+          ],
+          [
+            105.97964,
+            20.953744
+          ],
+          [
+            105.979576,
+            20.953877
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1243235565,
+        "street_name": "Đường San Hô",
+        "highway": "tertiary",
+        "length_m": 176.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.982294,
+            20.948252
+          ],
+          [
+            105.982088,
+            20.948663
+          ],
+          [
+            105.981971,
+            20.948916
+          ],
+          [
+            105.981961,
+            20.948943
+          ],
+          [
+            105.981876,
+            20.949123
+          ],
+          [
+            105.981848,
+            20.949184
+          ],
+          [
+            105.981763,
+            20.949364
+          ],
+          [
+            105.981718,
+            20.949457
+          ],
+          [
+            105.981657,
+            20.949584
+          ],
+          [
+            105.981534,
+            20.949842
+          ],
+          [
+            105.98149,
+            20.949934
+          ],
+          [
+            105.981465,
+            20.949985
+          ],
+          [
+            105.98142,
+            20.950081
+          ],
+          [
+            105.981344,
+            20.95023
+          ],
+          [
+            105.9813,
+            20.950331
+          ],
+          [
+            105.981234,
+            20.95047
+          ],
+          [
+            105.981137,
+            20.950663
+          ],
+          [
+            105.98107,
+            20.950814
+          ],
+          [
+            105.980914,
+            20.951143
+          ],
+          [
+            105.980871,
+            20.951224
+          ],
+          [
+            105.980819,
+            20.951338
+          ],
+          [
+            105.980782,
+            20.951415
+          ],
+          [
+            105.980678,
+            20.951627
+          ],
+          [
+            105.980648,
+            20.951696
+          ],
+          [
+            105.980478,
+            20.952051
+          ],
+          [
+            105.980386,
+            20.952243
+          ],
+          [
+            105.98032,
+            20.952381
+          ],
+          [
+            105.980292,
+            20.95244
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1145184194,
+        "street_name": "Đường San Hô",
+        "highway": "tertiary",
+        "length_m": 510.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.985743,
+            20.941371
+          ],
+          [
+            105.985589,
+            20.941423
+          ],
+          [
+            105.984171,
+            20.941902
+          ],
+          [
+            105.983295,
+            20.942198
+          ],
+          [
+            105.982221,
+            20.942561
+          ],
+          [
+            105.981801,
+            20.942703
+          ],
+          [
+            105.981254,
+            20.942888
+          ],
+          [
+            105.9811,
+            20.942934
+          ],
+          [
+            105.98048,
+            20.943122
+          ],
+          [
+            105.980398,
+            20.943158
+          ],
+          [
+            105.980331,
+            20.943202
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1465071381,
+        "street_name": "Đại lộ Ngọc Trai",
+        "highway": "secondary",
+        "length_m": 598.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.993709,
+            20.938712
+          ],
+          [
+            105.99308,
+            20.938919
+          ],
+          [
+            105.991859,
+            20.939321
+          ],
+          [
+            105.991062,
+            20.939596
+          ],
+          [
+            105.990513,
+            20.93978
+          ],
+          [
+            105.990172,
+            20.939893
+          ],
+          [
+            105.987487,
+            20.940789
+          ],
+          [
+            105.986108,
+            20.94125
+          ],
+          [
+            105.985919,
+            20.941313
+          ],
+          [
+            105.985743,
+            20.941371
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1459985021,
+        "street_name": "Đại lộ Ngọc Trai",
+        "highway": "secondary",
+        "length_m": 878.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.993486,
+            20.938589
+          ],
+          [
+            105.993709,
+            20.938712
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1497372847,
+        "street_name": "",
+        "highway": "residential",
+        "length_m": 26.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.983422,
+            20.941963
+          ],
+          [
+            105.984108,
+            20.941741
+          ],
+          [
+            105.984202,
+            20.94171
+          ],
+          [
+            105.985531,
+            20.94126
+          ],
+          [
+            105.985691,
+            20.941206
+          ],
+          [
+            105.985859,
+            20.941149
+          ],
+          [
+            105.987261,
+            20.940673
+          ],
+          [
+            105.98742,
+            20.940619
+          ],
+          [
+            105.987558,
+            20.940572
+          ],
+          [
+            105.989049,
+            20.94007
+          ],
+          [
+            105.989788,
+            20.939824
+          ],
+          [
+            105.990108,
+            20.939718
+          ],
+          [
+            105.991613,
+            20.939218
+          ],
+          [
+            105.992862,
+            20.938799
+          ],
+          [
+            105.993015,
+            20.938747
+          ],
+          [
+            105.993486,
+            20.938589
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1459985022,
+        "street_name": "Đại lộ Ngọc Trai",
+        "highway": "secondary",
+        "length_m": 1110.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.980165,
+            20.943135
+          ],
+          [
+            105.98021,
+            20.943099
+          ],
+          [
+            105.980287,
+            20.943046
+          ],
+          [
+            105.980405,
+            20.942991
+          ],
+          [
+            105.98159,
+            20.942588
+          ],
+          [
+            105.98174,
+            20.942538
+          ],
+          [
+            105.982134,
+            20.942405
+          ],
+          [
+            105.982304,
+            20.942353
+          ],
+          [
+            105.98308,
+            20.942079
+          ],
+          [
+            105.983108,
+            20.94207
+          ],
+          [
+            105.983245,
+            20.942026
+          ],
+          [
+            105.983422,
+            20.941963
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1465071380,
+        "street_name": "Đại lộ Ngọc Trai",
+        "highway": "secondary",
+        "length_m": 363.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.979421,
+            20.944555
+          ],
+          [
+            105.979501,
+            20.94439
+          ],
+          [
+            105.979835,
+            20.943702
+          ],
+          [
+            105.979913,
+            20.943541
+          ],
+          [
+            105.979988,
+            20.943386
+          ],
+          [
+            105.980002,
+            20.943356
+          ],
+          [
+            105.980048,
+            20.943277
+          ],
+          [
+            105.980117,
+            20.943181
+          ],
+          [
+            105.980165,
+            20.943135
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1465071378,
+        "street_name": "Đại lộ Ngọc Trai",
+        "highway": "secondary",
+        "length_m": 176.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.978432,
+            20.946617
+          ],
+          [
+            105.978482,
+            20.946512
+          ],
+          [
+            105.978547,
+            20.946377
+          ],
+          [
+            105.97895,
+            20.945537
+          ],
+          [
+            105.979023,
+            20.945385
+          ],
+          [
+            105.979081,
+            20.945262
+          ],
+          [
+            105.979284,
+            20.94484
+          ],
+          [
+            105.979421,
+            20.944555
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1465071371,
+        "street_name": "Đại lộ Ngọc Trai",
+        "highway": "secondary",
+        "length_m": 251.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.976396,
+            20.950784
+          ],
+          [
+            105.976459,
+            20.950709
+          ],
+          [
+            105.976497,
+            20.95065
+          ],
+          [
+            105.977272,
+            20.949042
+          ],
+          [
+            105.977325,
+            20.948927
+          ],
+          [
+            105.977369,
+            20.948833
+          ],
+          [
+            105.97743,
+            20.948706
+          ],
+          [
+            105.978296,
+            20.9469
+          ],
+          [
+            105.978365,
+            20.946757
+          ],
+          [
+            105.978432,
+            20.946617
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1465071366,
+        "street_name": "Đại lộ Ngọc Trai",
+        "highway": "secondary",
+        "length_m": 509.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.975411,
+            20.952611
+          ],
+          [
+            105.976228,
+            20.950965
+          ],
+          [
+            105.976396,
+            20.950784
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1465071376,
+        "street_name": "Đại lộ Ngọc Trai",
+        "highway": "secondary",
+        "length_m": 228.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.966074,
+            20.950624
+          ],
+          [
+            105.966974,
+            20.950804
+          ],
+          [
+            105.968236,
+            20.951053
+          ],
+          [
+            105.968395,
+            20.951089
+          ],
+          [
+            105.970949,
+            20.951653
+          ],
+          [
+            105.971494,
+            20.951776
+          ],
+          [
+            105.971991,
+            20.951884
+          ],
+          [
+            105.97286,
+            20.952067
+          ],
+          [
+            105.973193,
+            20.952138
+          ],
+          [
+            105.975411,
+            20.952611
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 484474573,
+        "street_name": "Tô Quyền",
+        "highway": "primary",
+        "length_m": 994.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.966074,
+            20.950624
+          ],
+          [
+            105.965452,
+            20.950616
+          ],
+          [
+            105.963908,
+            20.950595
+          ],
+          [
+            105.962917,
+            20.950572
+          ],
+          [
+            105.962811,
+            20.950581
+          ],
+          [
+            105.962706,
+            20.950609
+          ],
+          [
+            105.962635,
+            20.950646
+          ],
+          [
+            105.962566,
+            20.950704
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1236610056,
+        "street_name": "",
+        "highway": "primary_link",
+        "length_m": 368.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.962566,
+            20.950704
+          ],
+          [
+            105.961472,
+            20.952813
+          ],
+          [
+            105.961388,
+            20.952985
+          ],
+          [
+            105.961296,
+            20.953141
+          ],
+          [
+            105.961212,
+            20.953319
+          ],
+          [
+            105.961161,
+            20.953418
+          ],
+          [
+            105.961114,
+            20.953509
+          ],
+          [
+            105.96101,
+            20.953713
+          ],
+          [
+            105.960962,
+            20.953808
+          ],
+          [
+            105.960875,
+            20.953976
+          ],
+          [
+            105.960785,
+            20.954149
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1243387900,
+        "street_name": "Đường tỉnh 382B",
+        "highway": "primary",
+        "length_m": 425.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.960785,
+            20.954149
+          ],
+          [
+            105.960376,
+            20.954689
+          ],
+          [
+            105.959868,
+            20.955561
+          ],
+          [
+            105.959352,
+            20.956339
+          ],
+          [
+            105.959057,
+            20.956858
+          ],
+          [
+            105.95841,
+            20.958062
+          ],
+          [
+            105.956374,
+            20.961842
+          ],
+          [
+            105.95613,
+            20.962167
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1231898028,
+        "street_name": "Lối lên cao tốc hướng đi Hà Nội",
+        "highway": "motorway_link",
+        "length_m": 1015.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.95613,
+            20.962167
+          ],
+          [
+            105.955646,
+            20.963087
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1243387901,
+        "street_name": "Đường cao tốc Hà Nội - Hải Phòng",
+        "highway": "motorway",
+        "length_m": 114.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.955646,
+            20.963087
+          ],
+          [
+            105.954667,
+            20.964897
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 397140500,
+        "street_name": "Cầu Cửu Cao",
+        "highway": "motorway",
+        "length_m": 225.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.954667,
+            20.964897
+          ],
+          [
+            105.951876,
+            20.970071
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 601587062,
+        "street_name": "Đường cao tốc Hà Nội - Hải Phòng",
+        "highway": "motorway",
+        "length_m": 644.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.951876,
+            20.970071
+          ],
+          [
+            105.951357,
+            20.971021
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 601587061,
+        "street_name": "Cầu B-01",
+        "highway": "motorway",
+        "length_m": 118.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.951357,
+            20.971021
+          ],
+          [
+            105.949483,
+            20.974507
+          ],
+          [
+            105.947533,
+            20.978005
+          ],
+          [
+            105.947055,
+            20.978789
+          ],
+          [
+            105.945747,
+            20.98092
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 384534362,
+        "street_name": "Đường cao tốc Hà Nội – Hải Phòng",
+        "highway": "motorway",
+        "length_m": 1245.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.945747,
+            20.98092
+          ],
+          [
+            105.945345,
+            20.981595
+          ],
+          [
+            105.944851,
+            20.982323
+          ],
+          [
+            105.943864,
+            20.983759
+          ],
+          [
+            105.943176,
+            20.984725
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1029909398,
+        "street_name": "Lối ra Vinhomes Ocean Park",
+        "highway": "motorway_link",
+        "length_m": 500.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.943176,
+            20.984725
+          ],
+          [
+            105.942824,
+            20.985221
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1227330216,
+        "street_name": "Cầu B1-06",
+        "highway": "motorway_link",
+        "length_m": 66.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.942824,
+            20.985221
+          ],
+          [
+            105.94264,
+            20.985529
+          ],
+          [
+            105.942427,
+            20.98588
+          ],
+          [
+            105.942279,
+            20.986132
+          ],
+          [
+            105.942121,
+            20.986392
+          ],
+          [
+            105.941897,
+            20.986658
+          ],
+          [
+            105.941809,
+            20.986765
+          ],
+          [
+            105.941723,
+            20.986877
+          ],
+          [
+            105.941697,
+            20.986994
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1227330215,
+        "street_name": "",
+        "highway": "motorway_link",
+        "length_m": 230.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.941697,
+            20.986994
+          ],
+          [
+            105.941505,
+            20.987197
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1243387903,
+        "street_name": "Đường Lê Trần Cẩn",
+        "highway": "secondary",
+        "length_m": 30.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.941505,
+            20.987197
+          ],
+          [
+            105.941743,
+            20.987393
+          ],
+          [
+            105.94206,
+            20.987844
+          ],
+          [
+            105.942234,
+            20.988014
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 957454500,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 119.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            105.942234,
+            20.988014
+          ],
+          [
+            105.942383,
+            20.988242
+          ],
+          [
+            105.943284,
+            20.98961
+          ]
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "relation_id": 17948451,
+        "way_id": 1224486135,
+        "street_name": "",
+        "highway": "secondary",
+        "length_m": 208.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.944107,
+          20.990695
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 11554362842,
+        "sequence": 1,
+        "name": "Bến trả OCP 2-3 (Cạnh VinUni)",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.945742,
+          20.991304
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 8859463290,
+        "sequence": 2,
+        "name": "Đại học VinUni",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.948549,
+          20.989635
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 8859463291,
+        "sequence": 3,
+        "name": "KTX Đại học VinUni",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.96066,
+          20.99195
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 8857316026,
+        "sequence": 4,
+        "name": "Điểm đỗ xe buýt Ocean Park",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.958627,
+          20.994004
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 8857316027,
+        "sequence": 5,
+        "name": "TTTM Vincom OceanPark",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.941061,
+          20.994235
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 11554362840,
+        "sequence": 6,
+        "name": "Nhà để xe Hải Đăng",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.943754,
+          20.990909
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 8859463283,
+        "sequence": 7,
+        "name": "Sảnh tòa nhà S2.15",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.975908,
+          20.951422
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 11554362848,
+        "sequence": 8,
+        "name": "Cầu Sóng The K Town",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.978828,
+          20.945584
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 11554362849,
+        "sequence": 9,
+        "name": "Kinh đô Ánh sáng",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.981669,
+          20.942456
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 11554362850,
+        "sequence": 10,
+        "name": "TTTM Center Point đường ĐL Ngọc Trai",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.989981,
+          20.939698
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 13713944584,
+        "sequence": 11,
+        "name": "Bệnh viên Vinmec",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.983936,
+          20.942055
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 12118587807,
+        "sequence": 12,
+        "name": "Phân khu Ngọc Trai - Công viên Ngọc Trai 3",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.983901,
+          20.956579
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 12118584194,
+        "sequence": 13,
+        "name": "The Venice – Đường Phố biển 22",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.979398,
+          20.956098
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 12118584195,
+        "sequence": 14,
+        "name": "Phân khu Phố Biển – Đường Phố biển 19",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.97808,
+          20.957041
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 12118584196,
+        "sequence": 15,
+        "name": "Phân khu Phố Biển – Đường Phố biển",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.976321,
+          20.960446
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 12118584197,
+        "sequence": 16,
+        "name": "Công viên Vinwonder Water Park",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.972519,
+          20.958812
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 12118584198,
+        "sequence": 17,
+        "name": "Phân khu Thời Đại – Đường Đại lộ bốn mùa",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.973319,
+          20.957043
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 12118584199,
+        "sequence": 18,
+        "name": "Phân khu Thời Đại – Đường Thời Đại 6",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.97489,
+          20.953483
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 11556081242,
+        "sequence": 19,
+        "name": "Đối diện Cổng Grand World - The Venice",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.9817,
+          20.949562
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 12709740266,
+        "sequence": 20,
+        "name": "Công viên VinWonder Wave Park",
+        "role": "platform"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          105.979699,
+          20.953781
+        ]
+      },
+      "properties": {
+        "route_ref": "OCP1",
+        "variant": 0,
+        "stop_id": 12709740267,
+        "sequence": 21,
+        "name": "K-Town - Đường San Hô",
+        "role": "platform"
+      }
+    }
+  ]
+}
