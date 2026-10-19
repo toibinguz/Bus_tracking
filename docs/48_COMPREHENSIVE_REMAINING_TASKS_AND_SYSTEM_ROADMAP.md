@@ -1,5 +1,5 @@
 # 48. DANH SÁCH CHI TIẾT CÁC CÔNG VIỆC CÒN PHẢI THỰC HIỆN & LỘ TRÌNH PHÁT TRIỂN HỆ THỐNG
-> **Mục tiêu**: Lập danh mục chi tiết, toàn diện và có tính định lượng về toàn bộ các hạng mục kỹ thuật cần hoàn thiện tiếp theo để bàn giao cho các thành viên trong nhóm, chuẩn hóa hệ thống dữ liệu lớn và đưa mô hình ETA vào phục vụ thực tiễn.  
+> **Mục tiêu**: Lập danh mục chi tiết, toàn diện và có tính định lượng về toàn bộ các hạng mục kỹ thuật cần hoàn thiện tiếp theo để bàn giao cho các thành viên trong nhóm, xác định **Tiêu Chí Chấp Nhận (Acceptance Criteria / DoD)** khắt khe và **Thời Gian Ước Tính Hoàn Thành (Effort Estimation)** cho từng công việc.  
 > **Căn cứ quy chế hoạt động**: [AGENTS.md](../AGENTS.md) & [GEMINI.md](../GEMINI.md).
 
 ---
@@ -8,32 +8,32 @@
 
 ```mermaid
 flowchart TD
-    subgraph P1["Trụ Cột 1: Nhân Rộng Đa Tuyến"]
-        T1["Tuyến 02 (Hoàn thiện 100%)"] --> T2["Nhân rộng Feature Store & ML<br/>sang 47 tuyến còn lại"]
+    subgraph P1["Trụ Cột 1: Nhân Rộng Đa Tuyến (18 - 24h công)"]
+        T1["Tuyến 02 (Hoàn thiện mẫu 100%)"] --> T2["Nhân rộng Feature Store & ML<br/>sang 47 tuyến còn lại"]
         T2 --> T3["Phân công 4 nhóm tuyến<br/>cho các thành viên"]
     end
 
-    subgraph P2["Trụ Cột 2: Phân Tích Độ Lệch & Detour"]
+    subgraph P2["Trụ Cột 2: Phân Tích Độ Lệch & Detour (4 - 6h công)"]
         D1["Đo d_perp trên 285k pings"] --> D2["Phát hiện Detour hệ thống<br/>(Công trình, đường gom)"]
         D2 --> D3["Phát hiện Detour ngẫu nhiên<br/>(Quay đầu, tránh tắc)"]
     end
 
-    subgraph P3["Trụ Cột 3: Tích Hợp Sự Cố TomTom"]
+    subgraph P3["Trụ Cột 3: Tích Hợp Sự Cố TomTom (6 - 8h công)"]
         I1["80 requests/ngày Incidents"] --> I2["Spatial Buffer Matching<br/>(Chiếu sự cố lên tim đường s)"]
         I2 --> I3["Đặc trưng sự cố trong Feature Store<br/>& Lớp Incident trên Bản đồ"]
     end
 
-    subgraph P4["Trụ Cột 4: Chuẩn Hóa Schema Bảng"]
+    subgraph P4["Trụ Cột 4: Chuẩn Hóa Schema Bảng (3 - 4h công)"]
         S1["13 bảng rời rạc"] --> S2["Phân tầng Medallion / DWH<br/>(dim_*, fact_*, agg_*, ml_*)"]
         S2 --> S3["Xóa bỏ bảng đơn tuyến thừa<br/>(route_02_projected_telemetry)"]
     end
 
-    subgraph P5["Trụ Cột 5: Chuẩn Hóa File & Đổi Tên DB"]
+    subgraph P5["Trụ Cột 5: Chuẩn Hóa File & Đổi Tên DB (1.5 - 2h công)"]
         F1["telemetry_audit_...db (Legacy)"] --> F2["Đổi tên: hanoi_bus_system.db"]
         F2 --> F3["Cập nhật DB_PATH tập trung<br/>trong config/system_config.py"]
     end
 
-    P1 --> SYSTEM["HỆ THỐNG DỮ LIỆU LỚN & DỰ BÁO ETA HOÀN CHỈNH"]
+    P1 --> SYSTEM["HỆ THỐNG DỮ LIỆU LỚN & DỰ BÁO ETA HOÀN CHỈNH<br/>(Tổng quy mô: ~35 - 45 giờ công làm việc)"]
     P2 --> SYSTEM
     P3 --> SYSTEM
     P4 --> SYSTEM
@@ -64,14 +64,14 @@ Tuyến 02 (Bác Cổ - BX Yên Nghĩa, 13.5 km) đã được xây dựng như 
 
 ---
 
-### 1.3. Những Gì CHƯA LÀM Cho 47 Tuyến Còn Lại (Danh Sách Nhiệm Vụ Cụ Thể)
-| Hạng Mục Kỹ Thuật | Mô Tả Chi Tiết Nhiệm Vụ | Đầu Ra Kỳ Vọng (Deliverables) |
-| :--- | :--- | :--- |
-| **Nhiệm vụ 1.1**: Trích xuất Feature Store đa tuyến | Viết script chạy batch `feature_extractor.py` cho từng tuyến hoặc danh sách nhiều tuyến (`--routes 01,32,26,27,...`). Trích xuất thời gian di chuyển thực tế nhãn mục tiêu ($y = \text{travel\_time\_to\_station\_sec}$). | Dữ liệu huấn luyện dạng Parquet / DataFrame cho 47 tuyến. |
-| **Nhiệm vụ 1.2**: Tính Ma trận Segment Baseline | Tính thời gian di chuyển trung bình theo từng cặp trạm $(i, j)$ cho từng tuyến trong 47 tuyến theo 3 khung giờ: Cao điểm sáng, Cao điểm chiều, Thấp điểm. | Bảng `agg_segment_travel_times` trong CSDL cho 48 tuyến. |
-| **Nhiệm vụ 1.3**: Huấn luyện Mô hình ML Đa Tuyến | Có 2 lựa chọn kiến trúc: <br/>- **Phương án A (Tuyến riêng lẻ)**: Huấn luyện 48 mô hình XGBoost/LightGBM độc lập cho từng tuyến.<br/>- **Phương án B (Mô hình Hành lang chung)**: Gộp các tuyến chạy chung hành lang huyết mạch (ví dụ trục Giải Phóng: 08A, 21A, 32) và nhúng đặc trưng `route_id_encoded`. | Các tệp mô hình `.json` / `.joblib` lưu trong thư mục `models/`. |
-| **Nhiệm vụ 1.4**: Đánh giá Đối Chuẩn Benchmark Toàn Mạng | Chạy `benchmark_evaluator.py` trên toàn bộ các tuyến, tính toán MAE, RMSE, MAPE và tỷ lệ cải thiện so với Baseline cho từng tuyến. | Bảng tổng hợp KPI sai số ETA toàn mạng lưới lưu tại `docs/`. |
-| **Nhiệm vụ 1.5**: CLI Sinh Bản Đồ Nghiệm Thu Nhanh | Xây dựng công cụ CLI: `python scripts/generate_route_map.py --route XX` tự động sinh file HTML bản đồ trực quan hóa kiểm tra trạm và tim đường cho tuyến bất kỳ. | Tệp `data/visualizations/route_{XX}_map.html`. |
+### 1.3. Bảng Chi Tiết Nhiệm Vụ, Tiêu Chí Chấp Nhận & Ước Tính Thời Gian Cho 47 Tuyến
+| Hạng Mục Kỹ Thuật | Mô Tả Chi Tiết Nhiệm Vụ | Tiêu Chí Chấp Nhận (Acceptance Criteria / DoD) | Thời Gian Ước Tính |
+| :--- | :--- | :--- | :---: |
+| **Nhiệm vụ 1.1**: Trích xuất Feature Store đa tuyến | Viết script chạy batch `feature_extractor.py` cho từng tuyến hoặc danh sách nhiều tuyến (`--routes 01,32,26,27,...`). Trích xuất thời gian di chuyển thực tế nhãn mục tiêu ($y = \text{travel\_time\_to\_station\_sec}$). | 1. Tỷ lệ pings hợp lệ được gán nhãn $y > 0$ đạt $\ge 95\%$.<br/>2. Không còn giá trị `NaN` hoặc `Inf` trong 8 vector đặc trưng.<br/>3. Tốc độ trích xuất đạt $\ge 1.000\text{ pings/s}$. | **4 - 6 giờ công** |
+| **Nhiệm vụ 1.2**: Tính Ma trận Segment Baseline | Tính thời gian di chuyển trung bình theo từng cặp trạm $(i, j)$ cho từng tuyến trong 47 tuyến theo 3 khung giờ: Cao điểm sáng, Cao điểm chiều, Thấp điểm. | 1. Hoàn tất ma trận $N \times N$ cho toàn bộ các cặp trạm liên tiếp của 48 tuyến.<br/>2. Tự động nội suy (fallback) cho các cặp trạm thiếu mẫu bằng vận tốc trung bình tuyến.<br/>3. Lưu vào bảng `agg_segment_travel_times`. | **3 - 4 giờ công** |
+| **Nhiệm vụ 1.3**: Huấn luyện Mô hình ML Đa Tuyến | - **Phương án A**: Huấn luyện 48 mô hình XGBoost/LightGBM độc lập cho từng tuyến.<br/>- **Phương án B**: Gộp theo 4 hành lang huyết mạch và nhúng đặc trưng `route_id_encoded`. | 1. Mỗi mô hình được lưu dưới định dạng chuẩn `.json` hoặc `.joblib` trong `models/`.<br/>2. Feature importance hiển thị rõ ràng tỷ trọng đóng góp của Dwell Time và Derived Speed.<br/>3. Thời gian suy luận (Inference time) $< 5\text{ ms/ping}$. | **6 - 8 giờ công** |
+| **Nhiệm vụ 1.4**: Đánh giá Đối Chuẩn Benchmark Toàn Mạng | Chạy `benchmark_evaluator.py` trên toàn bộ các tuyến, tính toán MAE, RMSE, MAPE và tỷ lệ cải thiện so với Baseline cho từng tuyến. | 1. MAE trên tập kiểm thử (Test Set) của mô hình ML giảm $\ge 30\%$ so với Historical Baseline.<br/>2. Sai số trung bình toàn mạng đạt $\text{MAE} \le 60\text{ giây}$ (1 phút).<br/>3. Xuất file Markdown tổng hợp kết quả đối chuẩn toàn bộ 48 tuyến vào `docs/`. | **3 - 4 giờ công** |
+| **Nhiệm vụ 1.5**: CLI Sinh Bản Đồ Nghiệm Thu Nhanh | Xây dựng công cụ CLI: `python scripts/generate_route_map.py --route XX` tự động sinh file HTML bản đồ trực quan hóa kiểm tra trạm và tim đường cho tuyến bất kỳ. | 1. Chạy với tham số `--route 32` sinh ngay `data/visualizations/route_32_map.html` trong $< 5\text{s}$.<br/>2. Hiển thị đủ 4 lớp: Tim đường TimBus, Trạm dừng, Vị trí xe buýt, Vệt pings thực nghiệm. | **2 - 3 giờ công** |
 
 ---
 
@@ -123,26 +123,14 @@ Quy tắc phán đoán:
 
 ---
 
-### 2.4. Kế Hoạch Mã Nguồn & Bảng CSDL Lưu Trữ Detour
-- Xây dựng module: `module_1_data_ingestion_and_preprocessing/step_1_4_frenet_spatial_projection/detour_analyzer.py`.
-- Tạo bảng CSDL lưu vết:
-  ```sql
-  CREATE TABLE fact_route_detours (
-      detour_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      route_code TEXT NOT NULL,
-      direction TEXT NOT NULL,
-      vehicle_id INTEGER NOT NULL,
-      start_time TEXT NOT NULL,
-      end_time TEXT NOT NULL,
-      start_s_m REAL NOT NULL,
-      end_s_m REAL NOT NULL,
-      max_cross_track_m REAL NOT NULL,
-      avg_cross_track_m REAL NOT NULL,
-      detour_type TEXT NOT NULL, -- 'SYSTEMATIC_INFRASTRUCTURE' hoặc 'RANDOM_CONGESTION_BYPASS'
-      ping_count INTEGER NOT NULL
-  );
-  CREATE INDEX idx_frd_route_dir ON fact_route_detours (route_code, direction);
-  ```
+### 2.4. Tiêu Chí Chấp Nhận & Thời Gian Ước Tính Cho Module Detour
+- **Mã nguồn**: Xây dựng `module_1_data_ingestion_and_preprocessing/step_1_4_frenet_spatial_projection/detour_analyzer.py`.
+- **Bảng CSDL**: `fact_route_detours`.
+- **Tiêu Chí Chấp Nhận (Acceptance Criteria)**:
+  1. Quét toàn bộ 285.621 pings trong bảng `route_projected_telemetry`, gom cụm thành các sự kiện detour theo từng chuyến (`trip`).
+  2. Bóc tách chính xác tối thiểu **95% các trường hợp xe quay đầu bến bãi** ($d_\perp > 120\text{m}$) và gắn nhãn loại trừ tự động.
+  3. Xuất danh sách các điểm nóng "Detour Hệ thống" ($R_{\text{detour}} \ge 70\%$) cho người dùng xem xét cập nhật tim đường.
+- **Thời Gian Ước Tính**: **4 - 6 giờ công**.
 
 ---
 
@@ -175,11 +163,15 @@ Khi xe buýt cách điểm sự cố một khoảng $d_{\text{ahead}} = s_{\text
 
 ---
 
-### 3.3. Tích Hợp Lớp Sự Cố Lên Bản Đồ Trực Quan Hóa (Leaflet Map)
-- Bổ sung `IncidentLayer` vào script sinh bản đồ Leaflet:
-  * Biểu tượng cảnh báo giao thông (Traffic Hazard Icons) phân màu theo `magnitude` (Vàng: Cấp 1-2, Cam: Cấp 3, Đỏ rực: Cấp 4).
-  * Vẽ đoạn hình học sự cố (Incident Polyline) đè lên tuyến đường để người xem nhận biết ngay đoạn đường đang nghẽn.
-  * Hộp thoại Popup hiển thị: Tên sự cố, chiều dài đoạn tắc (m), thời gian trễ ước tính (phút), thời điểm cập nhật.
+### 3.3. Tiêu Chí Chấp Nhận & Thời Gian Ước Tính Cho Tích Hợp Sự Cố
+- **Mã nguồn**: Xây dựng `module_1_data_ingestion_and_preprocessing/step_1_1_busmap_crawler_and_relay/incident_spatial_matcher.py`.
+- **Bảng CSDL**: `fact_traffic_incidents` (SQLite & Parquet).
+- **Tiêu Chí Chấp Nhận (Acceptance Criteria)**:
+  1. Tự động đọc các tệp JSONL trong `data/raw/incidents/`, lọc trùng lặp ID sự cố (`incident_id`) và nạp vào bảng `fact_traffic_incidents`.
+  2. Ánh xạ thành công tọa độ sự cố lên tim đường với sai số vuông góc $d_\perp \le 300\text{m}$.
+  3. Feature Store bổ sung 3 cột đặc trưng sự cố (`has_incident_ahead`, `incident_distance_ahead_m`, `incident_delay_sec_ahead`) có giá trị mặc định bằng 0 khi không có sự cố.
+  4. Lớp sự cố hiển thị chuẩn xác trên bản đồ HTML với màu sắc phân cấp mức độ (Vàng, Cam, Đỏ).
+- **Thời Gian Ước Tính**: **6 - 8 giờ công**.
 
 ---
 
@@ -220,9 +212,16 @@ v_*      : Views phân tích phục vụ nghiệp vụ thời gian thực
 | **`ml_eta_feature_store`**    | *(Tạo mới từ feature store)* | Kho đặc trưng huấn luyện mô hình dự báo ETA |
 | **`v_bus_to_next_station`**   | `v_bus_to_next_station` | View phân tích toàn mạng: Trạm kế tiếp, khoảng cách còn lại, ETA tức thời |
 
-#### Kế Hoạch Xóa Bỏ Các Bảng Dư Thừa:
-- Drop bảng: `route_02_projected_telemetry` (đã có trong `fact_bus_telemetry`).
-- Drop view: `v_route_02_bus_to_next_station` (thay bằng `v_bus_to_next_station WHERE route_code = '02'`).
+---
+
+### 4.3. Tiêu Chí Chấp Nhận & Thời Gian Ước Tính Cho Chuẩn Hóa Schema
+- **Mã nguồn**: Xây dựng `module_2_big_data_storage_and_lakehouse/step_2_1_sqlite_operational_store/schema_standardizer.py`.
+- **Tiêu Chí Chấp Nhận (Acceptance Criteria)**:
+  1. Dữ liệu trong bảng mới (`dim_*`, `fact_*`) bảo toàn 100% số lượng bản ghi so với bảng cũ (3.646 stations, 17.631 shapes, 285.621 pings).
+  2. Bảng cũ `route_02_projected_telemetry` và view `v_route_02_...` được drop an toàn mà không làm lỗi bất kỳ script nào.
+  3. Tạo đầy đủ Primary Keys và B-tree Indexes trên các trường lọc thường xuyên (`route_code`, `vehicle_id`, `s_bus_m`).
+  4. Thực thi `VACUUM` và `ANALYZE` sau khi chuẩn hóa, kích thước file DB không tăng đột biến.
+- **Thời Gian Ước Tính**: **3 - 4 giờ công**.
 
 ---
 
@@ -242,9 +241,9 @@ Tệp cơ sở dữ liệu hiện tại đang có tên:
 
 ```mermaid
 flowchart TD
-    STEP1["1. Khai báo biến tập trung DB_PATH<br/>trong config/system_config.py"] --> STEP2["2. Viết script di dời an toàn:<br/>scripts/migrate_database_name.py"]
+    STEP1["1. Khai báo biến tập trung DEFAULT_DB_PATH<br/>trong config/system_config.py"] --> STEP2["2. Viết script di dời an toàn:<br/>scripts/migrate_database_name.py"]
     STEP2 --> STEP3["3. Đổi tên vật lý tệp .db<br/>(telemetry_audit_...db -> hanoi_bus_system.db)"]
-    STEP3 --> STEP4["4. Cập nhật các import và script<br/>đọc DB_PATH từ config"]
+    STEP3 --> STEP4["4. Cập nhật các import và script<br/>đọc get_database_path() từ config"]
     STEP4 --> STEP5["5. Kiểm thử toàn bộ hệ thống bằng<br/>scripts/verify_canonical_architecture.py"]
 ```
 
@@ -262,6 +261,17 @@ def get_database_path():
         return LEGACY_DB_PATH
     return DEFAULT_DB_PATH
 ```
+
+---
+
+### 5.3. Tiêu Chí Chấp Nhận & Thời Gian Ước Tính Cho Đổi Tên DB
+- **Mã nguồn**: Xây dựng `scripts/migrate_database_name.py`.
+- **Tiêu Chí Chấp Nhận (Acceptance Criteria)**:
+  1. Tệp vật lý được đổi tên thành `data/hanoi_bus_system.db` mà không làm hỏng cấu trúc SQLite (Checksum / MD5 giữ nguyên).
+  2. Hàm `get_database_path()` trong `config` trả về đúng đường dẫn tệp mới.
+  3. Toàn bộ các script trong `module_1`, `module_2`, `module_3` và `scripts/` chuyển sang dùng `get_database_path()`.
+  4. Chạy `python scripts/verify_canonical_architecture.py` đạt **100% Success** sau khi đổi tên.
+- **Thời Gian Ước Tính**: **1.5 - 2 giờ công**.
 
 ---
 
@@ -289,7 +299,9 @@ def get_database_path():
 └─────────────────────┴────────────┴──────────────────────────────────────────────┘
 ```
 
-### Quy Trình Chuẩn Thực Hiện Cho Mỗi Thành Viên Khi Nhận Tuyến:
+---
+
+### 6.1. Quy Trình Chuẩn Thực Hiện Cho Mỗi Thành Viên Khi Nhận Tuyến
 Mỗi thành viên khi nhận phụ trách một nhóm tuyến sẽ thực hiện 4 bước tiêu chuẩn bằng các công cụ đã được đóng gói sẵn:
 
 1. **Bước 1 - Trích xuất Feature Store cho tuyến**:
@@ -308,16 +320,36 @@ Mỗi thành viên khi nhận phụ trách một nhóm tuyến sẽ thực hiệ
    ```bash
    python module_3_bus_eta_prediction/step_3_4_evaluation_and_benchmarking/benchmark_evaluator.py --routes <MÃ_TUYẾN>
    ```
-   *Kết quả ghi nhận*: MAE (giây), RMSE (giây), MAPE (%) và tỷ lệ phần trăm cải thiện so với Baseline.
 
 ---
 
-## BẢNG TỔNG HỢP TIẾN ĐỘ & CHECKLIST HÀNH ĐỘNG
+### 6.2. Tiêu Chí Nghiệm Thu Từng Gói Tuyến (Definition of Done per Package)
+Một thành viên phụ trách gói tuyến chỉ được coi là hoàn thành nhiệm vụ khi đáp ứng đủ **5 tiêu chí nghiệm thu**:
+1. **Model Artifact**: Có tệp mô hình đã huấn luyện lưu tại `models/xgboost_eta_route_{MÃ_TUYẾN}.json`.
+2. **Metric Target**: Sai số $\text{MAE} \le 60\text{ giây}$ (1 phút) và độ cải thiện so với Baseline $\ge +25\%$.
+3. **Inference Latency**: Thời gian tính toán ETA cho một xe buýt $< 10\text{ ms}$.
+4. **Map Verification**: Sinh thành công tệp HTML kiểm tra trực quan tại `data/visualizations/route_{MÃ_TUYẾN}_map.html`.
+5. **Route Report**: Có tài liệu Markdown báo cáo nghiệm thu tuyến đặt trong `docs/` (nêu rõ số trạm, số pings, MAE/RMSE và các điểm nghẽn đặc thù của tuyến).
 
-| Hạng Mục | Nhiệm Vụ Cụ Thể | Độ Ưu Tiên | Trạng Thái Hiện Tại |
-| :---: | :--- | :---: | :---: |
-| **P1** | Nhân rộng huấn luyện ETA sang 47 tuyến theo 4 nhóm | **P0 (Cao nhất)** | Sẵn sàng (Đã có Ground Truth & Frenet) |
-| **P5** | Đổi tên file CSDL `telemetry_audit_...db` ➔ `hanoi_bus_system.db` | **P0 (Cao nhất)** | Sẵn sàng thực thi ngay |
-| **P4** | Chuẩn hóa bảng CSDL theo tiền tố `dim_*`, `fact_*`, `agg_*`, `ml_*` | **P1 (Cao)** | Sẵn sàng thực thi ngay |
-| **P3** | Tích hợp sự cố TomTom: Spatial Buffer Matching & Feature Store | **P1 (Cao)** | Dữ liệu raw đã có, cần viết script join |
-| **P2** | Phân tích độ lệch tim đường $d_\perp$, phân loại Detour hệ thống | **P2 (Trung bình)** | Thuật toán toán học đã sẵn sàng |
+---
+
+### 6.3. Dự Toán Thời Gian Cho Từng Thành Viên Theo Gói Tuyến
+| Gói Công Việc | Số Tuyến Phụ Trách | Ước Tính Giờ Công / Tuyến | Tổng Giờ Công Thành Viên | Thời Gian Lịch (Làm việc bán thời gian) |
+| :--- | :---: | :---: | :---: | :---: |
+| **GÓI 1 (Trục Lõi)** | 8 tuyến | ~1.0 giờ / tuyến | **8.0 giờ công** | 2 - 3 ngày |
+| **GÓI 2 (VinBus & BRT)** | 12 tuyến | ~0.8 giờ / tuyến | **9.6 giờ công** | 2 - 3 ngày |
+| **GÓI 3 (Vành Đai)** | 14 tuyến | ~0.7 giờ / tuyến | **9.8 giờ công** | 3 - 4 ngày |
+| **GÓI 4 (Ngoại Thành)** | 14 tuyến | ~0.7 giờ / tuyến | **9.8 giờ công** | 3 - 4 ngày |
+
+---
+
+## BẢNG TỔNG HỢP TOÀN BỘ DỰ ÁN: TIẾN ĐỘ, TIÊU CHÍ CHẤP NHẬN & DỰ TOÁN THỜI GIAN
+
+| Trụ Cột | Hạng Mục Kỹ Thuật | Mức Độ Ưu Tiên | Tiêu Chí Chấp Nhận Cốt Lõi (Key Acceptance Criteria) | Thời Gian Ước Tính | Phụ Trách Đề Xuất |
+| :---: | :--- | :---: | :--- | :---: | :---: |
+| **P5** | Chuẩn hóa file & đổi tên CSDL ➔ `hanoi_bus_system.db` | **P0 (Ngay lập tức)** | - Đổi tên tệp không suy thoái CSDL.<br/>- `verify_canonical_architecture.py` đạt 100% pass. | **1.5 - 2h** | Trưởng nhóm / Core Dev |
+| **P4** | Chuẩn hóa Schema bảng `dim_*`, `fact_*`, `agg_*`, `ml_*` | **P0 (Ngay lập tức)** | - Bảo toàn 100% số lượng pings (285k) và stations (3.646).<br/>- Drop sạch bảng đơn tuyến cũ (`route_02_...`). | **3 - 4h** | Data Engineer |
+| **P1** | Nhân rộng mô hình ETA sang 47 tuyến (Theo 4 Gói WBS) | **P1 (Chiến lược)** | - Huấn luyện xong 48 mô hình `.json`.<br/>- MAE toàn mạng $\le 60\text{s}$ ($\ge +30\%$ over baseline). | **18 - 24h** *(Chia 4 người: ~8h/người)* | Toàn bộ 4 thành viên nhóm |
+| **P3** | Tích hợp sự cố TomTom (Spatial Match & Feature Store) | **P1 (Chiến lược)** | - Tự động liên kết sự cố trong $d_\perp \le 300\text{m}$.<br/>- Feature Store có 3 cột sự cố hợp lệ.<br/>- Lớp sự cố hiển thị chuẩn trên Leaflet. | **6 - 8h** | ML Engineer / Backend |
+| **P2** | Phân tích sai số $d_\perp$, phát hiện Detour hệ thống | **P2 (Nâng cao)** | - Gắn nhãn tự động xe quay đầu / về depot.<br/>- Phát hiện các đoạn tim đường TimBus bị lệch thực địa. | **4 - 6h** | GIS / Data Analyst |
+| **TỔNG**| **Toàn Bộ Khối Lượng Kỹ Thuật Còn Lại Của Dự Án** | — | **Hệ thống End-to-End hoàn chỉnh, sẵn sàng nghiệm thu môn học** | **~35 - 45 giờ công** *(~5 - 7 ngày làm việc)* | **Cả nhóm phối hợp** |
