@@ -440,10 +440,11 @@ def generate_html_template(kpi, total_pings, top_dperp, top_jumps, total_jumps, 
                     <div>
                         <label class="form-label small mb-0 text-secondary fw-bold">Tile Layer (Keyless):</label>
                         <select id="tileSelect" class="form-select bg-dark text-light border-secondary">
-                            <option value="carto_positron" selected>CartoDB Positron (Light/Clean)</option>
+                            <option value="osm_fr" selected>OpenStreetMap France (Headerless & Highest Fidelity)</option>
+                            <option value="osm_standard">OpenStreetMap Standard</option>
+                            <option value="carto_positron">CartoDB Positron (Light/Clean)</option>
                             <option value="carto_voyager">CartoDB Voyager (Street Details)</option>
                             <option value="carto_dark">CartoDB Dark Matter</option>
-                            <option value="osm_standard">OpenStreetMap Standard</option>
                         </select>
                     </div>
                 </div>
@@ -666,14 +667,14 @@ def generate_html_template(kpi, total_pings, top_dperp, top_jumps, total_jumps, 
             if (currentTileLayer) {{
                 map.removeLayer(currentTileLayer);
             }}
-            const conf = TILE_CONFIG[key] || TILE_CONFIG['carto_positron'];
+            const conf = TILE_CONFIG[key] || TILE_CONFIG['osm_fr'];
             currentTileLayer = L.tileLayer(conf.url_template, {{
                 attribution: conf.attribution,
                 maxZoom: conf.max_zoom,
                 subdomains: conf.subdomains || 'abc'
             }}).addTo(map);
         }}
-        setTileLayer('carto_positron');
+        setTileLayer('osm_fr');
 
         document.getElementById('tileSelect').addEventListener('change', (e) => {{
             setTileLayer(e.target.value);

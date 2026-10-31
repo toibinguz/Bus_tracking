@@ -71,6 +71,15 @@ MAX_MONTHLY_TOMTOM_BATCHES = 0
 # 3.1. KEYLESS & HEADERLESS MAP TILE SERVERS (TESTING & VISUALIZATION)
 # -------------------------------------------------------------
 OSM_TILE_SERVERS = {
+    "osm_fr": {
+        "name": "OpenStreetMap France (Headerless & Keyless - Highest Fidelity)",
+        "url_template": "https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png",
+        "subdomains": "abc",
+        "attribution": "OpenStreetMap France, OpenStreetMap contributors",
+        "max_zoom": 20,
+        "requires_key": False,
+        "requires_custom_headers": False
+    },
     "osm_standard": {
         "name": "OpenStreetMap Standard",
         "url_template": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -107,11 +116,11 @@ OSM_TILE_SERVERS = {
         "requires_custom_headers": False
     }
 }
-DEFAULT_TILE_SERVER = "carto_positron"
+DEFAULT_TILE_SERVER = "osm_fr"
 
 def get_tile_layer_config(server_key: str = DEFAULT_TILE_SERVER) -> dict:
     """Tra ve cau hinh tile layer mien phi, khong can API key va khong bat buoc custom headers."""
-    return OSM_TILE_SERVERS.get(server_key, OSM_TILE_SERVERS["carto_positron"])
+    return OSM_TILE_SERVERS.get(server_key, OSM_TILE_SERVERS["osm_fr"])
 
 # -------------------------------------------------------------
 # 4. PACING, TIMING & SCHEDULING INTERVALS (QUY MÔ ~500 XE BUÝT)
