@@ -2,6 +2,10 @@ name: HUST Bus Cluster 24x7 Cloud Crawler
 
 on:
   workflow_dispatch: # Cho phép kích hoạt thủ công khi cần
+  schedule:
+    # 🛡️ WATCHDOG DỰ PHÒNG: Tự động đánh thức crawler mỗi 2 giờ nếu chuỗi tiếp sức bị đứt
+    # Nhờ khóa concurrency, nếu runner đang chạy bình thường, lịch này sẽ tự động xếp hàng/bỏ qua an toàn.
+    - cron: '0 */2 * * *'
 
 # 🔒 KHÓA ĐƠN TIẾN TRÌNH: Chỉ cho phép tối đa 1 runner chạy tại một thời điểm
 concurrency:
