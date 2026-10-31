@@ -3,25 +3,29 @@ Module 2: Big Data Storage & Lakehouse
 Subcomponent: step_2_1_sqlite_operational_store
 File: db_manager.py
 
-Unified operational database manager for SQLite (`data/telemetry_audit_2026_10_17_18.db`).
+Unified operational database manager for SQLite (`data/hanoi_bus_system.db`).
 Provides data access APIs, integrity checks, automated views, and analytical indexing.
 """
 
 import os
+import sys
 import sqlite3
-import pandas as pd
 from typing import Optional, List, Dict, Any
 
-
-DEFAULT_DB_PATH = "data/telemetry_audit_2026_10_17_18.db"
+# Ensure project root in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.insert(0, os.path.abspath("."))
+from config.system_config import get_database_path, DEFAULT_DB_PATH
 
 
 class OperationalDatabaseManager:
     """Manages the operational SQLite database holding clean telemetry and TimBus Master tables."""
 
-    def __init__(self, db_path: str = DEFAULT_DB_PATH):
-        self.db_path = db_path
-        os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+    def __init__(self, db_path: Optional[str] = None):
+        self.db_path = db_path or get_database_path()
+        db_dir = os.path.dirname(os.path.abspath(self.db_path))
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
         self.ensure_unified_views()
 
     def get_connection(self) -> sqlite3.Connection:
@@ -86,8 +90,9 @@ class OperationalDatabaseManager:
             """)
             conn.commit()
 
-    def get_route_telemetry_df(self, route_code: str, direction: Optional[str] = None) -> pd.DataFrame:
-        """Fetch pandas DataFrame of projected telemetry for a specific route."""
+    def get_route_telemetry_df(self, route_code: str, direction: Optional[str] = None):
+        """Fetch pandas DataFrame of projected telemetry for a specific route (requires pandas)."""
+        import pandas as pd
         query = "SELECT * FROM route_projected_telemetry WHERE route_code = ?"
         params = [route_code]
         if direction:
@@ -123,9 +128,14 @@ class OperationalDatabaseManager:
 
 
 if __name__ == "__main__":
+    if sys.stdout.encoding != "utf-8":
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
     mgr = OperationalDatabaseManager()
+    print(f"Connecting to database: {mgr.db_path}")
     stats = mgr.get_database_statistics()
     print("Database Tables & Row Counts:")
     for t, cnt in stats.items():
         print(f"  {t:<35} : {cnt:,} rows")
-

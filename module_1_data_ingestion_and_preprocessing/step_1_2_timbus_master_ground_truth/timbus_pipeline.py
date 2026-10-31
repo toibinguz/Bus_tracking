@@ -13,6 +13,8 @@ import json
 import logging
 import math
 import os
+
+from config.system_config import get_database_path, DEFAULT_DB_PATH
 import sqlite3
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -43,7 +45,7 @@ class TimBusGroundTruthPipeline:
 
     def __init__(
         self,
-        db_path: str = "data/telemetry_audit_2026_10_17_18.db",
+        db_path: Optional[str] = None,
         raw_storage_dir: str = "data/ground_truth/timbus_official/raw",
         client: Optional[TimBusClient] = None,
     ):

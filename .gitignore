@@ -36,3 +36,7 @@ __pycache__/
 *.nav
 *.snm
 *.toc
+
+# Obsidian Vault Metadata
+.obsidian/
+Bus_tracking/

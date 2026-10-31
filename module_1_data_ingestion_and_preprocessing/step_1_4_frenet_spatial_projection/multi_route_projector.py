@@ -9,6 +9,8 @@ and stores along-track distance (s), cross-track error (d_perp), and derived spe
 """
 
 import sys
+
+from config.system_config import get_database_path, DEFAULT_DB_PATH
 import os
 import math
 import sqlite3
@@ -236,7 +238,7 @@ def project_route(route_code: str, conn: sqlite3.Connection) -> int:
     return len(records)
 
 
-def run_multi_route_projection(db_path: str = "data/telemetry_audit_2026_10_17_18.db", limit: Optional[int] = None):
+def run_multi_route_projection(db_path: Optional[str] = None, limit: Optional[int] = None):
     """Run projection for all available routes."""
     if sys.stdout.encoding != 'utf-8':
         try:
@@ -288,5 +290,5 @@ def run_multi_route_projection(db_path: str = "data/telemetry_audit_2026_10_17_1
 
 
 if __name__ == "__main__":
-    db = sys.argv[1] if len(sys.argv) > 1 else "data/telemetry_audit_2026_10_17_18.db"
+    db = sys.argv[1] if len(sys.argv) > 1 else get_database_path()
     run_multi_route_projection(db)

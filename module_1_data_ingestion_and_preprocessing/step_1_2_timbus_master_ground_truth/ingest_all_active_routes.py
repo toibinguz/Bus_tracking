@@ -9,6 +9,8 @@ Enforces SHA256 data integrity, linear referencing, and full audit lineage in SQ
 """
 
 import sys
+
+from config.system_config import get_database_path, DEFAULT_DB_PATH
 import os
 import time
 import sqlite3
@@ -58,7 +60,7 @@ def get_active_telemetry_routes(db_path: str) -> List[Dict[str, Any]]:
     return routes
 
 
-def run_bulk_ingestion(db_path: str = "data/telemetry_audit_2026_10_17_18.db"):
+def run_bulk_ingestion(db_path: Optional[str] = None):
     """Execute bulk ingestion for all active telemetry routes."""
     if sys.stdout.encoding != 'utf-8':
         try:
@@ -130,5 +132,5 @@ def run_bulk_ingestion(db_path: str = "data/telemetry_audit_2026_10_17_18.db"):
 
 
 if __name__ == "__main__":
-    db = sys.argv[1] if len(sys.argv) > 1 else "data/telemetry_audit_2026_10_17_18.db"
+    db = sys.argv[1] if len(sys.argv) > 1 else get_database_path()
     run_bulk_ingestion(db)

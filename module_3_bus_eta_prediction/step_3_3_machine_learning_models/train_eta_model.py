@@ -10,6 +10,8 @@ and benchmarks performance against the Historical Segment Average baseline.
 
 import os
 import sys
+
+from config.system_config import get_database_path, DEFAULT_DB_PATH
 import json
 import time
 import numpy as np
@@ -40,7 +42,7 @@ TARGET_COLUMN = "actual_remaining_sec"
 MODEL_OUTPUT_DIR = "models"
 
 
-def train_and_benchmark_route_eta(route_code: str = "02", db_path: str = "data/telemetry_audit_2026_10_17_18.db"):
+def train_and_benchmark_route_eta(route_code: str = "02", db_path: Optional[str] = None):
     print("=" * 80)
     print(f"XGBOOST BUS ETA MODEL TRAINING & BENCHMARK FOR ROUTE {route_code}")
     print("=" * 80)

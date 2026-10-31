@@ -9,6 +9,8 @@ import logging
 import os
 import sys
 
+from config.system_config import get_database_path, DEFAULT_DB_PATH
+
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -23,7 +25,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 def main():
     parser = argparse.ArgumentParser(description="Ingest official ground truth from TimBus (TRAMOC / Transerco)")
     parser.add_argument("--fid", type=str, default="2", help="Route fleet ID to ingest (default: 2)")
-    parser.add_argument("--db-path", type=str, default="data/telemetry_audit_2026_10_17_18.db", help="Target SQLite DB")
+    parser.add_argument("--db-path", type=str, default=DEFAULT_DB_PATH, help="Target SQLite DB")
     parser.add_argument("--raw-dir", type=str, default="data/ground_truth/timbus_official/raw", help="Raw JSON storage dir")
     args = parser.parse_args()
 

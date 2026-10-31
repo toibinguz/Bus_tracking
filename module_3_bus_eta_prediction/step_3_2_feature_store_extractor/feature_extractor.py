@@ -10,6 +10,8 @@ Features X = Spatial, temporal, kinematic, and topological transit properties.
 
 import os
 import sys
+
+from config.system_config import get_database_path, DEFAULT_DB_PATH
 import sqlite3
 import pandas as pd
 import numpy as np
@@ -20,7 +22,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 sys.path.insert(0, os.path.abspath("."))
 
 
-DEFAULT_DB_PATH = "data/telemetry_audit_2026_10_17_18.db"
+# Centralized in config.system_config
+# DEFAULT_DB_PATH is imported from config.system_config
 
 
 def extract_route_training_dataset(route_code: str, db_path: str = DEFAULT_DB_PATH) -> pd.DataFrame:
