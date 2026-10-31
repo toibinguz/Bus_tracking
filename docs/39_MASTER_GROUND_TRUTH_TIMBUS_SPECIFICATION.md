@@ -1,4 +1,12 @@
 # 39. QUY CHUẨN MASTER GROUND TRUTH: HỢP NHẤT TIMBUS VỚI LUỒNG TELEMETRY
+
+> [!IMPORTANT] TÀI LIỆU ĐẶC TẢ CHÍNH TẮC HIỆN HÀNH (CANONICAL ADMINISTRATIVE GROUND TRUTH)
+> - **Trạng thái**: NGUỒN CHÂN LÝ HÀNH CHÍNH CHÍNH THỨC (Administrative Master Ground Truth).
+> - **Căn cứ**: TimBus (timbus.vn - TRAMOC / Sở GTVT Hà Nội) cung cấp danh bạ trạm dừng chính thức (ObjectID, tọa độ WGS84) và tim đường giải tỏa phân luồng của cơ quan quản lý nhà nước.
+> - **Lưu ý kiểm chứng thực địa (Empirical Verification Notice)**: Mặc dù TimBus là căn cứ pháp lý và hành chính tối thượng, tim đường số hóa vẫn có thể có độ lệch cục bộ so với vệt bánh xe thực tế tại các nút giao phân luồng tạm thời hoặc công trình giao thông mới. Mọi phân tích ETA bắt buộc phải kiểm chứng đối soát với sai số trực giao d_perp từ telemetry GPS thực nghiệm (theo phương pháp luận tại Doc 48 mục 2).
+
+---
+
 > **Dự án**: Hanoi Bus Big Data & Real-time ETA Prediction System  
 > **Quyết định kiến trúc**: Chốt TimBus (TRAMOC / Sở GTVT Hà Nội) làm Master Ground Truth  
 > **Thực thi**: Bảng `dim_route_crosswalk` & `dim_station_crosswalk`  

@@ -1,5 +1,14 @@
 # 24. KIẾN TRÚC MÔ HÌNH HỌC MÁY CỐT LÕI & ĐỘNG CƠ SUY LUẬN ETA (ML CORE BACKBONE & INFERENCE ENGINE SPECIFICATION)
 
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - PREMATURE DEEP LEARNING)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Đề xuất nhảy cóc vào Deep Learning / Multi-modal ML sớm trước khi có dữ liệu cơ sở. Đã được điều chỉnh: Tạm hoãn ML, hoàn thành Ma trận thời gian di chuyển phân đoạn (Travel Time Matrix) trước.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md](49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
+
 > **Mục tiêu tài liệu:** Đóng băng (Freeze) toàn bộ thiết kế kiến trúc Machine Learning của hệ thống dự đoán thời gian xe buýt đến trạm (ETA) Hà Nội sau các vòng phản biện chuyên sâu. Đây là bản đặc tả kỹ thuật tối hậu (Final Blueprint) làm cơ sở cho giai đoạn ETL, Feature Engineering và Huấn luyện mô hình.
 
 ---

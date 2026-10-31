@@ -1,5 +1,13 @@
 # 08. QUY TRÌNH THU THẬP DỮ LIỆU TOÀN DIỆN (BUS & TOMTOM CRAWLING PIPELINE)
 
+> [!NOTE] TÀI LIỆU LỊCH SỬ KHẢO SÁT (HISTORICAL R&D LOG)
+> - **Trạng thái**: GHI NHẬN TIẾN TRÌNH KHẢO SÁT BAN ĐẦU (Có giá trị tham khảo học thuật, không phải đặc tả kỹ thuật cuối cùng).
+> - **Bối cảnh lịch sử**: Quy trình cào telemetry ban đầu. Mã nguồn chính thức đã được đóng băng trong module_1.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [47_CANONICAL_MODULE_STANDARDIZATION_AND_LEGACY_ARCHIVING.md](47_CANONICAL_MODULE_STANDARDIZATION_AND_LEGACY_ARCHIVING.md).
+
+---
+
+
 Tài liệu này chuẩn hóa toàn bộ quy trình các bước từ thời điểm hiện tại để nhóm triển khai thu thập dữ liệu tự động, ổn định, không bị chặn và kiểm soát chặt chẽ ngân sách tài nguyên (TomTom Quota < 2.500 req/ngày).
 
 ---

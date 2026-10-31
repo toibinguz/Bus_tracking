@@ -1,5 +1,14 @@
 # 20. LỘ TRÌNH VÀ THIẾT KẾ XỬ LÝ DỮ LIỆU & MÔ HÌNH HÓA ETA (DATA PROCESSING & ETA PIPELINE ROADMAP)
 
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - OLD PIPELINE ROADMAP)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Lộ trình kỹ thuật thời kỳ 5 module cũ. Đã được thay thế bằng Lộ trình 5 Trụ cột hiện hành.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [48_COMPREHENSIVE_REMAINING_TASKS_AND_SYSTEM_ROADMAP.md](48_COMPREHENSIVE_REMAINING_TASKS_AND_SYSTEM_ROADMAP.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
+
 > **Ghi chú phân kỳ:** Tài liệu này chuẩn hóa toàn bộ thiết kế kiến trúc, công thức toán học và quy trình xử lý dữ liệu để triển khai sau khi hoàn tất giai đoạn tích lũy dữ liệu cào (Crawl Phase).
 
 ---

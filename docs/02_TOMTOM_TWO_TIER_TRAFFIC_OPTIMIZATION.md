@@ -1,5 +1,14 @@
 # 02. TỐI ƯU HÓA DỮ LIỆU GIAO THÔNG TOMTOM VỚI MÔ HÌNH TRUY VẤN 2 TẦNG (TWO-TIER TRAFFIC ARCHITECTURE)
 
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - TOMTOM FLOW RETIRED)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Mô hình 2 tầng TomTom Flow + Incidents đã bị bãi bỏ. TomTom Flow (19 nút tĩnh) bị loại bỏ 100% trong config/system_config.py do lãng phí quota và không phản ánh dòng xe dùng chung. Hệ thống chỉ giữ lại TomTom Incidents (80 req/ngày).
+> - **Tài liệu chuẩn mực kế thừa**: Xem [44_DELTA_T_AND_DELTA_M_DUAL_PATTERN_ANALYSIS.md](44_DELTA_T_AND_DELTA_M_DUAL_PATTERN_ANALYSIS.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
+
 Tài liệu này giải quyết bài toán giới hạn tài nguyên khắt khe của gói **TomTom Free Tier (2.500 requests/ngày)**, xây dựng mô hình truy vấn 2 tầng (Hierarchical Querying) và chiến lược kết hợp dữ liệu tự suy diễn từ xe buýt (Bus-as-a-Probe).
 
 ---

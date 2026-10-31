@@ -1,5 +1,13 @@
 # 11. BÁO CÁO ĐÁNH GIÁ TOÀN DIỆN CÁC NGUỒN DỮ LIỆU TẮC NGHẼN & CHIẾN LƯỢC QUY MÔ DỰ ÁN (PROJECT SCOPING)
 
+> [!NOTE] TÀI LIỆU LỊCH SỬ KHẢO SÁT (HISTORICAL R&D LOG)
+> - **Trạng thái**: GHI NHẬN TIẾN TRÌNH KHẢO SÁT BAN ĐẦU (Có giá trị tham khảo học thuật, không phải đặc tả kỹ thuật cuối cùng).
+> - **Bối cảnh lịch sử**: Khảo sát so sánh các nguồn dữ liệu giao thông năm 2026. Có giá trị tham khảo học thuật.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [config/system_config.py](config/system_config.py).
+
+---
+
+
 ## 1. Kết Luận Khảo Sát Các Nhà Cung Cấp Bản Đồ & Traffic Ngoại Vi
 
 Trong quá trình tìm kiếm giải pháp lấy dữ liệu tắc nghẽn (mức độ xanh/vàng/đỏ, tốc độ thực tế $v_{\text{current}}$) quy mô thành phố, hệ thống đã tiến hành khảo sát và đo kiểm chi tiết 4 nhà cung cấp hàng đầu:

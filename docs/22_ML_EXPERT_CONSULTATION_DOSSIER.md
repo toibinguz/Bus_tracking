@@ -1,5 +1,13 @@
 # 22. HỒ SƠ THAM VẤN CHUYÊN GIA ML: MÔ HÌNH HÓA ĐỘ TRỄ PHÂN ĐOẠN XE BUÝT HÀ NỘI (ML EXPERT CONSULTATION DOSSIER & PROMPT SCRIPT)
 
+> [!NOTE] TÀI LIỆU LỊCH SỬ THAM VẤN (HISTORICAL R&D LOG)
+> - **Trạng thái**: GHI NHẬN TIẾN TRÌNH KHẢO SÁT BAN ĐẦU (Có giá trị tham khảo học thuật, không phải đặc tả kỹ thuật cuối cùng).
+> - **Bối cảnh lịch sử**: Hồ sơ câu hỏi tham vấn chuyên gia Machine Learning.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [23_ML_EXPERT_CONSULTATION_ANSWERS.md](23_ML_EXPERT_CONSULTATION_ANSWERS.md).
+
+---
+
+
 > **Mục đích tài liệu:** Tài liệu này tổng hợp toàn bộ bối cảnh dự án, kiến trúc dữ liệu thực tế và thiết kế mô hình học máy hiện tại. Phần cuối tài liệu được đóng gói thành **Lời kịch bản (Prompt Script) chuẩn mực** để gửi trực tiếp cho Chuyên gia Học Máy (Machine Learning Engineer / Transport AI Specialist) hoặc mô hình AI cấp cao (GPT-4 / Claude Opus / Gemini Pro) nhằm lấy phản biện chuyên sâu.
 
 ---

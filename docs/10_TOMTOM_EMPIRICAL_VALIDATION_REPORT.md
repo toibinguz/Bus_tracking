@@ -1,5 +1,14 @@
 # 10. BÁO CÁO THỰC NGHIỆM ĐỐI SOÁT TRỰC TIẾP TOMTOM (EMPIRICAL VALIDATION REPORT)
 
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - FLOW VALIDATION)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Báo cáo thử nghiệm TomTom Flow trên 19 nút cũ. Đã bãi bỏ việc dùng Flow.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [44_DELTA_T_AND_DELTA_M_DUAL_PATTERN_ANALYSIS.md](44_DELTA_T_AND_DELTA_M_DUAL_PATTERN_ANALYSIS.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
+
 Báo cáo này trình bày kết quả thực nghiệm trực tiếp trên dữ liệu giao thông thực tế tại Hà Nội nhằm kiểm chứng 2 giả thuyết:
 1. `freeFlowSpeed` có phải là hằng số tĩnh không?
 2. Có thể dùng dữ liệu Incident diện rộng (`delay`, `magnitudeOfDelay`) để suy diễn tình trạng tắc đường và bổ trợ tính ETA mà không cần tốn quota gọi Flow API không?

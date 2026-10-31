@@ -1,4 +1,13 @@
 # 32. BÁO CÁO THỐNG NHẤT TRẠM DỪNG & ĐỐI SOÁT KHÔNG GIAN (TELEMETRY VS OSM)
+
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - OSM DISCREPANCY)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu vết quá trình R&D).
+> - **Lý do bãi bỏ**: Phân tích sai lệch giữa BusMap và OSM cũ. Đã được kế thừa và giải quyết dứt điểm khi đưa TimBus vào làm Master Ground Truth chính thức của Sở GTVT.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [38_TIMBUS_VS_BUSMAP_IDENTIFIER_MAPPING.md](38_TIMBUS_VS_BUSMAP_IDENTIFIER_MAPPING.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
 > **Đối tượng khảo sát**: Tuyến 02 (Bác Cổ - Bến xe Yên Nghĩa)  
 > **Nguồn dữ liệu**:  
 > - OpenStreetMap (OSM) Ground Truth: `data/ground_truth/routes/route_02_metadata.json` (72 trạm)  

@@ -1,4 +1,13 @@
 # 19. KIẾN TRÚC PHÂN RÃ HỆ THỐNG THEO CẤP BẬC MODULE (SRP & DOMAIN BOUNDARIES)
+
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - 5 MODULE ARCHITECTURE)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Kiến trúc 5 module cũ (module_1 đến module_5) đã bị bãi bỏ và lưu trữ vào archive/legacy_modules/. Hệ thống hiện tại chuẩn hóa duy nhất 3 Module chính tắc.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [47_CANONICAL_MODULE_STANDARDIZATION_AND_LEGACY_ARCHIVING.md](47_CANONICAL_MODULE_STANDARDIZATION_AND_LEGACY_ARCHIVING.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
 **Dự án**: Hanoi Bus Tracking & ETA Big Data System  
 **Mục tiêu**: Chuẩn hóa không gian làm việc (Workspace), phân định rõ Chức năng - Nhiệm vụ - Quyền hạn từng module, quy hoạch Scripts về dạng Single Responsibility Principle (SRP) và cam kết không gây ảnh hưởng đến GitHub Actions Relay Bot.
 

@@ -1,5 +1,14 @@
 # 13. PHÂN TÍCH KHOA HỌC: GIỚI HẠN BAO PHỦ TỐI ĐA CỦA HỆ THỐNG CONGESTION (TOMTOM + BUS-AS-A-PROBE)
 
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - CONGESTION COVERAGE)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Phân tích năng lực vùng phủ TomTom Flow cũ, không còn áp dụng.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [config/system_config.py](config/system_config.py).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
+
 ## 1. Định Nghĩa Khoa Học Về "Tiệm Cận Chính Xác" (Near-Accurate Precision)
 
 Trong Lý thuyết Dòng giao thông Đô thị (Urban Traffic Flow Theory) và Kỹ thuật Dự báo ETA, một hệ thống giám sát mức độ tắc nghẽn được coi là **"tiệm cận chính xác theo thời gian thực"** khi thỏa mãn 3 điều kiện biên:

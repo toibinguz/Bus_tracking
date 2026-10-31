@@ -1,4 +1,13 @@
 # 26. PHƯƠNG PHÁP LUẬN XÁC ĐỊNH TRẠM DỪNG & HÌNH HỌC TUYẾN CHUẨN XÁC NHẤT
+
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - OSM IS NOT GROUND TRUTH)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Tài liệu này từng coi OpenStreetMap (OSM) là 'Ground Truth'. Phương pháp này ĐÃ BỊ BÃI BỎ HOÀN TOÀN do OSM thiếu trạm, sai thứ tự và không phải dữ liệu chính thức. Cơ sở dữ liệu gốc chính thức của nhà nước là TimBus (TRAMOC / Sở GTVT Hà Nội) tại Doc 39.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [39_MASTER_GROUND_TRUTH_TIMBUS_SPECIFICATION.md](39_MASTER_GROUND_TRUTH_TIMBUS_SPECIFICATION.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
 ### Kết hợp OSM (Chưa kiểm chứng) và Telemetry GPS Thực Tế (Ground-Truth Khách Quan)
 
 > **Mục tiêu:** Xây dựng quy trình kỹ thuật xác định danh mục trạm dừng và Polyline hình học tuyến đường với độ chuẩn xác tuyệt đối, không đoán mò, không tin mù quáng vào OSM, tận dụng tối đa vệt di chuyển thực tế của hàng trăm lượt xe buýt.

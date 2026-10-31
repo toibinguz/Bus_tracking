@@ -1,5 +1,13 @@
 # 07. PHÂN TÍCH KHẢ THI DỮ LIỆU TĨNH: TRẠM DỪNG, POLYLINE TUYẾN ĐƯỜNG & CHIẾN LƯỢC TOÀN DIỆN
 
+> [!NOTE] TÀI LIỆU LỊCH SỬ KHẢO SÁT (HISTORICAL R&D LOG)
+> - **Trạng thái**: GHI NHẬN TIẾN TRÌNH KHẢO SÁT BAN ĐẦU (Có giá trị tham khảo học thuật, không phải đặc tả kỹ thuật cuối cùng).
+> - **Bối cảnh lịch sử**: Khảo sát tính khả thi của GTFS Hà Nội. Có giá trị tham khảo bối cảnh dữ liệu giao thông Việt Nam.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [34_TIMBUS_TRAMOC_GROUND_TRUTH_DISCOVERY.md](34_TIMBUS_TRAMOC_GROUND_TRUTH_DISCOVERY.md).
+
+---
+
+
 Tài liệu này đánh giá tính khả thi trong việc khai thác dữ liệu tĩnh (Trạm dừng, Hình học tuyến Polyline) từ các tệp nén `.xyz` của BusMap và đề xuất các nguồn dữ liệu thay thế chuẩn quốc tế (GTFS, OpenStreetMap). Đồng thời phân tích 3 nhận định chuyên môn về Timeline trôi, Quét dải biển số xe và Nhược điểm ETA của BusMap.
 
 ---

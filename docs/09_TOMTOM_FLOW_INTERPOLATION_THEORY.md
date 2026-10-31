@@ -1,5 +1,14 @@
 # 09. MÔ HÌNH NỘI SUY VẬN TỐC TỪ DỮ LIỆU DIỆN RỘNG TOMTOM (TRAFFIC INFERENCE & FREE FLOW DYNAMICS)
 
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - FLOW INTERPOLATION)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Lý thuyết nội suy TomTom Flow không còn sử dụng do đã loại bỏ hoàn toàn TomTom Flow khỏi hệ thống.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md](49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
+
 Tài liệu này giải thích chi tiết bản chất các chỉ số giao thông trong TomTom Incident Details (`magnitudeOfDelay`, `delay`, `length`), tính chất của `freeFlowSpeed` và xây dựng công thức toán học nội suy vận tốc tức thời giúp hệ thống **không cần tốn quota gọi API Flow Segment**.
 
 ---

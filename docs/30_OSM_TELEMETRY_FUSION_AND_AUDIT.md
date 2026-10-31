@@ -1,5 +1,14 @@
 # 30. BÁO CÁO HỢP NHẤT DỮ LIỆU TELEMETRY XE BUÝT HÀ NỘI & BẢN ĐỒ TĨNH OPENSTREETMAP (OSM)
 
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - OSM FUSION)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Hợp nhất telemetry trên nền OSM cũ đã bị bãi bỏ. Hệ thống hiện tại chiếu tọa độ Frenet 1D trực tiếp lên tim đường TimBus.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [37_FRENET_PROJECTION_AND_EMPIRICAL_SPATIAL_EVALUATION.md](37_FRENET_PROJECTION_AND_EMPIRICAL_SPATIAL_EVALUATION.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
+
 **Ngày thực hiện kiểm định:** `17/10/2026`  
 **Phạm vi dữ liệu:** `108` batch files (`380.935` bản ghi Telemetry thô trên `756` chu kỳ thu thập) kết hợp với cơ sở dữ liệu đồ thị lộ trình & trạm dừng OSM Hà Nội.
 

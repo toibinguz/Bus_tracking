@@ -1,5 +1,14 @@
 # 14. DANH SÁCH TUYẾN XE BUÝT CỤM BÁCH KHOA & BẰNG CHỨNG KHẢ THI BAO PHỦ BẰNG TOMTOM
 
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - 19 ROUTES SCOPE)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Phạm vi 19 tuyến cụm Bách Khoa ban đầu đã được mở rộng thành 48 tuyến toàn mạng lưới Hà Nội.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [50_PROJECT_MANAGEMENT_AND_ROUTE_HANDOVER_MATRIX.md](50_PROJECT_MANAGEMENT_AND_ROUTE_HANDOVER_MATRIX.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
+
 ## PHẦN 1: CHỐT DANH SÁCH CÁC TUYẾN THỰC HIỆN
 
 Hệ thống chính thức chốt danh sách **Bộ 5 Tuyến Xe Buýt Huyết Mạch Cụm Bách Khoa (HUST Core Cluster)**. Đây là mạng lưới bao phủ trọn vẹn 4 hướng Đông – Tây – Nam – Bắc tỏa ra từ khuôn viên Đại học Bách Khoa Hà Nội (nối liền cụm Bách – Kinh – Xây với hơn 15 trường đại học lớn khác của Thủ đô):

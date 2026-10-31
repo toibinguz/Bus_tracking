@@ -1,5 +1,13 @@
 # 04. THIẾT KẾ MÔ HÌNH DỰ ĐOÁN ETA & KIẾN TRÚC LAMBDA TOÀN DIỆN (HYBRID ETA & LAMBDA ARCHITECTURE)
 
+> [!NOTE] TÀI LIỆU LỊCH SỬ KHẢO SÁT (HISTORICAL R&D LOG)
+> - **Trạng thái**: GHI NHẬN TIẾN TRÌNH KHẢO SÁT BAN ĐẦU (Có giá trị tham khảo học thuật, không phải đặc tả kỹ thuật cuối cùng).
+> - **Bối cảnh lịch sử**: Ý tưởng sơ khai về Lambda Architecture và Speed Profile. Đã phát triển thành kiến trúc Medallion Lakehouse (Bronze -> Silver -> Gold).
+> - **Tài liệu chuẩn mực kế thừa**: Xem [49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md](49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md).
+
+---
+
+
 Tài liệu này chuẩn hóa toàn bộ mô hình toán học dự đoán ETA đa nguồn và chi tiết kỹ thuật triển khai trên Kiến trúc Lambda (Apache Kafka, HDFS, Apache Spark, NoSQL Serving).
 
 ---

@@ -63,3 +63,4 @@ Dữ liệu được trích xuất trực tiếp từ Master Ground Truth TimBus
 2. Tạo **New Project** $\to$ Chọn chế độ xem **Table**.
 3. Import hoặc paste các cột từ file [`data/metadata/route_handover_matrix_48.csv`](../data/metadata/route_handover_matrix_48.csv).
 4. Phân công từng bạn vào cột **Assignee**. Mỗi bạn chạy lệnh trích xuất ma trận theo hướng dẫn trong [Doc 49](49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md).
+

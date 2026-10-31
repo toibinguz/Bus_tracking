@@ -1,5 +1,13 @@
 # 00. TỔNG QUAN HỆ THỐNG VÀ LỘ TRÌNH TRIỂN KHAI (PROJECT OVERVIEW & ROADMAP)
 
+> [!NOTE] TÀI LIỆU LỊCH SỬ KHẢO SÁT (HISTORICAL R&D LOG)
+> - **Trạng thái**: GHI NHẬN TIẾN TRÌNH KHẢO SÁT BAN ĐẦU (Có giá trị tham khảo học thuật, không phải đặc tả kỹ thuật cuối cùng).
+> - **Bối cảnh lịch sử**: Tài liệu tổng quan sơ khởi khi mới bắt đầu dự án. Giữ lại làm nhật ký hình thành ý tưởng, không dùng để tra cứu trạng thái hệ thống.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [48_COMPREHENSIVE_REMAINING_TASKS_AND_SYSTEM_ROADMAP.md](48_COMPREHENSIVE_REMAINING_TASKS_AND_SYSTEM_ROADMAP.md).
+
+---
+
+
 Hệ thống dự đoán thời gian xe buýt đến trạm (Estimated Time of Arrival - ETA) kết hợp dữ liệu lớn phân tán (Big Data) và thông tin giao thông đa nguồn. Bộ tài liệu này chuẩn hóa toàn bộ thiết kế kiến trúc, giải quyết triệt để các rào cản kỹ thuật và đề ra lộ trình thực thi rõ ràng cho nhóm.
 
 ---

@@ -1,4 +1,12 @@
 # 31. LỘ TRÌNH KỸ THUẬT & 5 TRỞ NGẠI CỐT LÕI TÍCH HỢP BẢN ĐỒ - TÍNH TOÁN ETA
+
+> [!NOTE] TÀI LIỆU LỊCH SỬ TRỞ NGẠI KỸ THUẬT (HISTORICAL R&D LOG)
+> - **Trạng thái**: GHI NHẬN TIẾN TRÌNH KHẢO SÁT BAN ĐẦU (Có giá trị tham khảo học thuật, không phải đặc tả kỹ thuật cuối cùng).
+> - **Bối cảnh lịch sử**: Nhật ký ghi nhận các trở ngại kỹ thuật thời kỳ OSM.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [48_COMPREHENSIVE_REMAINING_TASKS_AND_SYSTEM_ROADMAP.md](48_COMPREHENSIVE_REMAINING_TASKS_AND_SYSTEM_ROADMAP.md).
+
+---
+
 > **Dự án**: Hanoi Bus Big Data & Real-time ETA Prediction System  
 > **Tài liệu tham chiếu**: Đúc kết từ phiên thảo luận định hướng kiến trúc ngày 19/10/2026.  
 > **Nguyên tắc triển khai**: Thay thế cụm Apache nặng nề bằng cơ sở dữ liệu nhúng chuẩn `.db` (SQLite/DuckDB), xử lý tuần tự từng nút thắt kỹ thuật từ nhỏ đến lớn (Vertical Slice trên Tuyến 02).

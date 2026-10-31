@@ -1,5 +1,14 @@
 # 21. ĐẶC TẢ PHÂN ĐOẠN TUYẾN, XỬ LÝ CHẶNG DỞ DANG & BỘ ĐẶC TRƯNG 24 CHIỀU (SEGMENTATION & FEATURE SPECIFICATION)
 
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - OLD FEATURE SPEC)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Đặc tả đặc trưng phân mảnh thời 5 module cũ. Hiện tại Feature Store và Ma trận thời gian được tổ chức tập trung trong module_3.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md](49_HISTORICAL_TRAVEL_TIME_MATRIX_SPECIFICATION_AND_STRATEGY.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
+
 > **Mục tiêu tài liệu:** Chuẩn hóa phương pháp phân đoạn tuyến (Segmentation Strategy), giải thuật toán học xử lý xe đang ở giữa đoạn (Partial Segment), và đặc tả chi tiết 24 chiều đặc trưng đầu vào cùng đầu ra của mô hình Machine Learning.
 
 ---

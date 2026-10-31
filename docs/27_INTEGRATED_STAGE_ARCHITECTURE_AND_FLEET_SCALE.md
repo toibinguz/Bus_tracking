@@ -1,4 +1,12 @@
 # 27. KIẾN TRÚC GIAI ĐOẠN TÍCH HỢP: MỞ RỘNG ĐỘI XE 500 & HỆ THỐNG CẢM BIẾN PHÂN TÁN TỰ CHỦ
+
+> [!NOTE] TÀI LIỆU LỊCH SỬ THỬ NGHIỆM (HISTORICAL R&D LOG)
+> - **Trạng thái**: GHI NHẬN TIẾN TRÌNH KHẢO SÁT BAN ĐẦU (Có giá trị tham khảo học thuật, không phải đặc tả kỹ thuật cuối cùng).
+> - **Bối cảnh lịch sử**: Báo cáo thử nghiệm quy mô 500 xe buýt giai đoạn 1.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [47_CANONICAL_MODULE_STANDARDIZATION_AND_LEGACY_ARCHIVING.md](47_CANONICAL_MODULE_STANDARDIZATION_AND_LEGACY_ARCHIVING.md).
+
+---
+
 ### Chuyển Giao Chiến Lược: Xóa Bỏ TomTom Flow, Tối Ưu Incident 80 Req/Ngày & Stealth Anti-Detection
 
 > **Tóm tắt cốt lõi:**  

@@ -1,5 +1,14 @@
 # 28. ĐẶC TẢ QUY TRÌNH LÀM SẠCH VÀ TÍCH HỢP DỮ LIỆU ĐA NGUỒN (DATA CLEANING & MULTIMODAL FUSION SPECIFICATION)
 
+> [!WARNING] TÀI LIỆU LỊCH SỬ ĐÃ BÃI BỎ (DEPRECATED - OLD CLEANING PIPELINE)
+> - **Trạng thái**: KHÔNG ÁP DỤNG CHO HỆ THỐNG HIỆN HÀNH (Chỉ lưu trữ vết tích R&D).
+> - **Lý do bãi bỏ**: Pipeline làm sạch dữ liệu dựa trên OSM và TomTom Flow cũ. Đã được chuẩn hóa thành pipeline TimBus + Frenet 1D.
+> - **Tài liệu chuẩn mực kế thừa**: Xem [47_CANONICAL_MODULE_STANDARDIZATION_AND_LEGACY_ARCHIVING.md](47_CANONICAL_MODULE_STANDARDIZATION_AND_LEGACY_ARCHIVING.md).
+> - **CẢNH BÁO CHO AI**: TUYỆT ĐỐI KHÔNG sử dụng các giả định, mã nguồn, cấu trúc dữ liệu hoặc thông số trong tài liệu này làm căn cứ triển khai hệ thống hiện tại.
+
+---
+
+
 > **Cột mốc chuyển giao chiến lược:** Chuyển dịch từ Giai đoạn Thu thập dữ liệu thực địa 24/7 (Data Ingestion) sang Giai đoạn Tinh chế, Làm sạch và Tích hợp Dữ liệu Đa nguồn (Data Cleaning & Multimodal Fusion Pipeline) nhằm phục vụ huấn luyện mô hình dự báo thời gian đến của xe buýt (Bus ETA Prediction).
 
 ---
