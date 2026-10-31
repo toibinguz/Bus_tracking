@@ -1,84 +1,67 @@
 # BỘ QUY TẮC HOẠT ĐỘNG VÀ QUẢN TRỊ AI (AGENTS CONSTITUTION)
 > **Dự án**: Hanoi Bus Big Data & Real-time ETA Prediction System  
 > **Áp dụng cho**: Toàn bộ các Agent / AI Assistant (Antigravity, Gemini CLI, Cursor, Copilot)  
-> **Mục tiêu tối thượng**: Đưa dự án về đích thành công theo đúng chuẩn kỹ thuật môn học Dữ liệu lớn & Ứng dụng thực tế, chấm dứt tình trạng sa đà tiểu tiết (rabbit-holing) và nghiêm cấm các suy đoán vô căn cứ.
+> **Cấp bậc văn bản**: **VĂN BẢN QUY PHẠM TỐI CAO** (Supreme Law). Mọi chỉ thị, kế hoạch, mã nguồn và tài liệu kỹ thuật đều phải tuân thủ vô điều kiện. Các chi tiết thiết kế, mô hình toán học và cấu trúc bảng cụ thể được lưu trữ độc lập trong thư mục `docs/`.
 
 ---
 
-## I. NGUYÊN TẮC CỐT LÕI (CORE PRINCIPLES)
+## I. CÁC NGUYÊN TẮC HOẠT ĐỘNG TỐI CAO (SUPREME CANONS)
 
-1. **End-to-End Delivery First (Tia đạn vạch đường - Vertical Slice)**:
-   - Ưu tiên cao nhất là xây dựng luồng thông suốt từ đầu đến cuối: `Ingestion -> Big Data Lakehouse -> Ma Trận Thời Gian Di Chuyển (Travel Time Matrix) -> Serving/Evaluation`.
-   - Tuyệt đối không dừng lại ở tầng Ingestion để tối ưu hóa quá mức (over-engineering). Khi tầng Ingestion đạt mức "Đủ tốt để dùng" (Good-enough), phải chuyển ngay sang tầng Lưu trữ Dữ liệu Lớn và khai phá Ma trận thời gian.
+### Điều 1: Kỷ Luật Thực Nghiệm (Empirical Verification Over Speculation)
+1. **Nghiêm cấm suy đoán vô căn cứ**: Mọi kết luận kỹ thuật, số liệu đo lường, phân tích độ trễ hay đánh giá sai số bắt buộc phải được chứng minh bằng: mã nguồn thực thi, dữ liệu thực nghiệm, log chạy thực tế hoặc kiểm thử tự động.
+2. **Tuyệt đối cấm**:
+   - Tự tiện suy diễn cảm tính về lưu lượng xe, thời gian chờ hoặc hành vi giao thông khi chưa có số liệu chứng minh.
+   - Tự ý phán đoán hoặc "bịa" kết quả benchmark, độ chính xác mô hình.
+   - Áp đặt các giả định lý thuyết mà không đối chiếu với dữ liệu thực địa.
 
-2. **Dứt Khoát Phân Chia: Production vs. Experiment**:
-   - **Hệ thống 3 module chính tắc (`module_1`, `module_2`, `module_3`)**: Chỉ chứa mã nguồn ĐÃ HOÀN THIỆN, chạy ổn định, có docstring, có type hints và kiểm thử sạch sẽ.
-     - `module_1_data_ingestion_and_preprocessing`: Thu thập telemetry, sự cố TomTom, Master Ground Truth TimBus, chiếu không gian Frenet 1D.
-     - `module_2_big_data_storage_and_lakehouse`: Hồ dữ liệu Medallion Parquet (Bronze -> Silver -> Gold), DuckDB và CSDL vận hành SQLite.
-     - `module_3_bus_eta_prediction`: Ma trận thời gian di chuyển phân đoạn (Travel Time Matrix Core) và các công cụ đánh giá ETA.
-   - **Thư mục `experiments/`**: Là nơi duy nhất được phép đặt các script thử nghiệm, phân tích ad-hoc, notebook tạm thời. Khi thử nghiệm thành công mới được refactor đưa vào module chính.
-   - Toàn bộ 5 module rời rạc cũ đã được lưu trữ vĩnh viễn trong `archive/legacy_modules/`.
+### Điều 2: Thiết Kế Trước, Phê Duyệt Rồi Mới Triển Khai (Design First, Approve, Then Implement)
+1. **Không hành động tự phát**: Mọi đề xuất thay đổi kiến trúc, thuật toán hay bổ sung tính năng phải được tổng hợp thành tài liệu đặc tả Markdown (`.md`) cụ thể trong thư mục `docs/`.
+2. **Nguyên tắc phê duyệt**: AI chỉ tiến hành viết code, chỉnh sửa hệ thống hoặc can thiệp dữ liệu khi người dùng đã xem xét văn bản đặc tả và đồng ý cho phép triển khai.
 
-3. **Data Contract Freeze (Đóng băng hợp đồng dữ liệu)**:
-   - Tầng Crawl Bot trên GitHub Actions hiện tại đã chạy ổn định 24/7 và đẩy dữ liệu lên Hugging Face. **CẤM** tự ý thay đổi logic socket, network protocol của crawler trừ khi có lỗi chí mạng làm dừng hệ thống.
-   - Môi trường GitHub Actions runner chạy Ubuntu tiêu chuẩn và không có thư viện bên ngoài; mã nguồn tầng Ingestion bắt buộc dùng Standard Library thuần túy của Python.
+### Điều 3: Đóng Băng Hợp Đồng & Phân Định Ranh Giới (Contract Freeze & Boundary Separation)
+1. **Đóng băng tầng thu thập (Crawler Contract Freeze)**: Hạ tầng crawler 24/7 trên môi trường điện toán đám mây là Black-box Service đã chạy ổn định. CẤM tự ý thay đổi logic socket, giao thức mạng trừ khi có sự cố chí mạng làm dừng hệ thống. Mã nguồn tầng này bắt buộc chỉ dùng Standard Library thuần túy.
+2. **Phân định Production vs. Experiment**:
+   - **Hệ thống 3 module chính tắc (`module_1`, `module_2`, `module_3`)**: Là môi trường Production, chỉ chứa mã nguồn đã hoàn thiện, có type hints, docstring và kiểm thử sạch sẽ.
+   - **Thư mục `experiments/`**: Là nơi duy nhất được phép đặt các script thử nghiệm, phân tích ad-hoc, kiểm toán tạm thời. Khi thử nghiệm thành công và được duyệt mới refactor đưa vào module chính.
+   - Toàn bộ module cũ đã được lưu trữ vĩnh viễn trong `archive/legacy_modules/`.
 
-4. **Nghiêm Cấm Suy Đoán Vô Căn Cứ & "Chém Gió" (Empirical Verification Only - No Speculation)**:
-   - **Mọi tuyên bố kỹ thuật, kết luận về chu kỳ, độ trễ, sai số hay các đặc trưng ETA đều phải được chứng minh bằng**: Code thực thi, dữ liệu thực nghiệm, log chạy thực tế hoặc kiểm thử tự động.
-   - **Tuyệt đối cấm**:
-     - Tự tiện đưa ra các giả định vô căn cứ về lưu lượng xe, thời gian chờ hoặc hành vi giao thông khi chưa có số liệu chứng minh.
-     - Tự ý phán đoán hoặc "bịa" kết quả benchmark, độ chính xác mô hình.
-     - Đưa vào các mô hình phức tạp (XGBoost/LightGBM/Deep Learning) khi dữ liệu thống kê cơ sở chưa được kiểm chứng đầy đủ.
+### Điều 4: Nguồn Chân Lý Dữ Liệu Tối Thượng (Single Source of Truth)
+1. **Master Ground Truth duy nhất**: Danh bạ trạm dừng, tọa độ địa lý WGS84 và hình học tim đường chính thức của mạng lưới xe buýt bắt buộc căn cứ trên cơ sở dữ liệu có thẩm quyền của cơ quan quản lý nhà nước (TimBus / TRAMOC / Sở GTVT). Nghiêm cấm tự gom cụm tọa độ thủ công khi đã có dữ liệu chính thức.
+2. **Tập trung hóa điểm truy cập**: Mọi cấu hình hệ thống, ngưỡng vật lý, hằng số và đường dẫn lưu trữ CSDL vận hành phải được quản lý tập trung trong `config/system_config.py`. Nghiêm cấm hardcode đường dẫn file rải rác.
 
-5. **Chiến Lược Trọng Tâm: Hoàn Thành Ma Trận Thời Gian Trước (Travel Time Matrix First)**:
-   - **Tạm hoãn việc chốt và triển khai Machine Learning**: Không được vội vã triển khai các mô hình ML phức tạp khi chưa có nền tảng vững chắc.
-   - **Ưu tiên số 1**: Xây dựng hoàn chỉnh **Ma trận thời gian di chuyển phân đoạn (Historical Travel Time Matrix)** cho toàn bộ 48 tuyến xe buýt theo từng khung giờ và loại ngày (Bảng `agg_segment_travel_times`).
-   - Ma trận này là cốt lõi của tầng **Gold Batch Layer** theo đúng yêu cầu môn học Big Data, đồng thời đóng vai trò mỏ neo chuẩn (Empirical Baseline) để dự báo ETA an toàn khi mất sóng GPS.
+### Điều 5: Động Học Dẫn Xuất (Derived Kinematics Over Raw Instantaneous Sensors)
+1. **Không phụ thuộc vận tốc tức thời thô**: Trường vận tốc tức thời từ GPS cực kỳ không ổn định (nhiễu Doppler, nhảy ảo khi dừng đỗ, làm tròn về 0 khi bò chậm).
+2. **Nguyên lý không gian - thời gian**: Mọi tính toán động học, vận tốc di chuyển, bóc tách thời gian dừng đỗ (Dwell Time) và dự báo ETA bắt buộc phải dựa trên **vận tốc dẫn xuất không gian - thời gian** ($\bar{v} = \Delta s / \Delta t$) và **ngưỡng dịch chuyển không gian**. Nghiêm cấm dùng điều kiện vận tốc cảm biến tức thời bằng 0 để phán đoán dừng đỗ.
 
-6. **Tài Liệu Hóa Bắt Buộc & Trình Duyệt Trước Khi Triển Khai (Design First, Approve, Then Implement)**:
-   - Sau mỗi đợt thảo luận, phân tích kỹ thuật hoặc chốt giải pháp với người dùng, AI **BẮT BUỘC** phải tổng hợp và ghi lại toàn bộ kết luận, mô hình toán, kiến trúc và lộ trình hành động vào một tệp Markdown (`.md`) cụ thể trong thư mục `docs/`.
-   - Các tệp tài liệu trong `docs/` phải được đánh số thứ tự tăng dần liên tục, không ngắt quãng (hiện đã đến `docs/49_...md`).
-   - **Nguyên tắc triển khai**: Lập tài liệu đặc tả (.md) trước để người dùng xem xét và phê duyệt; chỉ tiến hành viết code và can thiệp hệ thống khi người dùng đã đồng ý cho phép triển khai.
-
-7. **Tuyệt Đối Không Phụ Thuộc Vận Tốc Tức Thời GPS (No Raw Speed Reliance)**:
-   - Trường `speed` trong telemetry cực kỳ không ổn định (nhiễu Doppler, nhảy ảo 2-7 km/h khi xe đỗ, làm tròn về 0 km/h khi bò chậm).
-   - **Bắt buộc**: Mọi tính toán động học, nhận diện dừng đỗ (dwell time) và ETA phải dựa trên **vận tốc dẫn xuất không gian - thời gian** ($\bar{v} = \Delta s / \Delta t$) và **ngưỡng dịch chuyển không gian** ($\Delta s < 15\text{m}$ trong $\Delta t \ge 20\text{s}$). Nghiêm cấm dùng điều kiện `speed == 0` thô để phán đoán dừng trạm.
-
-8. **TimBus (TRAMOC / Sở GTVT Hà Nội) Là Master Ground Truth Duy Nhất**:
-   - Cổng TimBus (`timbus.vn`) thuộc TRAMOC / Transerco là cơ sở dữ liệu gốc có thẩm quyền cao nhất về danh bạ trạm dừng (`ObjectID`), tọa độ địa lý WGS84 và hình học tim đường.
-   - Mọi module phân tích, Map-Matching và tính toán ETA bắt buộc liên kết qua bảng ánh xạ chuẩn (`dim_route_crosswalk`, `dim_station_crosswalk`) từ TimBus (đã nạp 48 tuyến, 3.646 trạm, 17.631 điểm tim đường). Nghiêm cấm suy đoán hay gom cụm tọa độ thủ công khi đã có dữ liệu nhà nước.
-
-9. **Tập Trung Hóa Điểm Truy Cập Dữ Liệu (Single Source of Truth for Paths)**:
-   - Mọi truy cập vào CSDL SQLite vận hành phải thông qua hàm `get_database_path()` trong `config/system_config.py` (chuẩn hóa tên tệp về `data/hanoi_bus_system.db`). Nghiêm cấm hardcode các đường dẫn file tạm hay file legacy rải rác.
+### Điều 6: Phân Tầng Trọng Tâm (Layered Priority - Vertical Slice)
+1. **Ưu tiên End-to-End Vertical Slice**: Tập trung xây dựng luồng thông suốt từ Ingestion $\to$ Lakehouse $\to$ Baseline Thống kê $\to$ Serving. Chấm dứt tình trạng sa đà tối ưu quá mức ở một khâu cục bộ (rabbit-holing).
+2. **Nền tảng trước, phức tạp sau**: Xây dựng hoàn chỉnh tầng dữ liệu lớn và Ma trận thời gian di chuyển thống kê trước; không nhảy cóc sang các mô hình Machine Learning / Deep Learning phức tạp khi dữ liệu cơ sở chưa được kiểm chứng đầy đủ.
 
 ---
 
-## II. PHÂN ĐỊNH QUYỀN HẠN VÀ TRÁCH NHIỆM CỦA AI
+## II. RANH GIỚI BỊ CẤM (STRICT GUARDRAILS)
 
-| Phạm Vi | Quyền Hạn Của AI | Ranh Giới Bị Cấm (Guardrails) |
+| Phạm Vi Hoạt Động | Quyền Hạn Của AI | Ranh Giới Bị Cấm Tuyệt Đối |
 | :--- | :--- | :--- |
-| **Hạ tầng Crawl (GitHub Actions / Cloud)** | Đọc dữ liệu, kiểm tra health check, tải batch đồng bộ | **CẤM** can thiệp làm gián đoạn workflow 24/7 hoặc sửa đổi cấu trúc cron đang chạy ổn định. |
-| **Cấu trúc 3 Module Chính (`module_1` - `module_3`)** | Tái cấu trúc, tối ưu thuật toán, viết test, bổ sung docstring chuẩn | **CẤM** nhồi nhét script cào tạm thời, code nháp hoặc triển khai ML tự phát khi chưa được duyệt. |
-| **Lưu trữ Dữ liệu Lớn (Big Data & Lakehouse)** | Thiết kế Parquet partition, DuckDB/Spark pipeline, Gold Aggregate Tables | Không tạo các file database phình to vô tội vạ mà không có indexing hay partition rõ ràng. |
-| **Ma Trận Thời Gian & Dự Báo ETA** | Xây dựng thuật toán trích xuất ma trận, bóc tách Dwell Time, tính toán baseline phân đoạn | **CẤM** suy đoán siêu tham số ML, không nhảy cóc sang mô hình Deep Learning khi chưa hoàn tất ma trận 48 tuyến. |
+| **Hạ tầng Crawl 24/7 (Cloud / Actions)** | Đọc dữ liệu, kiểm tra health check, bảo đảm watchdog tự phục hồi | **CẤM** can thiệp làm gián đoạn chuỗi tiếp sức hoặc tự ý thay đổi giao thức crawler đang chạy ổn định. |
+| **3 Module Chính Tắc (`module_1` - `module_3`)** | Tái cấu trúc, tối ưu thuật toán, viết test, bổ sung tài liệu kỹ thuật | **CẤM** nhồi nhét script cào tạm thời, code nháp hoặc triển khai ML tự phát khi chưa được duyệt. |
+| **Lưu Trữ Dữ Liệu Lớn (Big Data & Lakehouse)** | Tối ưu hóa truy vấn columnar (Parquet, DuckDB), chuẩn hóa schema | **CẤM** tạo các tệp cơ sở dữ liệu phình to vô tội vạ mà không có indexing hay partitioning rõ ràng. |
+| **Ma Trận Thời Gian & Dự Báo ETA** | Xây dựng thuật toán thống kê phân vị, bóc tách dwell time, tính toán baseline | **CẤM** suy đoán siêu tham số ML, không đưa mô hình hộp đen vào khi chưa hoàn tất phân tích thống kê thực tế. |
 
 ---
 
 ## III. TIÊU CHUẨN HOÀN THÀNH TÁC VỤ (DEFINITION OF DONE - DoD)
 
-Một công việc do AI thực hiện chỉ được coi là hoàn thành khi đáp ứng đủ 4 tiêu chí:
-1. **Executable Code**: Mã nguồn chạy được trực tiếp trên hệ thống (exit code 0), không còn lỗi cú pháp hay import ảo (chỉ khi có lệnh triển khai code).
+Một công việc chỉ được coi là hoàn thành khi đáp ứng đủ 4 tiêu chí khắt khe:
+1. **Executable Code**: Mã nguồn chạy được trực tiếp trên hệ thống (exit code 0), không có lỗi cú pháp, import ảo hay phụ thuộc môi trường chưa kiểm chứng.
 2. **No Regression**: Không phá vỡ các chức năng, pipeline hay file cấu hình đang chạy trước đó.
 3. **Traceability**: Có log hoặc output hiển thị rõ ràng kết quả định lượng, dựa trên dữ liệu thực tế, không có số liệu suy đoán.
 4. **Documentation**: Có tài liệu ngắn gọn, súc tích chỉ rõ vị trí file, mô hình toán, cách chạy và ý nghĩa kết quả.
 
 ---
 
-## IV. ĐỊNH HƯỚNG 3 BÀI TOÁN CHIẾN LƯỢC
+## IV. QUY ƯỚC QUẢN TRỊ TÀI LIỆU (DOCUMENTATION GOVERNANCE)
 
-Mọi câu trả lời và đề xuất giải pháp của AI phải luôn bám sát vào 3 bài toán lớn:
-* **Phần 1 - Thu thập & Tiền xử lý (Data Ingestion & Preprocessing)**: ĐÃ XONG nền tảng (48 tuyến, 3.646 trạm TimBus, 285k pings đã chiếu 1D Frenet). Duy trì crawler tự động hóa 24/7, dừng việc đào bới tiểu tiết.
-* **Phần 2 - Lưu trữ & Xử lý Dữ liệu Lớn (Big Data Storage & Processing - BẮT BUỘC MÔN HỌC)**: Chuẩn hóa CSDL vận hành (`hanoi_bus_system.db`), chuyển đổi JSONL sang Medallion Parquet (Bronze -> Silver -> Gold), tối ưu hóa truy vấn bằng DuckDB.
-* **Phần 3 - Giải quyết bài toán nghiệp vụ (Ma Trận Thời Gian & Dự Báo ETA)**:
-  - **Trọng tâm hiện tại (P0)**: Xây dựng Ma trận thời gian di chuyển lịch sử (Travel Time Matrix $\mathbf{T}$) giữa các trạm dừng liên tiếp $\to$ Trực quan hóa Heatmap & Báo cáo điểm nghẽn $\to$ Động cơ dự báo ETA mỏ neo (Anchor Baseline ETA).
-  - **Tương lai (P1 - Sau khi Ma trận hoàn tất)**: Xem xét mô hình Machine Learning (LightGBM/XGBoost) như một hàm hiệu chỉnh độ lệch tức thời ($\Delta t_{\text{ML}}$).
+1. **Vị trí lưu trữ chi tiết kỹ thuật**: Toàn bộ các phân tích dữ liệu, mô hình toán học, cấu trúc schema bảng và lộ trình chi tiết KHÔNG ĐƯỢC nhồi nhét vào Hiến pháp này, mà PHẢI được lưu trữ thành các văn bản độc lập trong thư mục `docs/`.
+2. **Quy tắc đánh số liên tục**: Các tài liệu trong `docs/` bắt buộc đánh số thứ tự tăng dần liên tục, không ngắt quãng (từ `docs/00_...md` đến tài liệu mới nhất).
+3. **Bảo tồn tri thức**: Mọi phát hiện quan trọng từ quá trình thực nghiệm phải được văn bản hóa để chuyển giao cho các thành viên trong nhóm, không để thất lạc trong lịch sử hội thoại.

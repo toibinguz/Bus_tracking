@@ -1,0 +1,49 @@
+﻿Mã Tuyến,Tên Tuyến,Gói Phân Công,Số Trạm Dừng (TimBus),Số Bản Ghi Pings (Frenet 1D),Trạng Thái Ma Trận,Người Phụ Trách,Ghi Chú Kỹ Thuật
+01,Bến xe Gia Lâm - Bến xe Yên Nghĩa,Gói 1: Tuyến Trục Lõi,74,3512,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+02,Bác Cổ - Bến xe Yên Nghĩa,Gói 1: Tuyến Trục Lõi,74,12352,Hoàn tất (Mẫu 100%),Trưởng nhóm,Golden Route - Đã có Dwell Time & Baseline
+05,MAI ĐỘNG - ĐẠI HỌC TÀI NGUYÊN VÀ MÔI TRƯỜNG HÀ NỘI,Gói 4: Tuyến Ngoại Thành,72,4439,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+07,Cầu Giấy - Sân bay Nội Bài (điểm đỗ T1),Gói 4: Tuyến Ngoại Thành,52,13331,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+08A,Long Biên - Đông Mỹ,Gói 1: Tuyến Trục Lõi,67,5876,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+101A,Bến xe Giáp Bát - Vân Đình,Gói 4: Tuyến Ngoại Thành,141,3964,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+105,Đô Nghĩa - Cầu Giấy,Gói 3: Tuyến Vành Đai,76,6105,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+107,Kim Mã - Làng văn hóa du lịch các dân tộc VN,Gói 2: VinBus & BRT,110,8418,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+109,Bến xe Mỹ Đình - Sân bay Nội Bài (điểm đỗ xe buýt nhà ga T1),Gói 4: Tuyến Ngoại Thành,59,5046,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+11,Công viên Thống Nhất - Học viện Nông Nghiệp VIệt Nam,Gói 1: Tuyến Trục Lõi,55,4423,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+122,Bến xe Gia Lâm - KCN Bắc Thăng Long,Gói 4: Tuyến Ngoại Thành,69,10421,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+123,Bến xe Yên Nghĩa - Hồng Dương (Thanh Oai),Gói 4: Tuyến Ngoại Thành,57,2316,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+13,CV nước Hồ Tây - Cổ Nhuế (HVCS),Gói 4: Tuyến Ngoại Thành,46,3117,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+146,Hào Nam - Phù Đổng,Gói 4: Tuyến Ngoại Thành,58,6765,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+17,Long Biên - Sân bay Nội Bài (điểm đỗ xe buýt nhà ga T1).,Gói 4: Tuyến Ngoại Thành,87,3810,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+19,Trần Khánh Dư - Học viện chính sách và phát triển,Gói 4: Tuyến Ngoại Thành,90,8853,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+21A,Bến xe Giáp Bát - Bến xe Yên Nghĩa,Gói 4: Tuyến Ngoại Thành,63,6718,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+22A,Bến xe Gia Lâm - Khu đô thị Kiến Hưng,Gói 4: Tuyến Ngoại Thành,74,10639,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+26,Mai Động - SVĐ Quốc gia,Gói 1: Tuyến Trục Lõi,71,8468,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+27,Bến xe Yên Nghĩa - Bến xe Nam Thăng Long,Gói 1: Tuyến Trục Lõi,85,10235,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+28,BX Nước Ngầm - Đông Ngạc - Đại học Mỏ,Gói 3: Tuyến Vành Đai,75,3874,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+32,Bến xe Giáp Bát - Nhổn,Gói 1: Tuyến Trục Lõi,70,9003,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+34,Bến xe Mỹ Đình - Bến xe Gia Lâm,Gói 3: Tuyến Vành Đai,55,9001,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+35A,Trần Khánh Dư - Nam Thăng Long,Gói 4: Tuyến Ngoại Thành,69,2104,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+37,Bến xe Giáp Bát - Chương Mỹ,Gói 4: Tuyến Ngoại Thành,74,6561,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+38,Tân Xuân - Mai Động,Gói 3: Tuyến Vành Đai,76,3041,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+39,CÔNG VIÊN NGHĨA ĐÔ - MAI ĐỘNG,Gói 3: Tuyến Vành Đai,94,4523,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+40,Công viên Thống Nhất - Văn Lâm,Gói 4: Tuyến Ngoại Thành,59,3558,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+42,Bến xe Giáp Bát - Trung Mầu (GIa Lâm),Gói 4: Tuyến Ngoại Thành,88,3595,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+43,Kim Mã - Thị trấn Đông Anh,Gói 4: Tuyến Ngoại Thành,63,3950,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+48,Bến xe Nước Ngầm - Chương Dương - Phúc Lợi (Chung cư Ruby City),Gói 4: Tuyến Ngoại Thành,80,4139,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+51,Bến Xe Gia Lâm - Trần Vỹ (Học viện Tư Pháp),Gói 4: Tuyến Ngoại Thành,79,9119,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+56B,Học viện Phật Giáo VN - Xuân Giang - Bắc Phú - Học viện Phật Giáo VN,Gói 4: Tuyến Ngoại Thành,70,3491,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+61,Dục Tú (Đông Anh) - Công viên Cầu Giấy,Gói 4: Tuyến Ngoại Thành,95,4394,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+64,BX Mỹ Đình - Phố Nỉ - TTTM Bình An,Gói 4: Tuyến Ngoại Thành,85,4230,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+67,Đan Phượng - Yên Bài,Gói 4: Tuyến Ngoại Thành,116,2683,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+90,Hào Nam (điểm đỗ xe buýt – ga Cát Linh). - Sân bay Nội Bài (bãi đỗ xe nhà ga T2).,Gói 4: Tuyến Ngoại Thành,44,3644,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+92,Nhổn - Phú Sơn (Ba Vì),Gói 4: Tuyến Ngoại Thành,124,3820,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+99,Kim Mã - Ngũ Hiệp (Thanh Trì),Gói 4: Tuyến Ngoại Thành,59,3502,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+BRT01,Bến xe Yên Nghĩa - Kim Mã,Gói 2: VinBus & BRT,44,10580,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+E01,BX. Mỹ Đình - KĐT. Ocean Park,Gói 2: VinBus & BRT,63,12343,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+E02,Hào Nam - KĐT Ocean Park,Gói 2: VinBus & BRT,78,7095,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+E03,Mỹ Đình (Hàm Nghi) - Ocean Park,Gói 2: VinBus & BRT,81,5768,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+E04,KĐT Smart City - Vincom Long Biên,Gói 2: VinBus & BRT,89,8370,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+E05,Long Biên - KĐT Smart City,Gói 2: VinBus & BRT,67,3827,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+E06,Bến xe Giáp Bát - KĐT Smart City,Gói 2: VinBus & BRT,73,6202,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+E10,Khu đô thị Ocean Park - Nội Bài,Gói 4: Tuyến Ngoại Thành,47,4396,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
+E11,Yên Phụ - Bờ Hồ - Lăng Bác - Yên Phụ,Gói 4: Tuyến Ngoại Thành,26,0,Sẵn sàng trích xuất,,Đã có TimBus Ground Truth & Frenet 1D
