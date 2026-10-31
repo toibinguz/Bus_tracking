@@ -114,6 +114,14 @@ OSM_TILE_SERVERS = {
         "max_zoom": 20,
         "requires_key": False,
         "requires_custom_headers": False
+    },
+    "esri_sat": {
+        "name": "Esri World Imagery (Satellite - Keyless and Headerless)",
+        "url_template": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        "attribution": "Esri, Maxar, Earthstar Geographics, CNES/Airbus DS",
+        "max_zoom": 19,
+        "requires_key": False,
+        "requires_custom_headers": False
     }
 }
 DEFAULT_TILE_SERVER = "osm_fr"

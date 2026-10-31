@@ -144,3 +144,51 @@
 ### Chiến Lược Thuật Toán: Đơn Giản Trước, Phức Tạp Sau
 - **Bài học đắt giá**: Đừng bao giờ vội vàng triển khai Machine Learning (XGBoost, LightGBM, Deep Learning) khi ma trận thời gian thực nghiệm chưa được xây dựng hoàn chỉnh.
 - **Ma trận Thời gian phân đoạn ($P_{50}$)** qua thuật toán Linear Station Crossing Interpolation chạy trong 4 giây, không cần GPU, miễn nhiễm với lỗi hội tụ mô hình và cung cấp baseline mỏ neo vững chắc cho toàn bộ 48 tuyến. Mọi cải tiến ML sau này chỉ đóng vai trò học phần dư ($\Delta t_{\text{ML}}$).
+
+---
+
+## 5. KINH NGHIỆM XUẤT BÁO CÁO HTML, BẢN ĐỒ LEAFLET & TRUY TÌM DỊ THƯỜNG (GIS REPORTING)
+
+### Cạm Bẫy Cú Pháp LaTeX Trong Giao Diện Web (Lỗi Font & Ký Tự Lạ)
+- **Hiện tượng**: Báo cáo HTML xuất hiện các chuỗi ký tự thô như `($\bar{V} < 5\text{ km/h}$)`, `($d_\perp > 50\text{m}$)`, `($\Delta s < -200\text{m}$)`, khiến người dùng tưởng là lỗi font hoặc vỡ bảng mã.
+- **Nguyên nhân**: Trình duyệt web thông thường chỉ render HTML/CSS, hoàn toàn không có bộ phân giải LaTeX tích hợp. Nếu không nạp thư viện KaTeX hay MathJax, toàn bộ công thức toán học sẽ bị in trần trụi dạng mã nguồn.
+- **Giải pháp**:
+  1. **Chuẩn hóa Typography Web**: Sử dụng ký tự Unicode trực tiếp và thẻ HTML thuần túy:
+     - Dùng `V̄ < 5 km/h` hoặc `V_tb < 5 km/h` thay cho `$\bar{V} < 5\text{ km/h}$`.
+     - Dùng `d<sub>⊥</sub> > 50m` thay cho `$d_\perp > 50\text{m}$`.
+     - Dùng `Δs < -200m` thay cho `$\Delta s < -200\text{m}$`.
+     - Dùng `≤ 15m` thay cho `$\le 15\text{m}$`, `P₅₀` thay cho `$P_{50}$`.
+  2. Nạp thêm thư viện KaTeX qua CDN (`katex.min.css`, `katex.min.js`) vào `<head>` làm lưới an toàn nếu cần hiển thị biểu thức toán phức tạp.
+
+### Cú Pháp Python f-string Làm Sập Toàn Bộ JavaScript (Lỗi Bản Đồ Không Hiển Thị)
+- **Hiện tượng**: Mở file HTML báo cáo thì thấy bản đồ Leaflet không hiển thị với mọi máy chủ tile, màn hình trắng trơn hoặc bản đồ đứng im.
+- **Nguyên nhân cốt lõi**:
+  - Khi sinh HTML bằng Python f-string `rf"""..."""`, lập trình viên vô tình viết cú pháp định dạng số của Python vào trong template literal của JavaScript:
+    ```javascript
+    // Trong file Python:
+    document.getElementById('stats').innerHTML = `Tổng ${{data.total_pings_in_db:,}} pings`;
+    // Ra file HTML sinh ra:
+    document.getElementById('stats').innerHTML = `Tổng ${data.total_pings_in_db:,} pings`;
+    ```
+  - Trong JavaScript, `${data.total_pings_in_db:,}` là **lỗi cú pháp chí mạng (Uncaught SyntaxError: Unexpected token ',')**.
+  - Khi trình duyệt gặp lỗi cú pháp này, nó **ngừng thực thi toàn bộ thẻ `<script>`**, khiến toàn bộ lệnh khởi tạo bản đồ Leaflet, Chart.js và event listener đều bị tê liệt hoàn toàn!
+- **Giải pháp**:
+  - Trong JavaScript, bắt buộc dùng hàm chuẩn `Number.prototype.toLocaleString()`:
+    ```javascript
+    document.getElementById('stats').innerHTML = `Tổng ${data.total_pings_in_db.toLocaleString()} pings`;
+    ```
+  - Thêm `window.addEventListener('load', () => setTimeout(() => map.invalidateSize(), 300));` để đảm bảo Leaflet tính toán chính xác kích thước container sau khi DOM và CSS hoàn tất dàn trang.
+
+### Thiết Kế Bộ Điều Hướng Dị Thường Không Gian - Thời Gian (Spatial-Temporal Navigator)
+- **Bài toán**: Với hàng trăm ngàn điểm GPS trên một tuyến đường dài 20 - 40km, người dùng không thể tự mò mẫm tìm điểm xe đi lệch 155m hoặc điểm nhảy lùi tọa độ.
+- **Kiến trúc giải pháp**:
+  - **Tách lọc sự kiện thực nghiệm từ Python**: Trích xuất các danh sách ngoại lai nghiêm trọng nhất per-route:
+    1. Lệch tim đường $d_\perp > 50\text{m}$ (Detour / sai làn).
+    2. Bước nhảy lùi $\Delta s < -200\text{m}$ (Nghi vấn nhầm chiều hoặc vòng lặp).
+    3. Nút nghẽn giao thông cực đoan $V < 5\text{ km/h}$ và siêu tốc $V > 60\text{ km/h}$.
+  - **Cơ chế nhảy nhanh tương tác (Quick-Jump & FlyTo)**:
+    - Cung cấp bảng sự kiện có nút `[Bay Tới Điểm]`.
+    - Khi bấm, thực thi `map.flyTo([lat, lon], 17, { duration: 1.2 })`.
+    - Đặt một điểm định vị động có hiệu ứng sóng xung kích lan tỏa (`pulse-beacon-ring` CSS keyframe animation) ngay tại tọa độ mục tiêu.
+    - Tự động mở popup hiển thị toàn bộ hồ sơ thực nghiệm (Biển số xe, ID, Vận tốc, Sai số $d_\perp$, Vị trí 1D $s$, Timestamp chính xác).
+
