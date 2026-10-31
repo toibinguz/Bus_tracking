@@ -12,3 +12,4 @@
 6. **Động học dẫn xuất**: Mọi tính toán vận tốc, dừng đỗ và ETA phải dựa trên vận tốc dẫn xuất không gian - thời gian ($\bar{v} = \Delta s / \Delta t$) và ngưỡng dịch chuyển không gian, tuyệt đối không dùng trường `speed == 0` thô từ GPS.
 7. **Phân tầng trọng tâm**: Hoàn thiện vững chắc tầng dữ liệu lớn và Ma trận thời gian thống kê trước khi xem xét các mô hình Machine Learning phức tạp.
 8. **Tách bạch Hiến pháp vs. Chi tiết thiết kế**: Toàn bộ chi tiết toán học, thuật toán và schema bảng thuộc về thư mục `docs/`, không đưa tiểu tiết vào Hiến pháp.
+9. **Chuẩn hóa môi trường Python**: Môi trường chính thức là **Python 3.14 (64-bit)** (đăng ký PEP 514). Mọi lệnh gọi thực thi phải dùng launcher `py` hoặc `.\.venv\Scripts\python.exe`. Tuyệt đối không dùng runtime compiler trần trụi (như msys64). Môi trường ảo `.venv` dùng `--system-site-packages` để dùng chung kho thư viện khoa học dữ liệu.

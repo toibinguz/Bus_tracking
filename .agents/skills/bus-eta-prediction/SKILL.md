@@ -7,45 +7,42 @@ description: Methodology, mathematical formulation, and end-to-end pipeline for 
 
 ## 1. Problem Formulation
 
-Given a bus $v$ on route $r$ observed at time $t_0$ at position $(lat_0, lon_0)$ with speed $s_0$:
-Predict the arrival time $T_{arr}(v, s_k)$ or travel duration $\Delta t(v, s_k) = T_{arr} - t_0$ to reach downstream target stop $s_k$.
+Given a bus $v$ on route $r$ observed at time $t_0$ at projected 1D position $s_{\text{bus}}$:
+Predict the arrival time $T_{\text{arr}}(v, S_k)$ or travel duration $\Delta t(v, S_k) = T_{\text{arr}} - t_0$ to reach downstream target stop $S_k$ at meter $s_k$.
 
 ```
-Stop S_0 ─── [Bus V (t0, lat0, lon0, s0)] ─── Stop S_1 ─────── Stop S_k (Destination)
-                        └─── Predict Δt = T_arrival - t0 ───┘
+Stop S_0 ─── [Bus V (t0, s_bus)] ─── Stop S_1 ─────── Stop S_k (Destination)
+                     └─── Predict Δt = T_arrival - t0 ───┘
 ```
 
 ---
 
-## 2. Multi-tier Model Evolution
+## 2. Multi-tier Model Evolution (Empirical & Pragmatic)
 
-To ensure academic rigor and avoid premature over-fitting, models must be built and evaluated progressively:
+To prevent premature complexity and avoid overfitting on noisy GPS pings, models evolve in strict order:
 
-### Tier 1: Historical Mean Baseline (T0)
-- Calculates mean transit duration $\bar{T}(s_i, s_{i+1}, h, d)$ between consecutive stops $s_i \to s_{i+1}$ grouped by:
-  - Hour of day $h \in [5, 22]$
-  - Day of week $d \in [\text{Mon}, \dots, \text{Sun}]$
-- Total ETA to stop $s_k$:
-  $$\text{ETA}_{\text{baseline}} = \sum_{j=i}^{k-1} \bar{T}(s_j, s_{j+1}, h, d) \times \left(1 - \frac{\text{dist\_traveled}}{\text{segment\_length}}\right)$$
+### Tier 1: Historical Segment Travel Time Matrix (T0 - Primary Gold Anchor)
+- **Mathematical Principle**: Discretize route into station-to-station segments $S_k \to S_{k+1}$.
+- **Measurement Method**: Linear Station Crossing Interpolation:
+  $$\hat{t}(S_k) = t_A + (t_B - t_A) \cdot \frac{s_k - s_A}{s_B - s_A}$$
+  $$\Delta T_{k \to k+1} = \hat{t}(S_{k+1}) - \hat{t}(S_k)$$
+- **End-to-End Generalization**: Station transit time $\Delta T_{k \to k+1}$ naturally absorbs rolling time, stop dwell, and traffic light delays into an observable physical variable. Do not attempt unverified micro-decomposition.
+- **Strict Route Isolation**: Each route is modeled 100% independently from its own empirical observations. No speculative cross-route corridor sharing.
+- **Selective Ignorance on Sparsity**: If a segment has zero observation ($N = 0$), flag as unobserved / route fallback, never fabricate synthetic data.
+- **Closed-Form Instant Inference ($< 0.1$ ms)**:
+  $$\text{ETA}(v \to S_k) = T_{\text{partial}}(s_{\text{bus}} \to S_{i+1}) + \sum_{j=i+1}^{k-1} \mathbf{T}(r, d, j, w, h)$$
 
-### Tier 2: Kinematic Traffic-Aware Baseline (T1)
-- Blends current instantaneous speed $s_0$ with historical corridor speed $v_{\text{hist}}$:
-  $$v_{\text{eff}} = \alpha s_0 + (1 - \alpha) v_{\text{hist}}$$
-  $$\text{ETA}_{\text{kinematic}} = \frac{\text{Remaining Distance}}{v_{\text{eff}}} + \sum (\text{Average Dwell Time at Intermediate Stops})$$
-
-### Tier 3: Gradient Boosted Trees (LightGBM / XGBoost - T2)
-- Feature vector $\mathbf{x}$:
-  1. **Spatial Features**: Remaining distance to target stop ($m$), number of intermediate stops, segment length ($m$), road curvature/sinuosity.
-  2. **Kinematic Features**: Current speed ($km/h$), 3-minute moving average speed, acceleration.
-  3. **Temporal Features**: Hour of day (sin/cos encoding), day of week, peak vs off-peak indicator.
-  4. **Corridor State**: Current congestion index of route segment from TomTom incidents or upstream buses.
-- Objective: Minimize Mean Squared Error (MSE) or Huber Loss (robust to GPS outliers).
+### Tier 2: Machine Learning Residual Correction (T1 - Future Real-time Fine Tuning)
+- Machine Learning models (LightGBM / XGBoost) ONLY predict the **residual error** $\Delta t_{\text{ML}}$ against the historical matrix anchor:
+  $$\text{ETA}_{\text{final}} = \text{ETA}_{\text{baseline}} + \Delta t_{\text{ML}}$$
+- Inputs: Current derived velocity $\bar{v} = \Delta s / \Delta t$, lateral cross-track error $d_\perp$, headway to leading bus, temporal features.
+- Never deploy black-box ML as a standalone end-to-end predictor without the Matrix anchor.
 
 ---
 
 ## 3. Academic Evaluation Metrics
 
-All models must report 3 core metrics calculated on an out-of-time test split (e.g. Train on 17/10, Test on 18/10, or 80/20 time-series split):
+All models must report 3 core metrics calculated on an out-of-time test split:
 
 1. **Mean Absolute Error (MAE)**:
    $$\text{MAE} = \frac{1}{N} \sum_{i=1}^N |\hat{y}_i - y_i| \quad (\text{Target: } < 60 \text{ seconds})$$
@@ -58,8 +55,8 @@ All models must report 3 core metrics calculated on an out-of-time test split (e
 
 ## 4. Evaluation Slicing Protocol
 
-Never report a single global metric. Metrics must be partitioned by:
-- **Corridor Type**: Arterial Core (Tuyến 02, 32) vs Outer Ring vs BRT.
-- **Time Window**: Morning Peak (07:00 - 08:30) vs Evening Peak (17:00 - 18:30) vs Midday Off-peak.
+Metrics must be partitioned by:
+- **Corridor Type**: Arterial Core vs Outer Ring vs BRT / Electric Express.
+- **Time Window**: Morning Peak (06:30 - 09:00), Off-peak Day (09:00 - 16:30), Evening Peak (16:30 - 19:30), Night (19:30 - 22:00).
+- **Day Type**: Weekday vs Weekend.
 - **Horizon Distance**: Short-range ($< 1$ km) vs Medium-range (1 - 3 km) vs Long-range ($> 3$ km).
-

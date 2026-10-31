@@ -7,10 +7,10 @@ description: Architecture guide and runbook for processing massive bus telemetry
 
 ## 1. Architectural Overview (Medallion Pattern)
 
-To satisfy academic Big Data requirements and support millisecond-latency analytical queries, raw telemetry is processed through a 3-tier Lakehouse pattern:
+To satisfy academic Big Data requirements and support millisecond-latency analytical queries, raw telemetry is processed through a 3-tier Lakehouse pattern grounded on official TimBus Ground Truth (TRAMOC / Sở GTVT):
 
 ```
-[Cloud / Hugging Face JSONL]
+[Cloud / Hugging Face JSONL Crawler Output]
             │
             ▼
 ┌────────────────────────────────────────────────────────┐
@@ -19,25 +19,23 @@ To satisfy academic Big Data requirements and support millisecond-latency analyt
 │ Format: Compressed Raw JSONL / Parquet (Lossless)      │
 │ Schema: Raw socket dump, crawled_at, device_update_time│
 └────────────────────────────────────────────────────────┘
-            │  (Deduplication, Kinematic Validation, Null Imputation)
+            │  (Deduplication, 1D Frenet Projection s & d_perp, Kinematic Validation)
             ▼
 ┌────────────────────────────────────────────────────────┐
-│ 🥈 SILVER TIER: Cleaned & Segmented Trajectory Lake    │
-│ Path: data/lakehouse/silver/date=YYYY-MM-DD/route_id=X/ │
-│ Format: Snappy Parquet (Columnar, Dictionary Encoded)  │
-│ Schema: trajectory_id, vehicle_id, route_id, epoch_sec,│
-│         lat, lon, speed_kmh, heading, is_moving,       │
-│         current_stop_id, next_stop_id, dist_to_next_m  │
+│ 🥈 SILVER TIER: Cleaned 1D Projected Trajectory Lake   │
+│ Path: data/lakehouse/silver/route_telemetry/           │
+│ Format: Snappy Parquet (Columnar, Partitioned by Route)│
+│ Schema: ping_id, route_code, vehicle_id, plate, epoch, │
+│         lat, lon, s_bus_m, cross_track_m, derived_speed│
 └────────────────────────────────────────────────────────┘
-            │  (Corridor Aggregation, Spatial Join with OSM, Feature Extraction)
+            │  (Linear Station Crossing Interpolation, Discretized Time Windows)
             ▼
 ┌────────────────────────────────────────────────────────┐
-│ 🥇 GOLD TIER: Analytical Mart & ML Feature Store       │
-│ Path: data/lakehouse/gold/                             │
-│ Tables:                                                │
-│  - corridor_speed_profiles (hourly 15-min speed stats) │
-│  - stop_to_stop_travel_times (historical transit times)│
-│  - eta_training_features (ready-to-train ML matrices)  │
+│ 🥇 GOLD TIER: Serving Matrix & Bottleneck Analytics    │
+│ Path: data/lakehouse/gold/segment_travel_times/        │
+│ Table : agg_segment_travel_times (SQLite & Parquet)    │
+│ Stats : N_samples, median_transit_sec (P50), p10, p90, │
+│         mean_transit_sec, commercial_speed_kmh         │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -45,23 +43,22 @@ To satisfy academic Big Data requirements and support millisecond-latency analyt
 
 ## 2. Partitioning Strategy
 
-- **Temporal Partitioning**: Partition by `date` (e.g. `date=2026-10-18`) to ensure queries scanning specific days prune 97%+ of unnecessary files.
-- **Topological Partitioning**: Partition by `route_id` (e.g. `route_id=2`) to allow route-specific ETA training without reading the entire 504-bus network.
-- **File Sizing Target**: Target 128 MB – 256 MB per Parquet chunk with row-group size of 100,000 rows.
+- **Temporal Partitioning**: Partition by `day_type` and date to enable rapid time slicing without scanning full tables.
+- **Topological Partitioning**: Partition by `route_code` and `direction` (`go` / `return`) to allow route-specific matrix computation and ETA lookups.
+- **File Sizing Target**: Target optimal Parquet row-group sizes with Snappy compression for 85%+ storage footprint reduction.
 
 ---
 
 ## 3. Technology Stack & Execution Protocol
 
-- **Local Fast Analytics**: `DuckDB` (embedded C++ engine capable of scanning 10M rows/sec on local laptop without JVM overhead).
-- **Distributed Big Data Engine**: `PySpark` for batch transformations and distributed feature engineering across clusters.
-- **Columnar Format**: Apache Parquet with Snappy compression for 85%+ storage footprint reduction compared to JSONL.
+- **Canonical Runtime**: Python 3.14 (PEP 514 registered) with `DuckDB` and `PySpark` for columnar query acceleration.
+- **Operational Serving Engine**: SQLite (`data/hanoi_bus_system.db`) for instant $O(1)$ ETA lookups.
+- **Columnar Lakehouse Engine**: Apache Parquet / DuckDB for large-scale analytical scans.
 
 ---
 
 ## 4. Definition of Done (DoD) for Lakehouse Pipeline
 
-1. Ingestion of 24h of telemetry (430k+ records) completes in $< 60$ seconds on local CPU.
-2. DuckDB / PySpark queries for average corridor speeds return in $< 200$ ms.
-3. Zero data loss during Silver transition: every valid GPS point is accounted for with an audit log.
-
+1. Ingestion of 24h of telemetry completes in $< 60$ seconds.
+2. DuckDB / SQLite queries for station segment travel times return in $< 10$ ms.
+3. Every projection is audited against official TimBus shape points ($d_\perp$ tracked, sanity filtered).

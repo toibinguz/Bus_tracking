@@ -5,11 +5,11 @@ description: Enforces strict data contracts, schemas, and verification rules acr
 
 # Data Contract & Pipeline Governance
 
-## 1. Core Philosophy: Decoupled Data Contracts
+## 1. Core Philosophy: Empirical Ground Truth & Single Source of Truth
 
-To eliminate the "quicksand trap" where downstream modeling waits indefinitely for upstream crawling perfection:
-- **Contract-First**: Downstream modules depend only on the declared Data Contract (schema & types), NOT on how or when raw data was crawled.
-- **Mock / Synthetic Fixtures**: If live data has gaps, downstream developers use synthetic or cached fixtures adhering to the contract to keep modeling progress moving forward.
+- **Single Master Ground Truth**: TimBus (TRAMOC / Sở GTVT Hà Nội) is the ONLY authoritative source for route codes, station coordinates WGS84, and centerline geometry.
+- **Empirical Reality Over Synthetic Assumptions**: Never use synthetic or mocked fixtures that fabricate transit patterns. When data is sparse ($N = 0$), enforce "Selective Ignorance" (tag as unobserved / route fallback) rather than inventing artificial data.
+- **Derived Kinematics**: Speed is always derived ($\bar{v} = \Delta s / \Delta t$). Raw GPS speed is never trusted.
 
 ---
 
@@ -32,39 +32,38 @@ Each JSONL record emitted by crawler or lake sync must contain:
 }
 ```
 
-### Contract 2: Silver Trajectory Contract (Cleaned Columnar Parquet)
+### Contract 2: Silver 1D Trajectory Contract (`route_projected_telemetry`)
 ```
 Columns:
-  - trajectory_id     : string (uuid or {vehicle_id}_{trip_date}_{trip_seq})
-  - vehicle_id        : int64
-  - plate             : string
-  - route_id          : int32
-  - timestamp_utc     : timestamp[us]
-  - timestamp_vn      : timestamp[us]
-  - lat               : float64
-  - lon               : float64
-  - speed_kmh         : float32
-  - heading_deg       : float32
-  - is_moving         : bool
-  - delta_t_sec       : float32
-  - delta_dist_m      : float32
-  - current_stop_id   : int64
-  - next_stop_id      : int64
-  - dist_to_next_stop : float32
+  - ping_id            : int64 (Primary Key)
+  - route_code         : string (e.g. '01', '02', 'BRT01')
+  - route_id           : int32
+  - vehicle_id         : int64
+  - plate              : string
+  - device_update_time : string (ISO 8601)
+  - device_epoch       : int64 (Unix timestamp)
+  - direction          : string ('go' | 'return')
+  - lat                : float64
+  - lon                : float64
+  - s_bus_m            : float64 (1D Frenet station distance along centerline)
+  - cross_track_m      : float64 (Orthogonal distance d_perp to centerline)
+  - derived_speed_kmh  : float64 (Delta s / Delta t * 3.6)
+  - is_dwell           : int (0 | 1)
 ```
 
-### Contract 3: Gold ML Training Matrix Contract
+### Contract 3: Gold Segment Travel Time Matrix Contract (`agg_segment_travel_times`)
 ```
-Target:
-  - transit_time_to_next_stop_sec : float32
-Features:
-  - current_speed_kmh             : float32
-  - historical_segment_speed_kmh  : float32
-  - distance_to_target_m          : float32
-  - hour_of_day                   : int8
-  - is_peak_hour                  : bool
-  - day_of_week                   : int8
-  - route_congestion_index        : float32
+Primary Key: (route_code, direction, from_station_order, to_station_order, time_window, day_type)
+Columns:
+  - segment_distance_m   : float64
+  - sample_count         : int32
+  - median_transit_sec   : float64 (P50 anchor)
+  - mean_transit_sec     : float64
+  - std_transit_sec      : float64
+  - p10_transit_sec      : float64 (free-flow)
+  - p90_transit_sec      : float64 (congested)
+  - commercial_speed_kmh : float64
+  - is_interpolated      : int (0: observed, 1: all-day fallback, 2: route fallback)
 ```
 
 ---
@@ -74,5 +73,5 @@ Features:
 Before any code is merged from `experiments/` to production modules:
 1. `validate_schema(df, expected_contract)` must pass with 0 schema mismatch errors.
 2. Coordinate bounds must be strictly within Hanoi BBOX: Lat $\in [20.80, 21.30]$, Lon $\in [105.65, 106.05]$.
-3. Speed values must satisfy: $0 \le \text{Speed} \le 120\text{ km/h}$.
-
+3. Speed values must satisfy physical bounds: $0.0 \le \bar{v} \le 80.0\text{ km/h}$.
+4. Cross-track error $d_\perp$ sanity threshold must be tracked ($d_\perp > 50\text{m}$ flagged for geometry review).

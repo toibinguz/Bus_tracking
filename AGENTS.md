@@ -37,6 +37,15 @@
 1. **Ưu tiên End-to-End Vertical Slice**: Tập trung xây dựng luồng thông suốt từ Ingestion $\to$ Lakehouse $\to$ Baseline Thống kê $\to$ Serving. Chấm dứt tình trạng sa đà tối ưu quá mức ở một khâu cục bộ (rabbit-holing).
 2. **Nền tảng trước, phức tạp sau**: Xây dựng hoàn chỉnh tầng dữ liệu lớn và Ma trận thời gian di chuyển thống kê trước; không nhảy cóc sang các mô hình Machine Learning / Deep Learning phức tạp khi dữ liệu cơ sở chưa được kiểm chứng đầy đủ.
 
+### Điều 7: Tiêu Chuẩn Môi Trường Thực Thi Python (Canonical Python Runtime Standard)
+1. **Phiên bản Python chuẩn**: Môi trường vận hành chính thức của hệ thống là **Python 3.14 (64-bit)** (đăng ký chuẩn PEP 514 trong Windows Registry tại `HKCU:\Software\Python\PythonCore\3.14`).
+2. **Cơ chế thực thi bắt buộc**:
+   - Sử dụng launcher chuẩn Windows: lệnh `py` hoặc binary trong môi trường ảo dự án: `.\.venv\Scripts\python.exe`.
+   - **Tuyệt đối CẤM** gọi các runtime C/C++ compiler trần trụi (như `C:\msys64\ucrt64\bin\python.exe`) thiếu `pip` và thiếu các gói khoa học dữ liệu.
+3. **Môi trường ảo dự án (`.venv`)**:
+   - Mọi môi trường ảo phải được khởi tạo từ Python 3.14 với cờ kế thừa hệ thống: `py -m venv .venv --system-site-packages`.
+   - Thư mục `.venv/` bắt buộc được loại trừ trong `.gitignore`.
+
 ---
 
 ## II. RANH GIỚI BỊ CẤM (STRICT GUARDRAILS)

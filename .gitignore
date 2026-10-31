@@ -40,3 +40,4 @@ __pycache__/
 # Obsidian Vault Metadata
 .obsidian/
 Bus_tracking/
+.venv/

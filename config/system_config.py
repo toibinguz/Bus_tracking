@@ -68,6 +68,52 @@ MAX_DAILY_TOMTOM_BATCHES = 0
 MAX_MONTHLY_TOMTOM_BATCHES = 0
 
 # -------------------------------------------------------------
+# 3.1. KEYLESS & HEADERLESS MAP TILE SERVERS (TESTING & VISUALIZATION)
+# -------------------------------------------------------------
+OSM_TILE_SERVERS = {
+    "osm_standard": {
+        "name": "OpenStreetMap Standard",
+        "url_template": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "attribution": "OpenStreetMap contributors",
+        "max_zoom": 19,
+        "requires_key": False,
+        "requires_custom_headers": False
+    },
+    "carto_positron": {
+        "name": "CartoDB Positron (Light - Clean & High Contrast)",
+        "url_template": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        "subdomains": "abcd",
+        "attribution": "OpenStreetMap contributors, CARTO",
+        "max_zoom": 20,
+        "requires_key": False,
+        "requires_custom_headers": False
+    },
+    "carto_voyager": {
+        "name": "CartoDB Voyager (Street Details)",
+        "url_template": "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "subdomains": "abcd",
+        "attribution": "OpenStreetMap contributors, CARTO",
+        "max_zoom": 20,
+        "requires_key": False,
+        "requires_custom_headers": False
+    },
+    "carto_dark": {
+        "name": "CartoDB Dark Matter (Night Mode)",
+        "url_template": "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        "subdomains": "abcd",
+        "attribution": "OpenStreetMap contributors, CARTO",
+        "max_zoom": 20,
+        "requires_key": False,
+        "requires_custom_headers": False
+    }
+}
+DEFAULT_TILE_SERVER = "carto_positron"
+
+def get_tile_layer_config(server_key: str = DEFAULT_TILE_SERVER) -> dict:
+    """Tra ve cau hinh tile layer mien phi, khong can API key va khong bat buoc custom headers."""
+    return OSM_TILE_SERVERS.get(server_key, OSM_TILE_SERVERS["carto_positron"])
+
+# -------------------------------------------------------------
 # 4. PACING, TIMING & SCHEDULING INTERVALS (QUY MÔ ~500 XE BUÝT)
 # -------------------------------------------------------------
 BUS_MICRO_BATCH_SIZE = 18                  # 18 xe / batch (28 batches cho 504 xe)
