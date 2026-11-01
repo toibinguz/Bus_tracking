@@ -9,9 +9,9 @@
   "flow_remaining_month": 0,
   "incident_daily_budget": 80,
   "incident_monthly_limit": 2500,
-  "incident_used_today": 1,
-  "incident_used_month": 81,
-  "incident_remaining_today": 79,
-  "incident_remaining_month": 2419,
-  "last_updated": "2026-11-02 05:02:22"
+  "incident_used_today": 2,
+  "incident_used_month": 82,
+  "incident_remaining_today": 78,
+  "incident_remaining_month": 2418,
+  "last_updated": "2026-11-02 05:10:38"
 }
