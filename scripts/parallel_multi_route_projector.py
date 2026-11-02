@@ -172,7 +172,16 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
 
                 if 0 < dt <= 300 and d_str == prev_d_str:
                     v_mps = ds / dt
-                    derived_speed_kmh = round(v_mps * 3.6, 2)
+                    spd_kmh = v_mps * 3.6
+                    # Enforce trip continuity along corridor and physical speed ceiling:
+                    # In a single trip, bus moves forward along corridor (allow <=50m GPS jitter).
+                    # If bus resets trip (s_m << prev_s) or teleports (>100 km/h), do not compute speed.
+                    if (s_m >= prev_s - 50.0) and spd_kmh <= 100.0:
+                        derived_speed_kmh = min(80.0, round(spd_kmh, 2))
+                    else:
+                        derived_speed_kmh = None
+
+                    # Kinematic Dwell Condition: ds < 15m for dt >= 20s
                     if ds < 15.0 and dt >= 20.0:
                         is_dwell = 1
 
