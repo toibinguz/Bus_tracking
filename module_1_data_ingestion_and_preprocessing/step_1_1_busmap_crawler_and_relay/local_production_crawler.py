@@ -248,7 +248,7 @@ def main():
                 last_hf_sync = time.time()
 
             if single_test:
-                print("\n[INFO] Test run 1 vòng 220 xe hoàn tất thành công! Dừng tiến trình.", flush=True)
+                print(f"\n[INFO] Test run 1 vòng {len(v_ids)} xe hoàn tất thành công! Dừng tiến trình.", flush=True)
                 break
 
             sleep_wait = max(3, BUS_POLL_INTERVAL_SEC - elapsed)

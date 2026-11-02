@@ -1,0 +1,1634 @@
+[
+  {
+    "route_code": "22A",
+    "route_id": 22,
+    "tier": "GOLD",
+    "total_pings": 20594,
+    "running": {
+      "count": 18390,
+      "in_30_pct": 97.4,
+      "in_15_pct": 86.6,
+      "median_d": 5.5,
+      "p90_d": 17.3
+    },
+    "layover": {
+      "count": 2059,
+      "in_30_pct": 80.7,
+      "in_15_pct": 37.8,
+      "median_d": 20.9,
+      "p90_d": 35.8
+    },
+    "night": {
+      "count": 145,
+      "in_30_pct": 40.7,
+      "in_15_pct": 20.7,
+      "median_d": 1306.8,
+      "p90_d": 2032.0
+    },
+    "overall": {
+      "count": 20594,
+      "in_30_pct": 95.3,
+      "in_15_pct": 81.2,
+      "median_d": 5.9,
+      "p90_d": 22.3
+    }
+  },
+  {
+    "route_code": "02",
+    "route_id": 2,
+    "tier": "GOLD",
+    "total_pings": 23258,
+    "running": {
+      "count": 19794,
+      "in_30_pct": 97.0,
+      "in_15_pct": 89.7,
+      "median_d": 5.3,
+      "p90_d": 15.3
+    },
+    "layover": {
+      "count": 3158,
+      "in_30_pct": 39.0,
+      "in_15_pct": 29.8,
+      "median_d": 120.3,
+      "p90_d": 180.0
+    },
+    "night": {
+      "count": 306,
+      "in_30_pct": 56.5,
+      "in_15_pct": 37.6,
+      "median_d": 19.2,
+      "p90_d": 127.0
+    },
+    "overall": {
+      "count": 23258,
+      "in_30_pct": 88.6,
+      "in_15_pct": 80.9,
+      "median_d": 6.1,
+      "p90_d": 117.9
+    }
+  },
+  {
+    "route_code": "E06",
+    "route_id": 101105,
+    "tier": "GOLD",
+    "total_pings": 13451,
+    "running": {
+      "count": 11518,
+      "in_30_pct": 95.9,
+      "in_15_pct": 91.0,
+      "median_d": 4.6,
+      "p90_d": 14.1
+    },
+    "layover": {
+      "count": 1855,
+      "in_30_pct": 60.6,
+      "in_15_pct": 49.1,
+      "median_d": 15.4,
+      "p90_d": 142.7
+    },
+    "night": {
+      "count": 78,
+      "in_30_pct": 38.5,
+      "in_15_pct": 21.8,
+      "median_d": 81.6,
+      "p90_d": 285.9
+    },
+    "overall": {
+      "count": 13451,
+      "in_30_pct": 90.7,
+      "in_15_pct": 84.8,
+      "median_d": 5.1,
+      "p90_d": 24.3
+    }
+  },
+  {
+    "route_code": "21A",
+    "route_id": 21,
+    "tier": "GOLD",
+    "total_pings": 14566,
+    "running": {
+      "count": 12344,
+      "in_30_pct": 95.6,
+      "in_15_pct": 86.4,
+      "median_d": 5.1,
+      "p90_d": 18.3
+    },
+    "layover": {
+      "count": 2005,
+      "in_30_pct": 51.5,
+      "in_15_pct": 21.5,
+      "median_d": 26.0,
+      "p90_d": 7703.0
+    },
+    "night": {
+      "count": 217,
+      "in_30_pct": 18.4,
+      "in_15_pct": 7.8,
+      "median_d": 3684.9,
+      "p90_d": 7707.6
+    },
+    "overall": {
+      "count": 14566,
+      "in_30_pct": 88.4,
+      "in_15_pct": 76.3,
+      "median_d": 6.2,
+      "p90_d": 41.9
+    }
+  },
+  {
+    "route_code": "99",
+    "route_id": 99,
+    "tier": "GOLD",
+    "total_pings": 7129,
+    "running": {
+      "count": 6373,
+      "in_30_pct": 95.4,
+      "in_15_pct": 90.6,
+      "median_d": 4.5,
+      "p90_d": 14.4
+    },
+    "layover": {
+      "count": 692,
+      "in_30_pct": 46.5,
+      "in_15_pct": 40.0,
+      "median_d": 47.6,
+      "p90_d": 1589.7
+    },
+    "night": {
+      "count": 64,
+      "in_30_pct": 14.1,
+      "in_15_pct": 10.9,
+      "median_d": 1588.4,
+      "p90_d": 1746.8
+    },
+    "overall": {
+      "count": 7129,
+      "in_30_pct": 89.9,
+      "in_15_pct": 85.0,
+      "median_d": 4.9,
+      "p90_d": 31.0
+    }
+  },
+  {
+    "route_code": "37",
+    "route_id": 37,
+    "tier": "GOLD",
+    "total_pings": 14360,
+    "running": {
+      "count": 12258,
+      "in_30_pct": 95.3,
+      "in_15_pct": 88.5,
+      "median_d": 4.9,
+      "p90_d": 16.3
+    },
+    "layover": {
+      "count": 1977,
+      "in_30_pct": 33.1,
+      "in_15_pct": 20.8,
+      "median_d": 187.7,
+      "p90_d": 5881.3
+    },
+    "night": {
+      "count": 125,
+      "in_30_pct": 31.2,
+      "in_15_pct": 28.8,
+      "median_d": 774.3,
+      "p90_d": 5906.1
+    },
+    "overall": {
+      "count": 14360,
+      "in_30_pct": 86.2,
+      "in_15_pct": 78.7,
+      "median_d": 5.9,
+      "p90_d": 186.3
+    }
+  },
+  {
+    "route_code": "105",
+    "route_id": 105,
+    "tier": "GOLD",
+    "total_pings": 12881,
+    "running": {
+      "count": 10633,
+      "in_30_pct": 95.2,
+      "in_15_pct": 85.0,
+      "median_d": 5.8,
+      "p90_d": 18.9
+    },
+    "layover": {
+      "count": 2112,
+      "in_30_pct": 47.9,
+      "in_15_pct": 43.9,
+      "median_d": 67.7,
+      "p90_d": 1229.6
+    },
+    "night": {
+      "count": 136,
+      "in_30_pct": 36.8,
+      "in_15_pct": 35.3,
+      "median_d": 1107.1,
+      "p90_d": 1216.5
+    },
+    "overall": {
+      "count": 12881,
+      "in_30_pct": 86.8,
+      "in_15_pct": 77.8,
+      "median_d": 6.4,
+      "p90_d": 120.4
+    }
+  },
+  {
+    "route_code": "19",
+    "route_id": 19,
+    "tier": "GOLD",
+    "total_pings": 17927,
+    "running": {
+      "count": 16317,
+      "in_30_pct": 94.8,
+      "in_15_pct": 83.0,
+      "median_d": 5.6,
+      "p90_d": 21.8
+    },
+    "layover": {
+      "count": 1455,
+      "in_30_pct": 77.3,
+      "in_15_pct": 14.5,
+      "median_d": 23.2,
+      "p90_d": 35.7
+    },
+    "night": {
+      "count": 155,
+      "in_30_pct": 41.9,
+      "in_15_pct": 20.0,
+      "median_d": 193.4,
+      "p90_d": 9625.9
+    },
+    "overall": {
+      "count": 17927,
+      "in_30_pct": 92.9,
+      "in_15_pct": 76.9,
+      "median_d": 6.3,
+      "p90_d": 25.8
+    }
+  },
+  {
+    "route_code": "34",
+    "route_id": 34,
+    "tier": "GOLD",
+    "total_pings": 18716,
+    "running": {
+      "count": 16947,
+      "in_30_pct": 94.7,
+      "in_15_pct": 88.4,
+      "median_d": 4.4,
+      "p90_d": 17.6
+    },
+    "layover": {
+      "count": 1540,
+      "in_30_pct": 55.6,
+      "in_15_pct": 28.1,
+      "median_d": 27.2,
+      "p90_d": 3678.2
+    },
+    "night": {
+      "count": 229,
+      "in_30_pct": 26.2,
+      "in_15_pct": 21.8,
+      "median_d": 3625.0,
+      "p90_d": 3678.2
+    },
+    "overall": {
+      "count": 18716,
+      "in_30_pct": 90.6,
+      "in_15_pct": 82.7,
+      "median_d": 4.9,
+      "p90_d": 28.1
+    }
+  },
+  {
+    "route_code": "27",
+    "route_id": 27,
+    "tier": "GOLD",
+    "total_pings": 27504,
+    "running": {
+      "count": 20447,
+      "in_30_pct": 94.5,
+      "in_15_pct": 83.1,
+      "median_d": 6.2,
+      "p90_d": 20.2
+    },
+    "layover": {
+      "count": 6601,
+      "in_30_pct": 29.4,
+      "in_15_pct": 17.5,
+      "median_d": 129.6,
+      "p90_d": 178.9
+    },
+    "night": {
+      "count": 456,
+      "in_30_pct": 12.9,
+      "in_15_pct": 7.5,
+      "median_d": 162.3,
+      "p90_d": 192.7
+    },
+    "overall": {
+      "count": 27504,
+      "in_30_pct": 77.5,
+      "in_15_pct": 66.1,
+      "median_d": 8.6,
+      "p90_d": 156.8
+    }
+  },
+  {
+    "route_code": "38",
+    "route_id": 438,
+    "tier": "GOLD",
+    "total_pings": 8385,
+    "running": {
+      "count": 6211,
+      "in_30_pct": 94.5,
+      "in_15_pct": 86.8,
+      "median_d": 5.5,
+      "p90_d": 18.4
+    },
+    "layover": {
+      "count": 2081,
+      "in_30_pct": 23.1,
+      "in_15_pct": 22.9,
+      "median_d": 281.6,
+      "p90_d": 287.7
+    },
+    "night": {
+      "count": 93,
+      "in_30_pct": 23.7,
+      "in_15_pct": 20.4,
+      "median_d": 282.0,
+      "p90_d": 1746.9
+    },
+    "overall": {
+      "count": 8385,
+      "in_30_pct": 76.0,
+      "in_15_pct": 70.2,
+      "median_d": 7.2,
+      "p90_d": 283.0
+    }
+  },
+  {
+    "route_code": "101A",
+    "route_id": 101,
+    "tier": "GOLD",
+    "total_pings": 9282,
+    "running": {
+      "count": 6668,
+      "in_30_pct": 94.4,
+      "in_15_pct": 90.1,
+      "median_d": 3.6,
+      "p90_d": 14.7
+    },
+    "layover": {
+      "count": 2440,
+      "in_30_pct": 13.6,
+      "in_15_pct": 4.6,
+      "median_d": 66.4,
+      "p90_d": 2534.3
+    },
+    "night": {
+      "count": 174,
+      "in_30_pct": 0.6,
+      "in_15_pct": 0.6,
+      "median_d": 72.3,
+      "p90_d": 2554.2
+    },
+    "overall": {
+      "count": 9282,
+      "in_30_pct": 71.4,
+      "in_15_pct": 66.0,
+      "median_d": 5.6,
+      "p90_d": 2484.9
+    }
+  },
+  {
+    "route_code": "E05",
+    "route_id": 101102,
+    "tier": "GOLD",
+    "total_pings": 8635,
+    "running": {
+      "count": 6882,
+      "in_30_pct": 94.4,
+      "in_15_pct": 83.5,
+      "median_d": 5.7,
+      "p90_d": 22.0
+    },
+    "layover": {
+      "count": 1662,
+      "in_30_pct": 53.1,
+      "in_15_pct": 35.1,
+      "median_d": 25.9,
+      "p90_d": 527.8
+    },
+    "night": {
+      "count": 91,
+      "in_30_pct": 39.6,
+      "in_15_pct": 22.0,
+      "median_d": 441.6,
+      "p90_d": 1564.2
+    },
+    "overall": {
+      "count": 8635,
+      "in_30_pct": 85.8,
+      "in_15_pct": 73.6,
+      "median_d": 7.2,
+      "p90_d": 467.4
+    }
+  },
+  {
+    "route_code": "11",
+    "route_id": 11,
+    "tier": "GOLD",
+    "total_pings": 10302,
+    "running": {
+      "count": 9322,
+      "in_30_pct": 94.2,
+      "in_15_pct": 88.1,
+      "median_d": 5.0,
+      "p90_d": 17.2
+    },
+    "layover": {
+      "count": 897,
+      "in_30_pct": 66.6,
+      "in_15_pct": 37.7,
+      "median_d": 20.1,
+      "p90_d": 554.2
+    },
+    "night": {
+      "count": 83,
+      "in_30_pct": 19.3,
+      "in_15_pct": 12.0,
+      "median_d": 2448.2,
+      "p90_d": 2550.9
+    },
+    "overall": {
+      "count": 10302,
+      "in_30_pct": 91.2,
+      "in_15_pct": 83.1,
+      "median_d": 5.5,
+      "p90_d": 25.1
+    }
+  },
+  {
+    "route_code": "01",
+    "route_id": 1,
+    "tier": "GOLD",
+    "total_pings": 7341,
+    "running": {
+      "count": 6742,
+      "in_30_pct": 94.1,
+      "in_15_pct": 84.8,
+      "median_d": 5.3,
+      "p90_d": 21.6
+    },
+    "layover": {
+      "count": 473,
+      "in_30_pct": 69.3,
+      "in_15_pct": 31.7,
+      "median_d": 24.3,
+      "p90_d": 2960.6
+    },
+    "night": {
+      "count": 126,
+      "in_30_pct": 21.4,
+      "in_15_pct": 19.8,
+      "median_d": 2941.7,
+      "p90_d": 2963.7
+    },
+    "overall": {
+      "count": 7341,
+      "in_30_pct": 91.2,
+      "in_15_pct": 80.3,
+      "median_d": 5.7,
+      "p90_d": 28.3
+    }
+  },
+  {
+    "route_code": "43",
+    "route_id": 43,
+    "tier": "GOLD",
+    "total_pings": 9503,
+    "running": {
+      "count": 7551,
+      "in_30_pct": 94.1,
+      "in_15_pct": 86.4,
+      "median_d": 5.6,
+      "p90_d": 18.5
+    },
+    "layover": {
+      "count": 1843,
+      "in_30_pct": 27.5,
+      "in_15_pct": 21.8,
+      "median_d": 70.2,
+      "p90_d": 473.2
+    },
+    "night": {
+      "count": 109,
+      "in_30_pct": 14.7,
+      "in_15_pct": 11.0,
+      "median_d": 504.2,
+      "p90_d": 562.9
+    },
+    "overall": {
+      "count": 9503,
+      "in_30_pct": 80.2,
+      "in_15_pct": 73.0,
+      "median_d": 7.1,
+      "p90_d": 191.2
+    }
+  },
+  {
+    "route_code": "48",
+    "route_id": 48,
+    "tier": "GOLD",
+    "total_pings": 10898,
+    "running": {
+      "count": 8350,
+      "in_30_pct": 94.1,
+      "in_15_pct": 87.5,
+      "median_d": 4.7,
+      "p90_d": 18.6
+    },
+    "layover": {
+      "count": 2396,
+      "in_30_pct": 24.2,
+      "in_15_pct": 14.9,
+      "median_d": 60.4,
+      "p90_d": 1913.8
+    },
+    "night": {
+      "count": 152,
+      "in_30_pct": 19.7,
+      "in_15_pct": 3.3,
+      "median_d": 1876.1,
+      "p90_d": 1924.1
+    },
+    "overall": {
+      "count": 10898,
+      "in_30_pct": 77.7,
+      "in_15_pct": 70.4,
+      "median_d": 6.4,
+      "p90_d": 1856.4
+    }
+  },
+  {
+    "route_code": "32",
+    "route_id": 32,
+    "tier": "GOLD",
+    "total_pings": 20005,
+    "running": {
+      "count": 16116,
+      "in_30_pct": 93.7,
+      "in_15_pct": 86.9,
+      "median_d": 4.7,
+      "p90_d": 20.4
+    },
+    "layover": {
+      "count": 3641,
+      "in_30_pct": 9.1,
+      "in_15_pct": 6.2,
+      "median_d": 3670.2,
+      "p90_d": 3780.1
+    },
+    "night": {
+      "count": 248,
+      "in_30_pct": 16.1,
+      "in_15_pct": 10.9,
+      "median_d": 3678.1,
+      "p90_d": 3748.4
+    },
+    "overall": {
+      "count": 20005,
+      "in_30_pct": 77.4,
+      "in_15_pct": 71.3,
+      "median_d": 6.2,
+      "p90_d": 3677.3
+    }
+  },
+  {
+    "route_code": "17",
+    "route_id": 17,
+    "tier": "GOLD",
+    "total_pings": 9515,
+    "running": {
+      "count": 7242,
+      "in_30_pct": 93.6,
+      "in_15_pct": 89.0,
+      "median_d": 5.8,
+      "p90_d": 16.1
+    },
+    "layover": {
+      "count": 2198,
+      "in_30_pct": 77.3,
+      "in_15_pct": 52.0,
+      "median_d": 14.6,
+      "p90_d": 2461.2
+    },
+    "night": {
+      "count": 75,
+      "in_30_pct": 26.7,
+      "in_15_pct": 9.3,
+      "median_d": 1923.4,
+      "p90_d": 2479.2
+    },
+    "overall": {
+      "count": 9515,
+      "in_30_pct": 89.3,
+      "in_15_pct": 79.8,
+      "median_d": 7.5,
+      "p90_d": 55.5
+    }
+  },
+  {
+    "route_code": "92",
+    "route_id": 92,
+    "tier": "GOLD",
+    "total_pings": 11818,
+    "running": {
+      "count": 7236,
+      "in_30_pct": 93.4,
+      "in_15_pct": 84.9,
+      "median_d": 5.1,
+      "p90_d": 19.6
+    },
+    "layover": {
+      "count": 4385,
+      "in_30_pct": 13.5,
+      "in_15_pct": 12.9,
+      "median_d": 3789.2,
+      "p90_d": 5682.3
+    },
+    "night": {
+      "count": 197,
+      "in_30_pct": 18.8,
+      "in_15_pct": 17.8,
+      "median_d": 3786.0,
+      "p90_d": 3843.9
+    },
+    "overall": {
+      "count": 11818,
+      "in_30_pct": 62.6,
+      "in_15_pct": 57.1,
+      "median_d": 10.1,
+      "p90_d": 3854.6
+    }
+  },
+  {
+    "route_code": "123",
+    "route_id": 123,
+    "tier": "GOLD",
+    "total_pings": 9000,
+    "running": {
+      "count": 5086,
+      "in_30_pct": 93.3,
+      "in_15_pct": 90.6,
+      "median_d": 3.3,
+      "p90_d": 14.0
+    },
+    "layover": {
+      "count": 3723,
+      "in_30_pct": 11.9,
+      "in_15_pct": 6.7,
+      "median_d": 87.7,
+      "p90_d": 148.8
+    },
+    "night": {
+      "count": 191,
+      "in_30_pct": 0.0,
+      "in_15_pct": 0.0,
+      "median_d": 97.2,
+      "p90_d": 146.8
+    },
+    "overall": {
+      "count": 9000,
+      "in_30_pct": 57.6,
+      "in_15_pct": 54.0,
+      "median_d": 9.7,
+      "p90_d": 146.7
+    }
+  },
+  {
+    "route_code": "146",
+    "route_id": 146,
+    "tier": "GOLD",
+    "total_pings": 13868,
+    "running": {
+      "count": 13075,
+      "in_30_pct": 93.2,
+      "in_15_pct": 87.9,
+      "median_d": 4.9,
+      "p90_d": 17.6
+    },
+    "layover": {
+      "count": 717,
+      "in_30_pct": 84.1,
+      "in_15_pct": 63.5,
+      "median_d": 11.0,
+      "p90_d": 43.8
+    },
+    "night": {
+      "count": 76,
+      "in_30_pct": 19.7,
+      "in_15_pct": 14.5,
+      "median_d": 732.2,
+      "p90_d": 867.3
+    },
+    "overall": {
+      "count": 13868,
+      "in_30_pct": 92.3,
+      "in_15_pct": 86.2,
+      "median_d": 5.1,
+      "p90_d": 20.7
+    }
+  },
+  {
+    "route_code": "26",
+    "route_id": 426,
+    "tier": "GOLD",
+    "total_pings": 17046,
+    "running": {
+      "count": 13947,
+      "in_30_pct": 93.2,
+      "in_15_pct": 86.3,
+      "median_d": 5.1,
+      "p90_d": 20.0
+    },
+    "layover": {
+      "count": 2919,
+      "in_30_pct": 21.7,
+      "in_15_pct": 15.9,
+      "median_d": 160.6,
+      "p90_d": 203.9
+    },
+    "night": {
+      "count": 180,
+      "in_30_pct": 17.8,
+      "in_15_pct": 16.7,
+      "median_d": 196.3,
+      "p90_d": 565.0
+    },
+    "overall": {
+      "count": 17046,
+      "in_30_pct": 80.2,
+      "in_15_pct": 73.5,
+      "median_d": 6.2,
+      "p90_d": 162.6
+    }
+  },
+  {
+    "route_code": "35A",
+    "route_id": 35,
+    "tier": "GOLD",
+    "total_pings": 7142,
+    "running": {
+      "count": 4325,
+      "in_30_pct": 92.9,
+      "in_15_pct": 83.2,
+      "median_d": 5.7,
+      "p90_d": 21.7
+    },
+    "layover": {
+      "count": 2690,
+      "in_30_pct": 14.7,
+      "in_15_pct": 13.9,
+      "median_d": 106.7,
+      "p90_d": 206.5
+    },
+    "night": {
+      "count": 127,
+      "in_30_pct": 11.0,
+      "in_15_pct": 10.2,
+      "median_d": 202.1,
+      "p90_d": 2016.8
+    },
+    "overall": {
+      "count": 7142,
+      "in_30_pct": 62.0,
+      "in_15_pct": 55.8,
+      "median_d": 11.3,
+      "p90_d": 205.4
+    }
+  },
+  {
+    "route_code": "56B",
+    "route_id": 856,
+    "tier": "GOLD",
+    "total_pings": 7050,
+    "running": {
+      "count": 5673,
+      "in_30_pct": 91.9,
+      "in_15_pct": 85.0,
+      "median_d": 8.2,
+      "p90_d": 20.9
+    },
+    "layover": {
+      "count": 1300,
+      "in_30_pct": 74.5,
+      "in_15_pct": 48.4,
+      "median_d": 15.9,
+      "p90_d": 38.9
+    },
+    "night": {
+      "count": 77,
+      "in_30_pct": 96.1,
+      "in_15_pct": 74.0,
+      "median_d": 12.6,
+      "p90_d": 29.6
+    },
+    "overall": {
+      "count": 7050,
+      "in_30_pct": 88.8,
+      "in_15_pct": 78.1,
+      "median_d": 9.3,
+      "p90_d": 33.0
+    }
+  },
+  {
+    "route_code": "13",
+    "route_id": 13,
+    "tier": "GOLD",
+    "total_pings": 9373,
+    "running": {
+      "count": 6167,
+      "in_30_pct": 91.7,
+      "in_15_pct": 82.3,
+      "median_d": 5.4,
+      "p90_d": 24.9
+    },
+    "layover": {
+      "count": 3011,
+      "in_30_pct": 31.2,
+      "in_15_pct": 15.1,
+      "median_d": 417.3,
+      "p90_d": 458.7
+    },
+    "night": {
+      "count": 195,
+      "in_30_pct": 2.6,
+      "in_15_pct": 2.1,
+      "median_d": 447.6,
+      "p90_d": 474.7
+    },
+    "overall": {
+      "count": 9373,
+      "in_30_pct": 70.4,
+      "in_15_pct": 59.1,
+      "median_d": 9.8,
+      "p90_d": 431.9
+    }
+  },
+  {
+    "route_code": "05",
+    "route_id": 5,
+    "tier": "GOLD",
+    "total_pings": 10910,
+    "running": {
+      "count": 9350,
+      "in_30_pct": 91.5,
+      "in_15_pct": 86.3,
+      "median_d": 5.2,
+      "p90_d": 22.3
+    },
+    "layover": {
+      "count": 1476,
+      "in_30_pct": 12.9,
+      "in_15_pct": 11.4,
+      "median_d": 264.3,
+      "p90_d": 308.1
+    },
+    "night": {
+      "count": 84,
+      "in_30_pct": 27.4,
+      "in_15_pct": 23.8,
+      "median_d": 288.6,
+      "p90_d": 349.0
+    },
+    "overall": {
+      "count": 10910,
+      "in_30_pct": 80.3,
+      "in_15_pct": 75.7,
+      "median_d": 6.0,
+      "p90_d": 252.8
+    }
+  },
+  {
+    "route_code": "08A",
+    "route_id": 8,
+    "tier": "GOLD",
+    "total_pings": 12719,
+    "running": {
+      "count": 11672,
+      "in_30_pct": 91.5,
+      "in_15_pct": 86.5,
+      "median_d": 5.3,
+      "p90_d": 22.8
+    },
+    "layover": {
+      "count": 930,
+      "in_30_pct": 71.1,
+      "in_15_pct": 63.4,
+      "median_d": 10.2,
+      "p90_d": 1486.7
+    },
+    "night": {
+      "count": 117,
+      "in_30_pct": 53.0,
+      "in_15_pct": 46.2,
+      "median_d": 18.8,
+      "p90_d": 1533.9
+    },
+    "overall": {
+      "count": 12719,
+      "in_30_pct": 89.7,
+      "in_15_pct": 84.4,
+      "median_d": 5.5,
+      "p90_d": 32.5
+    }
+  },
+  {
+    "route_code": "28",
+    "route_id": 28,
+    "tier": "GOLD",
+    "total_pings": 9839,
+    "running": {
+      "count": 7821,
+      "in_30_pct": 91.2,
+      "in_15_pct": 81.5,
+      "median_d": 5.8,
+      "p90_d": 26.4
+    },
+    "layover": {
+      "count": 1860,
+      "in_30_pct": 20.3,
+      "in_15_pct": 9.8,
+      "median_d": 1067.2,
+      "p90_d": 1089.1
+    },
+    "night": {
+      "count": 158,
+      "in_30_pct": 7.0,
+      "in_15_pct": 3.8,
+      "median_d": 1075.4,
+      "p90_d": 1134.7
+    },
+    "overall": {
+      "count": 9839,
+      "in_30_pct": 76.5,
+      "in_15_pct": 66.7,
+      "median_d": 7.8,
+      "p90_d": 1068.1
+    }
+  },
+  {
+    "route_code": "107",
+    "route_id": 4107,
+    "tier": "GOLD",
+    "total_pings": 19315,
+    "running": {
+      "count": 15271,
+      "in_30_pct": 90.4,
+      "in_15_pct": 85.9,
+      "median_d": 4.6,
+      "p90_d": 27.3
+    },
+    "layover": {
+      "count": 3651,
+      "in_30_pct": 49.7,
+      "in_15_pct": 41.8,
+      "median_d": 33.2,
+      "p90_d": 5988.9
+    },
+    "night": {
+      "count": 393,
+      "in_30_pct": 42.5,
+      "in_15_pct": 28.0,
+      "median_d": 41.4,
+      "p90_d": 5985.1
+    },
+    "overall": {
+      "count": 19315,
+      "in_30_pct": 81.7,
+      "in_15_pct": 76.4,
+      "median_d": 5.7,
+      "p90_d": 5978.9
+    }
+  },
+  {
+    "route_code": "122",
+    "route_id": 122,
+    "tier": "GOLD",
+    "total_pings": 16798,
+    "running": {
+      "count": 8933,
+      "in_30_pct": 90.1,
+      "in_15_pct": 84.9,
+      "median_d": 4.0,
+      "p90_d": 29.2
+    },
+    "layover": {
+      "count": 7505,
+      "in_30_pct": 23.3,
+      "in_15_pct": 13.4,
+      "median_d": 104.5,
+      "p90_d": 132.9
+    },
+    "night": {
+      "count": 360,
+      "in_30_pct": 1.9,
+      "in_15_pct": 0.8,
+      "median_d": 122.2,
+      "p90_d": 133.4
+    },
+    "overall": {
+      "count": 16798,
+      "in_30_pct": 58.4,
+      "in_15_pct": 51.1,
+      "median_d": 12.6,
+      "p90_d": 129.7
+    }
+  },
+  {
+    "route_code": "40",
+    "route_id": 40,
+    "tier": "GOLD",
+    "total_pings": 10160,
+    "running": {
+      "count": 6933,
+      "in_30_pct": 89.9,
+      "in_15_pct": 81.4,
+      "median_d": 5.8,
+      "p90_d": 30.5
+    },
+    "layover": {
+      "count": 3009,
+      "in_30_pct": 18.5,
+      "in_15_pct": 11.6,
+      "median_d": 585.8,
+      "p90_d": 631.2
+    },
+    "night": {
+      "count": 218,
+      "in_30_pct": 19.7,
+      "in_15_pct": 17.4,
+      "median_d": 599.5,
+      "p90_d": 646.1
+    },
+    "overall": {
+      "count": 10160,
+      "in_30_pct": 67.3,
+      "in_15_pct": 59.3,
+      "median_d": 9.4,
+      "p90_d": 601.8
+    }
+  },
+  {
+    "route_code": "51",
+    "route_id": 51,
+    "tier": "GOLD",
+    "total_pings": 16971,
+    "running": {
+      "count": 12800,
+      "in_30_pct": 89.8,
+      "in_15_pct": 82.5,
+      "median_d": 5.7,
+      "p90_d": 31.1
+    },
+    "layover": {
+      "count": 3857,
+      "in_30_pct": 19.6,
+      "in_15_pct": 11.7,
+      "median_d": 83.4,
+      "p90_d": 121.4
+    },
+    "night": {
+      "count": 314,
+      "in_30_pct": 2.5,
+      "in_15_pct": 2.2,
+      "median_d": 91.8,
+      "p90_d": 129.8
+    },
+    "overall": {
+      "count": 16971,
+      "in_30_pct": 72.2,
+      "in_15_pct": 64.9,
+      "median_d": 8.2,
+      "p90_d": 112.2
+    }
+  },
+  {
+    "route_code": "BRT01",
+    "route_id": 918,
+    "tier": "GOLD",
+    "total_pings": 21743,
+    "running": {
+      "count": 11322,
+      "in_30_pct": 89.7,
+      "in_15_pct": 70.6,
+      "median_d": 9.4,
+      "p90_d": 30.5
+    },
+    "layover": {
+      "count": 9955,
+      "in_30_pct": 21.2,
+      "in_15_pct": 12.0,
+      "median_d": 161.8,
+      "p90_d": 176.1
+    },
+    "night": {
+      "count": 466,
+      "in_30_pct": 10.9,
+      "in_15_pct": 4.5,
+      "median_d": 159.5,
+      "p90_d": 172.9
+    },
+    "overall": {
+      "count": 21743,
+      "in_30_pct": 56.7,
+      "in_15_pct": 42.3,
+      "median_d": 20.6,
+      "p90_d": 172.7
+    }
+  },
+  {
+    "route_code": "E10",
+    "route_id": 101111,
+    "tier": "GOLD",
+    "total_pings": 11326,
+    "running": {
+      "count": 8926,
+      "in_30_pct": 89.2,
+      "in_15_pct": 84.8,
+      "median_d": 4.3,
+      "p90_d": 61.6
+    },
+    "layover": {
+      "count": 2310,
+      "in_30_pct": 11.9,
+      "in_15_pct": 9.2,
+      "median_d": 141.5,
+      "p90_d": 3877.5
+    },
+    "night": {
+      "count": 90,
+      "in_30_pct": 2.2,
+      "in_15_pct": 2.2,
+      "median_d": 105.0,
+      "p90_d": 2609.3
+    },
+    "overall": {
+      "count": 11326,
+      "in_30_pct": 72.7,
+      "in_15_pct": 68.7,
+      "median_d": 5.9,
+      "p90_d": 217.2
+    }
+  },
+  {
+    "route_code": "64",
+    "route_id": 64,
+    "tier": "GOLD",
+    "total_pings": 11067,
+    "running": {
+      "count": 8162,
+      "in_30_pct": 89.0,
+      "in_15_pct": 76.2,
+      "median_d": 5.9,
+      "p90_d": 33.7
+    },
+    "layover": {
+      "count": 2714,
+      "in_30_pct": 20.3,
+      "in_15_pct": 7.1,
+      "median_d": 2053.0,
+      "p90_d": 3163.9
+    },
+    "night": {
+      "count": 191,
+      "in_30_pct": 12.6,
+      "in_15_pct": 2.1,
+      "median_d": 89.5,
+      "p90_d": 3159.4
+    },
+    "overall": {
+      "count": 11067,
+      "in_30_pct": 70.9,
+      "in_15_pct": 58.0,
+      "median_d": 9.6,
+      "p90_d": 3160.2
+    }
+  },
+  {
+    "route_code": "42",
+    "route_id": 42,
+    "tier": "SILVER",
+    "total_pings": 9242,
+    "running": {
+      "count": 5989,
+      "in_30_pct": 85.6,
+      "in_15_pct": 77.7,
+      "median_d": 7.0,
+      "p90_d": 115.0
+    },
+    "layover": {
+      "count": 3120,
+      "in_30_pct": 21.9,
+      "in_15_pct": 14.3,
+      "median_d": 145.0,
+      "p90_d": 182.1
+    },
+    "night": {
+      "count": 133,
+      "in_30_pct": 17.3,
+      "in_15_pct": 8.3,
+      "median_d": 179.3,
+      "p90_d": 183.9
+    },
+    "overall": {
+      "count": 9242,
+      "in_30_pct": 63.1,
+      "in_15_pct": 55.3,
+      "median_d": 12.0,
+      "p90_d": 176.7
+    }
+  },
+  {
+    "route_code": "90",
+    "route_id": 90,
+    "tier": "SILVER",
+    "total_pings": 9577,
+    "running": {
+      "count": 6890,
+      "in_30_pct": 84.9,
+      "in_15_pct": 79.2,
+      "median_d": 5.4,
+      "p90_d": 69.6
+    },
+    "layover": {
+      "count": 2597,
+      "in_30_pct": 10.8,
+      "in_15_pct": 5.6,
+      "median_d": 211.6,
+      "p90_d": 2526.9
+    },
+    "night": {
+      "count": 90,
+      "in_30_pct": 7.8,
+      "in_15_pct": 5.6,
+      "median_d": 2571.3,
+      "p90_d": 10332.1
+    },
+    "overall": {
+      "count": 9577,
+      "in_30_pct": 64.1,
+      "in_15_pct": 58.6,
+      "median_d": 9.0,
+      "p90_d": 312.6
+    }
+  },
+  {
+    "route_code": "61",
+    "route_id": 861,
+    "tier": "SILVER",
+    "total_pings": 9591,
+    "running": {
+      "count": 7045,
+      "in_30_pct": 84.6,
+      "in_15_pct": 80.7,
+      "median_d": 4.8,
+      "p90_d": 74.9
+    },
+    "layover": {
+      "count": 2423,
+      "in_30_pct": 38.9,
+      "in_15_pct": 25.2,
+      "median_d": 54.0,
+      "p90_d": 108.9
+    },
+    "night": {
+      "count": 123,
+      "in_30_pct": 0.8,
+      "in_15_pct": 0.0,
+      "median_d": 77.3,
+      "p90_d": 104.4
+    },
+    "overall": {
+      "count": 9591,
+      "in_30_pct": 72.0,
+      "in_15_pct": 65.6,
+      "median_d": 7.2,
+      "p90_d": 100.2
+    }
+  },
+  {
+    "route_code": "E03",
+    "route_id": 101101,
+    "tier": "SILVER",
+    "total_pings": 13690,
+    "running": {
+      "count": 10826,
+      "in_30_pct": 82.4,
+      "in_15_pct": 73.1,
+      "median_d": 7.1,
+      "p90_d": 362.3
+    },
+    "layover": {
+      "count": 2748,
+      "in_30_pct": 30.9,
+      "in_15_pct": 22.4,
+      "median_d": 308.9,
+      "p90_d": 3942.1
+    },
+    "night": {
+      "count": 116,
+      "in_30_pct": 19.0,
+      "in_15_pct": 19.0,
+      "median_d": 308.1,
+      "p90_d": 2859.7
+    },
+    "overall": {
+      "count": 13690,
+      "in_30_pct": 71.6,
+      "in_15_pct": 62.5,
+      "median_d": 9.4,
+      "p90_d": 1102.6
+    }
+  },
+  {
+    "route_code": "E04",
+    "route_id": 101109,
+    "tier": "SILVER",
+    "total_pings": 16632,
+    "running": {
+      "count": 13547,
+      "in_30_pct": 82.4,
+      "in_15_pct": 72.1,
+      "median_d": 7.3,
+      "p90_d": 112.6
+    },
+    "layover": {
+      "count": 2976,
+      "in_30_pct": 17.6,
+      "in_15_pct": 14.5,
+      "median_d": 111.1,
+      "p90_d": 7420.9
+    },
+    "night": {
+      "count": 109,
+      "in_30_pct": 15.6,
+      "in_15_pct": 14.7,
+      "median_d": 146.6,
+      "p90_d": 7418.3
+    },
+    "overall": {
+      "count": 16632,
+      "in_30_pct": 70.4,
+      "in_15_pct": 61.5,
+      "median_d": 9.3,
+      "p90_d": 780.2
+    }
+  },
+  {
+    "route_code": "07",
+    "route_id": 7,
+    "tier": "SILVER",
+    "total_pings": 26053,
+    "running": {
+      "count": 20676,
+      "in_30_pct": 80.0,
+      "in_15_pct": 70.0,
+      "median_d": 7.3,
+      "p90_d": 89.6
+    },
+    "layover": {
+      "count": 4963,
+      "in_30_pct": 23.6,
+      "in_15_pct": 16.1,
+      "median_d": 73.9,
+      "p90_d": 100.3
+    },
+    "night": {
+      "count": 414,
+      "in_30_pct": 17.1,
+      "in_15_pct": 15.5,
+      "median_d": 76.5,
+      "p90_d": 97.2
+    },
+    "overall": {
+      "count": 26053,
+      "in_30_pct": 68.2,
+      "in_15_pct": 58.8,
+      "median_d": 10.2,
+      "p90_d": 93.0
+    }
+  },
+  {
+    "route_code": "109",
+    "route_id": 109,
+    "tier": "SILVER",
+    "total_pings": 10938,
+    "running": {
+      "count": 8442,
+      "in_30_pct": 79.4,
+      "in_15_pct": 69.1,
+      "median_d": 8.3,
+      "p90_d": 86.6
+    },
+    "layover": {
+      "count": 2336,
+      "in_30_pct": 16.9,
+      "in_15_pct": 10.8,
+      "median_d": 73.6,
+      "p90_d": 106.3
+    },
+    "night": {
+      "count": 160,
+      "in_30_pct": 9.4,
+      "in_15_pct": 5.6,
+      "median_d": 72.6,
+      "p90_d": 93.5
+    },
+    "overall": {
+      "count": 10938,
+      "in_30_pct": 65.0,
+      "in_15_pct": 55.8,
+      "median_d": 12.2,
+      "p90_d": 88.8
+    }
+  },
+  {
+    "route_code": "67",
+    "route_id": 67,
+    "tier": "SILVER",
+    "total_pings": 9323,
+    "running": {
+      "count": 6340,
+      "in_30_pct": 78.0,
+      "in_15_pct": 73.3,
+      "median_d": 6.0,
+      "p90_d": 2253.9
+    },
+    "layover": {
+      "count": 2838,
+      "in_30_pct": 32.7,
+      "in_15_pct": 24.3,
+      "median_d": 11193.1,
+      "p90_d": 11711.6
+    },
+    "night": {
+      "count": 145,
+      "in_30_pct": 33.8,
+      "in_15_pct": 8.3,
+      "median_d": 6498.4,
+      "p90_d": 13139.9
+    },
+    "overall": {
+      "count": 9323,
+      "in_30_pct": 63.5,
+      "in_15_pct": 57.4,
+      "median_d": 9.8,
+      "p90_d": 11275.8
+    }
+  },
+  {
+    "route_code": "E02",
+    "route_id": 101104,
+    "tier": "SILVER",
+    "total_pings": 21173,
+    "running": {
+      "count": 14994,
+      "in_30_pct": 76.5,
+      "in_15_pct": 73.1,
+      "median_d": 6.0,
+      "p90_d": 1315.1
+    },
+    "layover": {
+      "count": 5918,
+      "in_30_pct": 8.8,
+      "in_15_pct": 7.7,
+      "median_d": 2642.2,
+      "p90_d": 4427.8
+    },
+    "night": {
+      "count": 261,
+      "in_30_pct": 21.5,
+      "in_15_pct": 20.7,
+      "median_d": 134.8,
+      "p90_d": 3997.0
+    },
+    "overall": {
+      "count": 21173,
+      "in_30_pct": 56.9,
+      "in_15_pct": 54.1,
+      "median_d": 10.9,
+      "p90_d": 3826.8
+    }
+  },
+  {
+    "route_code": "E01",
+    "route_id": 101103,
+    "tier": "SILVER",
+    "total_pings": 32325,
+    "running": {
+      "count": 24736,
+      "in_30_pct": 76.3,
+      "in_15_pct": 63.4,
+      "median_d": 9.6,
+      "p90_d": 561.9
+    },
+    "layover": {
+      "count": 7298,
+      "in_30_pct": 16.3,
+      "in_15_pct": 4.1,
+      "median_d": 390.5,
+      "p90_d": 4405.2
+    },
+    "night": {
+      "count": 291,
+      "in_30_pct": 19.2,
+      "in_15_pct": 10.3,
+      "median_d": 96.7,
+      "p90_d": 3964.9
+    },
+    "overall": {
+      "count": 32325,
+      "in_30_pct": 62.3,
+      "in_15_pct": 49.5,
+      "median_d": 15.3,
+      "p90_d": 3855.2
+    }
+  },
+  {
+    "route_code": "39",
+    "route_id": 439,
+    "tier": "BRONZE",
+    "total_pings": 7866,
+    "running": {
+      "count": 3885,
+      "in_30_pct": 61.7,
+      "in_15_pct": 57.1,
+      "median_d": 9.5,
+      "p90_d": 149.5
+    },
+    "layover": {
+      "count": 3812,
+      "in_30_pct": 5.5,
+      "in_15_pct": 0.6,
+      "median_d": 130.2,
+      "p90_d": 153.2
+    },
+    "night": {
+      "count": 169,
+      "in_30_pct": 6.5,
+      "in_15_pct": 2.4,
+      "median_d": 128.0,
+      "p90_d": 155.2
+    },
+    "overall": {
+      "count": 7866,
+      "in_30_pct": 33.3,
+      "in_15_pct": 28.5,
+      "median_d": 127.0,
+      "p90_d": 152.9
+    }
+  },
+  {
+    "route_code": "E11",
+    "route_id": 13009,
+    "tier": "BRONZE",
+    "total_pings": 16,
+    "running": {
+      "count": 0,
+      "in_30_pct": 0.0,
+      "in_15_pct": 0.0,
+      "median_d": 999.0,
+      "p90_d": 999.0
+    },
+    "layover": {
+      "count": 0,
+      "in_30_pct": 0.0,
+      "in_15_pct": 0.0,
+      "median_d": 999.0,
+      "p90_d": 999.0
+    },
+    "night": {
+      "count": 16,
+      "in_30_pct": 0.0,
+      "in_15_pct": 0.0,
+      "median_d": 3877.5,
+      "p90_d": 3933.5
+    },
+    "overall": {
+      "count": 16,
+      "in_30_pct": 0.0,
+      "in_15_pct": 0.0,
+      "median_d": 3877.5,
+      "p90_d": 3933.5
+    }
+  }
+]

@@ -62,12 +62,12 @@ class OperationalDatabaseManager:
                 s.cum_distance_m AS next_station_s,
                 ROUND(s.cum_distance_m - t.s_bus_m, 2) AS distance_remaining_m
             FROM route_projected_telemetry t
-            JOIN dim_station_crosswalk s
+            JOIN canonical_station_master s
               ON t.route_code = s.route_code
              AND t.direction = s.direction 
              AND s.cum_distance_m = (
                  SELECT MIN(s2.cum_distance_m)
-                 FROM dim_station_crosswalk s2
+                 FROM canonical_station_master s2
                  WHERE s2.route_code = t.route_code
                    AND s2.direction = t.direction 
                    AND s2.cum_distance_m >= t.s_bus_m
@@ -107,7 +107,7 @@ class OperationalDatabaseManager:
         """Fetch list of official stations in sequence for a route."""
         query = """
         SELECT station_order, station_id, station_name, lat, lon, cum_distance_m
-        FROM dim_station_crosswalk
+        FROM canonical_station_master
         WHERE route_code = ? AND direction = ?
         ORDER BY station_order;
         """

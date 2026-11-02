@@ -11,6 +11,10 @@ Enforces Snappy compression, columnar memory efficiency, and PyArrow/DuckDB inte
 import os
 import sys
 
+
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+sys.path.insert(0, os.path.abspath("."))
 from config.system_config import get_database_path, DEFAULT_DB_PATH
 import sqlite3
 import time

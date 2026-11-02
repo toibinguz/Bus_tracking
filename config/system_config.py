@@ -27,7 +27,7 @@ HF_TOKEN_FILE = "access_token_hf.txt"
 HF_DATASET_ID = os.environ.get("HF_DATASET_ID", "Toibinguz/hust-bus-data")
 
 DEFAULT_DB_PATH = "data/hanoi_bus_system.db"
-LEGACY_AUDIT_DB_PATH = "data/telemetry_audit_2026_10_17_18.db"
+LEGACY_AUDIT_DB_PATH = "archive/legacy_dumps/telemetry_audit_2026_10_17_18.db"
 
 def get_database_path() -> str:
     """Lay duong dan CSDL van hanh chuan."""
@@ -145,6 +145,7 @@ TOMTOM_OFFPEAK_INTERVAL_SEC = 600          # 10 phút (tương thích ngược)
 # -------------------------------------------------------------
 # 5. DATA QUALITY & TRAFFIC THRESHOLDS
 # -------------------------------------------------------------
+MAX_CORRIDOR_CROSS_TRACK_M = 35.0         # Ngưỡng lệch tim đường d_perp tối đa để đưa vào ma trận ETA (Doc 54)
 GPS_DRIFT_MAX_SPEED_KMPH = 80.0          # Vận tốc tối đa vật lý xe buýt nội đô Hà Nội
 BUS_STOPPED_SPEED_KMPH = 5.0             # Vận tốc xe bò/dừng đón trả khách
 CONGESTION_AVG_SPEED_KMPH = 13.0         # Ngưỡng vận tốc trung bình kích hoạt ùn tắc nút

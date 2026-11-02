@@ -42,6 +42,16 @@ def verify():
     crosswalk_cnt = cur.execute("SELECT count(1) FROM dim_station_crosswalk").fetchone()[0]
     proj_cnt = cur.execute("SELECT count(1) FROM route_projected_telemetry").fetchone()[0]
 
+    has_canonical = cur.execute("SELECT count(1) FROM sqlite_master WHERE type='table' AND name='canonical_shape_master'").fetchone()[0]
+    if has_canonical:
+        canon_routes = cur.execute("SELECT count(1) FROM canonical_route_master").fetchone()[0]
+        canon_stations = cur.execute("SELECT count(1) FROM canonical_station_master").fetchone()[0]
+        canon_shapes = cur.execute("SELECT count(1) FROM canonical_shape_master").fetchone()[0]
+        print(f"  * Canonical Master Routes       : {canon_routes:,} routes")
+        print(f"  * Canonical Master Stations     : {canon_stations:,} stations")
+        print(f"  * Canonical Centerline Points   : {canon_shapes:,} points")
+
+
     print(f"  * Master Routes Extracted       : {routes_cnt} routes (Target: 48)")
     print(f"  * Master Stations WGS84         : {stations_cnt:,} stations")
     print(f"  * Master Centerline Polyline    : {shapes_cnt:,} points")

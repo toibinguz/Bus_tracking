@@ -192,3 +192,163 @@
     - Đặt một điểm định vị động có hiệu ứng sóng xung kích lan tỏa (`pulse-beacon-ring` CSS keyframe animation) ngay tại tọa độ mục tiêu.
     - Tự động mở popup hiển thị toàn bộ hồ sơ thực nghiệm (Biển số xe, ID, Vận tốc, Sai số $d_\perp$, Vị trí 1D $s$, Timestamp chính xác).
 
+
+
+---
+
+## 6. KINH NGHIỆM CHIẾU FRENET & BẪY QUY ƯỚC CHIỀU DI CHUYỂN (DIRECTIONALITY)
+
+### Bẫy Quy Ước Chiều `direction IN (0, 1)` vs `-1`
+- **Hiện tượng**: Bảng `route_projected_telemetry` sau khi chạy xong chỉ có đúng 285.621 bản ghi, và 100% bản ghi đều mang nhãn hướng `go`. Toàn bộ dữ liệu chiều về (`re`) biến mất không dấu vết dù bảng dữ liệu thô `vehicle_unique_pings` có tới 663.342 pings.
+- **Nguyên nhân cốt lõi**:
+  - Trong logic truy vấn SQL của `multi_route_projector.py`, lập trình viên viết:
+    ```sql
+    WHERE route_id = ? AND direction IN (0, 1)
+    ```
+  - Tuy nhiên, trong cơ sở dữ liệu cào thực tế từ BusMap:
+    - Chiều đi (Outbound / Go) được đánh số là `1`.
+    - Chiều về (Inbound / Return) được đánh số là **`-1`** (hoàn toàn không có số `0`!).
+  - Câu lệnh `IN (0, 1)` đã âm thầm lọc bỏ toàn bộ **375.901 pings chiều về**, làm mất 56.7% dữ liệu của toàn bộ 48 tuyến!
+- **Giải pháp**:
+  - Đổi câu truy vấn thành:
+    ```sql
+    WHERE route_id = ? AND direction IN (-1, 1)
+    ```
+  - Ánh xạ nhãn hướng nhất quán:
+    ```python
+    d_str = "go" if p[5] == 1 else "re"
+    ```
+  - Kết quả: Tổng số ping được định vị không gian 1D Frenet vọt lên **646.823 pings**, phủ trọn vẹn cả 2 chiều đi và về cho tất cả 48 tuyến.
+
+---
+
+## 7. KINH NGHIỆM LỌC NGOẠI LAI THỰC ĐỊA: BÃI ĐỖ GARA & LỆCH TOUR
+
+### Bẫy Xe Đỗ Chết Gara Làm Biến Dạng Thống Kê Bám Làn ($d_\perp$)
+- **Hiện tượng**: Tuyến 39 có tỷ lệ bám làn chỉ đạt 39.9% và sai số trung vị $d_\perp$ vọt lên tới 131m (nghi ngờ lỗi tim đường nghiêm trọng).
+- **Nguyên nhân khi đào sâu dữ liệu**:
+  - Tuyến có 2 xe buýt mang biển số `29B19755` và `29B20953`. Hai xe này nằm im tại xưởng sửa chữa/gara ở huyện Thanh Trì suốt 24 giờ.
+  - Thiết bị GPS trên xe vẫn gửi định vị liên tục, sinh ra **2.336 pings** (chiếm 51.6% tổng dữ liệu của tuyến).
+  - Thuật toán cố ép các điểm này vào tim đường cách đó hàng trăm mét, kéo tụt toàn bộ chỉ số chất lượng của tuyến.
+- **Giải pháp**:
+  - Đo biên độ dịch chuyển không gian cả ngày của từng phương tiện:
+    $$\Delta s_{\text{day}} = \max(s_{\text{bus}}) - \min(s_{\text{bus}})$$
+  - Nếu $\Delta s_{\text{day}} < 1.000\text{ m}$ và số ping $> 50$, xe được xác định là nằm trong xưởng/bãi đỗ $\to$ Gắn nhãn `depot_garage_parked` và loại bỏ khỏi tập tính toán vận tốc vận hành.
+  - Tương tự, tại các bến đầu/cuối ($s < 300\text{m}$ hoặc $s > S_{\max} - 300\text{m}$), nếu vận tốc $V < 5\text{ km/h}$ thì phân loại là `terminal_dwell`.
+
+### Bẫy Tour Tuyến Chậm Cập Nhật Giữa Nhà Nước vs Thực Địa (Case E04 & OSM Cross-check)
+- **Bài học xương máu**: Master Ground Truth của nhà nước (TimBus) có thể bị chậm cập nhật khi luồng giao thông thực tế được điều chỉnh.
+  - Điển hình: Tuyến E04 trên TimBus đi vòng Dương Nội - Lê Trọng Tấn, nhưng ngoài thực địa xe chạy thẳng theo trục Vạn Phúc - Chu Văn An - Quang Trung (độ lệch lên tới 2.5 km).
+- **Giải pháp tự động**:
+  - Dùng thuật toán kiểm tra cự ly đa giác giữa TimBus và OpenStreetMap (`hanoi_all_bus_routes_raw.json`).
+  - Nếu khoảng cách tối đa giữa TimBus và OSM vượt quá $250\text{m}$, lập tức gắn cờ cảnh báo `TIER_3_FLAGGED` (Tour Mismatch).
+  - **Quy tắc vàng**: Chỉ đưa vào tập huấn luyện Pilot các tuyến thuộc `TIER_1_GOLD` (độ lệch TimBus vs OSM $\le 15\text{m}$ và tỷ lệ bám làn thực tế $\ge 90\%$).
+
+---
+
+## 8. KINH NGHIỆM THỰC THI PYTHON MODULE TRÊN WINDOWS POWERSHELL
+
+### Tránh Lỗi `ModuleNotFoundError: No module named 'config'` Khi Chạy Script Sâu
+- **Cạm bẫy**: Khi chạy trực tiếp file script nằm sâu trong thư mục con:
+  ```powershell
+  python module_1_data_ingestion_and_preprocessing/step_1_4_frenet_spatial_projection/multi_route_projector.py
+  ```
+  Python sẽ tự động đặt `sys.path[0]` là thư mục chứa script đó, dẫn đến không tìm thấy gói `config` ở thư mục gốc của dự án.
+- **Giải pháp tối ưu**:
+  1. Sử dụng cú pháp chạy dạng module với cờ `-m` từ thư mục gốc của dự án:
+     ```powershell
+     .\.venv\Scripts\python.exe -m module_1_data_ingestion_and_preprocessing.step_1_4_frenet_spatial_projection.multi_route_projector
+     ```
+     Cú pháp này đảm bảo Python luôn đưa thư mục làm việc hiện tại (`.`) vào đầu danh sách `sys.path`.
+  2. Không lạm dụng việc set biến môi trường `$env:PYTHONPATH='.'` trong chuỗi lệnh PowerShell vì ký tự `$` và dấu nháy có thể bị parser của shell phân giải sai hoặc chặn ký tự.
+
+
+---
+
+## 9. ĐỘNG HỌC THỰC CHIẾN: BÓC TÁCH XE CHẠY THẬT (ACTIVE RUNNING) VS NGHỈ GIỮA TUYẾN & ĐỖ ĐÊM (22:00 - 06:00)
+
+### Cạm Bẫy Đánh Đồng Dữ Liệu GPS Khi Xe Đỗ Nghỉ
+- **Hiện tượng**: Tuyến BRT01 và Tuyến 39 ban đầu có tỷ lệ bám làn rất thấp (BRT01 chỉ đạt 55%, Tuyến 39 chỉ đạt 39.9%), làm dấy lên nghi ngờ tim đường bị vẽ sai lệch nghiêm trọng.
+- **Bản chất khi phân tích động học không gian - thời gian**:
+  - Thiết bị GPS trên xe buýt không tắt khi xe dừng hoạt động.
+  - Ban đêm (từ 21:45 đến 05:15 sáng hôm sau) và các giờ chuyển ca ban ngày, hàng loạt xe dừng tại bãi đỗ/gara/xưởng tập trung nằm cách tuyến từ 100m đến hơn 3.6km (ví dụ: bãi xe Kim Mã, Yên Nghĩa, Thanh Trì, Mai Dịch).
+  - Các xe này vẫn liên tục gửi tọa độ GPS về hệ thống. Thuật toán cố chiếu các điểm nằm ngoài thực địa này lên tim đường, sinh ra hàng ngàn điểm có sai số $d_\perp > 100\text{m} - 3.700\text{m}$, làm "bẩn" hoàn toàn phân phối thống kê bám làn.
+  - Ngoài bến đầu/cuối, xe buýt còn có các điểm dừng nghỉ giữa tuyến (nghỉ ăn trưa, dừng kỹ thuật, đổi ca tài xế) kéo dài hàng chục phút tại các vị trí $s$ trung gian.
+
+### Giải Pháp Phân Tách Trạng Thái Động Học 3 Tầng (3-State Kinematic Filter)
+- Không dựa vào cảm biến vận tốc tức thời thô (`speed == 0`), mà áp dụng vận tốc dẫn xuất không gian - thời gian ($\bar{v} = \Delta s / \Delta t$) và độ dịch chuyển trong cửa sổ trượt 3.5 phút ($[t - 105\text{s}, t + 105\text{s}]$):
+  1. **Trạng thái Đỗ Đêm (`NIGHT_PARK`)**: Pings trong khung giờ 21:45 đến 05:15 có độ dịch chuyển $\Delta s_{210\text{s}} < 40\text{m}$ hoặc vận tốc dẫn xuất $V < 8\text{ km/h}$.
+  2. **Trạng thái Dừng Nghỉ Kéo Dài / Bãi Đỗ Ban Ngày (`INTERMEDIATE_OR_DEPOT_LAYOVER`)**: Pings ban ngày (05:15 - 21:45) đứng yên trong phạm vi $\Delta s_{210\text{s}} < 25\text{m}$ liên tục $> 3$ phút và $V < 5\text{ km/h}$. (Các trạm dừng đón trả khách thông thường chỉ kéo dài 15-45 giây nên độ dịch chuyển 3.5 phút luôn $> 50\text{m}$).
+  3. **Trạng thái Vận Hành Thực Sự (`ACTIVE_RUNNING`)**: Xe đang di chuyển trên tuyến ($\Delta s \ge 25\text{m}$ hoặc $V \ge 5\text{ km/h}$ trong giờ vận hành).
+
+### Kết Quả Thực Nghiệm Bóc Tách Toàn Mạng Lưới (646.823 Pings - 48 Tuyến)
+- **Cơ cấu trạng thái đội xe**:
+  - **Xe Chạy Thực Sự (`ACTIVE_RUNNING`)**: **500.174 pings (77.3%)**.
+  - **Dừng Nghỉ Ban Ngày (`DAY_LAYOVER`)**: **138.126 pings (21.4%)**.
+  - **Đỗ Nghỉ Qua Đêm (`NIGHT_PARK`)**: **8.523 pings (1.3%)**.
+- **Chỉ số bám làn thực tế khi bóc tách**:
+  - Tuyến BRT01: Tỷ lệ bám làn vọt từ 55% lên **89.7%**, sai số trung vị chỉ **9.4 mét**!
+  - Tuyến 22A, 02: Tỷ lệ bám làn đạt **97.0% - 97.4%**, sai số trung vị chỉ **5.3m - 5.5 mét**!
+  - Tuyến E06: Tỷ lệ bám làn đạt **95.9%**, sai số trung vị chỉ **4.6 mét**!
+  - **36 Tuyến đạt chuẩn GOLD** (Bám làn $\ge 88.0\%$, trung vị $d_\perp \le 10\text{m}$).
+  - **10 Tuyến đạt chuẩn SILVER** (Bám làn $75\% - 88\%$, trung vị $d_\perp \le 15\text{m}$).
+  - **Chỉ 2 Tuyến xếp BRONZE** (Tuyến 39 do lệch tour một nhánh, Tuyến E11 chỉ có 16 pings do mới thử nghiệm).
+- **Kết luận**: Master Ground Truth từ BusMap hoàn toàn chính xác và đạt chuẩn thương mại. Việc bóc tách động học đã giải quyết triệt để vấn đề nhiễu layover và mở đường hoàn tất Module 1 để chuyển sang Module 2.
+
+
+---
+
+## 10. KHOA HỌC HÓA WORKSPACE & QUẢN TRỊ CẤU TRÚC DỰ ÁN
+
+### Bối Cảnh Sau Khi Hoàn Thành Module 1
+- Sau quá trình thử nghiệm bóc tách BusMap và chạy nhiều vòng kiểm toán, các thư mục rác xuất hiện ở root (`hanoi_bus_data/`, `latex/`), các tệp database cũ chiếm hàng trăm megabyte (`telemetry_audit_2026_10_17_18.db` 529MB), và thư mục `experiments/` bị phân mảnh bởi nhiều đợt thăm dò ad-hoc.
+- **Nguyên tắc bất biến**: Không can thiệp vào các biến môi trường và tệp token đang được gọi trực tiếp bởi các script crawler (`access_token_hf.txt`) để tránh tạo ra các lỗi ngầm không đáng có.
+
+### Các Bước Chuẩn Hóa Đã Thực Hiện
+1. **Dữ liệu BusMap Native**: Di chuyển từ `hanoi_bus_data/` về đúng cây dữ liệu chuẩn `data/ground_truth/busmap_canonical/`, xóa các tệp rỗng 2 bytes (`routes.json`, `stations.json`). Cập nhật `ingest_busmap_canonical.py` để trỏ vào đường dẫn mới.
+2. **Tài liệu học thuật**: Di chuyển `latex/` vào `docs/academic_proposal/` nhằm tập trung toàn bộ tài liệu dự án trong `docs/`.
+3. **Giải phóng không gian đĩa**: Di chuyển snapshot database cũ `telemetry_audit_2026_10_17_18.db` (529.4 MB) vào `archive/legacy_dumps/`, chỉ giữ `data/hanoi_bus_system.db` (619 MB) làm Single Source of Truth cho dữ liệu vận hành.
+4. **Hợp nhất báo cáo trực quan**: Chuyển `data/visualizations/*.html` vào thư mục `reports/`.
+5. **Gom gọn Experiments**: Chuyển 6 thư mục thử nghiệm ad-hoc cũ vào `archive/legacy_experiments/`, giữ cho `experiments/` chỉ tập trung vào đợt kiểm toán hiện tại (`route_cleanliness_audit/`).
+6. **Kiểm thử hồi quy**: Chạy thành công `verify_canonical_architecture.py` đạt 100% kiểm tra hợp lệ, không gây đứt gãy bất kỳ đường dẫn nào.
+
+
+---
+
+## 11. DỌN DẸP & ĐỒNG BỘ SCRIPTS TOÀN BỘ CÁC MODULE (QUÁN TÍNH CŨ & BẪY LOGIC)
+
+### Cạm Bẫy Quán Tính Cũ Trong Các Scripts Đã Bị Bóc Mẽ
+1. **Bẫy Chiều Xe `direction == -1` trong `telemetry_sanitizer.py` & `catalog_refresher.py`**:
+   - Trong code cũ: `if direction == -1 and raw_speed == 0: status = "DEPOT"`.
+   - **Tác hại**: Giao thức BusMap quy định `direction: 1` là chiều đi (`go`), và **`-1` là chiều về (`re`)**. Một xe buýt đang chạy chiều về dừng đèn đỏ (`raw_speed == 0`) hoặc chưa gán trạm bị đánh đồng là xe đỗ chết bãi (`IDLE_DEPOT`), làm sai lệch thống kê đội xe và vi phạm trực tiếp **Điều 5 Hiến pháp**.
+   - **Đã khắc phục**: Chỉ phân loại xe `IDLE_DEPOT` khi `direction == 0` (không gán hướng) hoặc `route_id <= 0` và vận tốc dẫn xuất/làm mịn bằng 0 (`smoothed_speed == 0.0`).
+2. **Bẫy Thứ Tự `sys.path.insert` trong `lakehouse_exporter.py`, `feature_extractor.py`, `train_eta_model.py`**:
+   - Các file này ban đầu đặt lệnh `from config.system_config import ...` tại dòng 14, trong khi `sys.path.insert(0, ...)` lại đặt ở tận dòng 21 - 24.
+   - Khi chạy script từ thư mục con, Python báo lỗi chí mạng: `ModuleNotFoundError: No module named 'config'`.
+   - **Đã khắc phục**: Đưa `sys.path.insert` lên đầu toàn bộ file trước mọi câu lệnh import nội bộ.
+3. **Bẫy Nguồn Dữ Liệu Trạm Cũ (`dim_station_crosswalk` vs `canonical_station_master`)**:
+   - Các file `db_manager.py` (tạo view `v_bus_to_next_station`) và `baseline_segment_average.py` (tính ma trận thời gian chạy) ban đầu vẫn kết nối vào bảng cũ `dim_station_crosswalk` (chỉ có 3.646 trạm của TimBus trước đây).
+   - **Đã nâng cấp**: Trỏ trực tiếp vào `canonical_station_master` (13.301 trạm dừng chuẩn của 176 tuyến). Kết quả sinh ra **27.872 ô ma trận thời gian liên trạm** cho toàn mạng lưới.
+4. **Bổ sung Script Facade Chuẩn**:
+   - Thêm `scripts/ingest_canonical_busmap_master.py` làm đầu vào chuẩn tắc đại diện cho luồng di chuyển dữ liệu BusMap Native.
+5. **Kỷ luật kiểm thử Live Crawler**:
+   - Sau toàn bộ các chỉnh sửa trên, crawler thực địa được kiểm tra trực tiếp qua cả 2 kênh: `cloud_crawler_step.py --test` (504/504 xe, 7.9s) và `run_production_crawler.py --test` (504 xe, 14.2s), xác nhận 100% hệ sinh thái vận hành thông suốt.
+
+---
+
+## 12. CHÍNH SÁCH QUỸ ĐẠO: DEADHEADING, DETOUR NÉ TẮC VÀ MÁY TRẠNG THÁI TÁI NHẬP TUYẾN (DOC 54)
+
+### 1. Bản Chất Nghiệp Vụ Vận Hành
+- **Deadheading (Chạy rỗng tiếp vận)**: Sáng sớm (04:30 - 05:45) xuất phát từ gara ra trạm giữa tuyến để phân bổ sức chứa; tối muộn (21:30 - 23:00) chạy tắt về bãi đỗ/gara để kết ca.
+- **Detour Né Tắc (Ad-hoc Avoidance)**: Tài xế chủ động/theo điều độ rẽ nhánh sang đường gom, phố phụ né điểm nghẽn và có thể bỏ qua trạm dừng.
+- **Biến dạng toán học Frenet**: Ép chiếu trực giao khi $d_\perp > 45\text{m}$ (đặc biệt $d_\perp > 1\text{km}$) sinh ra vận tốc chiếu ảo $\bar{v} > 168\text{km/h}$ do hình chiếu $s$ bị giật dọc theo tim đường.
+
+### 2. Chiến Lược 2 Tầng (Bifurcated Policy)
+1. **Tầng Huấn Luyện & Lakehouse (Module 2 & Baseline)**:
+   - **LOẠI BỎ TRIỆT ĐỂ** các pings/phân đoạn có $d_\perp > 45\text{m}$ hoặc deadheading khỏi ma trận thời gian chạy và tập huấn luyện XGBoost. Chỉ dùng dữ liệu vàng `ST_ACTIVE_REVENUE` ($d_\perp \le 35\text{m}$).
+2. **Tầng Phục Vụ Trực Tiếp (Online Serving SLA)**:
+   - **Xe Deadhead**: Ẩn hoàn toàn khỏi app hành khách (tránh lỗi "Xe Ma").
+   - **Xe Detour**: Gắn cờ `DETOUR_ALERT`, đóng băng ETA tại các trạm bị bỏ qua.
+   - **Khử giật Tái Nhập Tuyến (Re-entry Gate)**: Yêu cầu tối thiểu $K = 2$ pings liên tiếp có $d_\perp \le 25\text{m}$ và cùng chiều tim đường mới kích hoạt lại ETA từ trạm $S_{\text{next}}$ tiếp theo.
+- **Chi tiết đặc tả**: Xem [`docs/54_DEADHEADING_DETOUR_AND_ANOMALOUS_TRAJECTORY_ETA_POLICY.md`](docs/54_DEADHEADING_DETOUR_AND_ANOMALOUS_TRAJECTORY_ETA_POLICY.md).
+

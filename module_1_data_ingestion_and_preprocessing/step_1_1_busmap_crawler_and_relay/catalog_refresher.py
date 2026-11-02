@@ -47,7 +47,7 @@ def audit_vehicle(vid):
     speed = float(raw.get("Speed", 0.0))
     direction = int(raw.get("direction", 0))
     
-    if direction == -1 and speed == 0:
+    if route_id <= 0 or (direction == 0 and speed == 0):
         status = "DEPOT"
     else:
         status = "ACTIVE"

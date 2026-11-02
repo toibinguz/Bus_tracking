@@ -1,41 +1,39 @@
 """
-Module 1: Data Ingestion & Preprocessing
-Subcomponent: step_1_4_frenet_spatial_projection
-File: multi_route_projector.py
+Module 1: Production Multi-Route Frenet Projection Engine.
+Linear references raw GPS pings (vehicle_unique_pings) onto Canonical BusMap Master Polylines
+(canonical_shape_master) to produce 1D progress coordinate (s_bus_m), orthogonal cross-track
+error (cross_track_m), and derived kinematics (v_derived = delta_s / delta_t).
 
-Vectorized multi-route linear referencing and centerline projection pipeline.
-Projects raw GPS pings of any bus route onto the official TimBus centerline polyline (timbus_shape_master)
-and stores along-track distance (s), cross-track error (d_perp), and derived speed (v = delta_s / delta_t).
+Canonical Data Sources:
+- canonical_shape_master: Master line strings with cum_distance_m
+- canonical_route_master: Route catalog and metadata
+- canonical_station_master: Station sequence with direction tags
+- vehicle_unique_pings: Cleaned, deduplicated raw telemetry
+
+Output Table:
+- route_projected_telemetry
 """
 
+import sqlite3
+import numpy as np
+import time
+import math
 import sys
+from pathlib import Path
+from typing import List, Tuple, Dict, Optional, Any
+
+# Ensure project root is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, ".")
 
 from config.system_config import get_database_path, DEFAULT_DB_PATH
-import os
-import math
-import sqlite3
-import time
-import numpy as np
-from typing import Dict, List, Tuple, Optional
-
-# Ensure project root in sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
-sys.path.insert(0, os.path.abspath("."))
 
 EARTH_RADIUS_M = 6371000.0
 
 
-def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    d_phi = math.radians(lat2 - lat1)
-    d_lambda = math.radians(lon2 - lon1)
-    a = math.sin(d_phi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * (math.sin(d_lambda / 2.0) ** 2)
-    return EARTH_RADIUS_M * 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
-
-
-def project_points_to_shape(pings: list, shape_pts: list) -> list:
+def project_points_to_shape(pings: List[Tuple[Any, ...]], shape_pts: List[Tuple[float, float, float]]) -> List[Tuple[int, float, float]]:
     """
-    Project a list of pings onto a polyline.
+    Vectorized orthogonal projection of GPS points onto polyline segments.
     shape_pts: list of (point_order, lat, lon, cum_distance_m)
     pings: list of (ping_id, lat, lon, device_epoch)
     Returns: list of (ping_id, best_s_m, min_cross_track_m)
@@ -63,7 +61,6 @@ def project_points_to_shape(pings: list, shape_pts: list) -> list:
     dx = x2 - x1
     dy = y2 - y1
     seg_lens_sq = dx * dx + dy * dy
-    seg_lens = np.sqrt(np.maximum(seg_lens_sq, 1e-12))
     safe_lens_sq = np.maximum(seg_lens_sq, 1e-6)
     cum_starts = s_cums[:-1]
 
@@ -75,31 +72,29 @@ def project_points_to_shape(pings: list, shape_pts: list) -> list:
         p_dx1 = px - x1
         p_dy1 = py - y1
 
-        # Project point onto each segment: t = (p_dx1 * dx + p_dy1 * dy) / safe_lens_sq
+        # Parameter t along each segment
         t = (p_dx1 * dx + p_dy1 * dy) / safe_lens_sq
-        t = np.nan_to_num(t, nan=0.0)
-        t_clamped = np.clip(t, 0.0, 1.0)
+        t = np.clip(t, 0.0, 1.0)
 
-        proj_x = x1 + t_clamped * dx
-        proj_y = y1 + t_clamped * dy
+        # Projected points
+        proj_x = x1 + t * dx
+        proj_y = y1 + t * dy
 
+        # Perpendicular distance to each segment
         dist_sq = (px - proj_x) ** 2 + (py - proj_y) ** 2
-        best_idx = np.argmin(dist_sq)
+        best_seg = np.argmin(dist_sq)
 
-        min_dist_m = float(np.sqrt(dist_sq[best_idx]))
-        best_s_m = float(cum_starts[best_idx] + t_clamped[best_idx] * seg_lens[best_idx])
-        if math.isnan(best_s_m):
-            best_s_m = float(cum_starts[best_idx])
-        if math.isnan(min_dist_m):
-            min_dist_m = 999.0
+        min_d = math.sqrt(dist_sq[best_seg])
+        best_t = t[best_seg]
+        best_s = cum_starts[best_seg] + best_t * math.sqrt(seg_lens_sq[best_seg])
 
-        results.append((ping_id, round(best_s_m, 2), round(min_dist_m, 2)))
+        results.append((ping_id, round(best_s, 1), round(min_d, 1)))
 
     return results
 
 
 def init_projected_telemetry_table(conn: sqlite3.Connection):
-    """Ensure multi-route projected telemetry table and indices exist."""
+    """Ensure destination table exists with high-speed indexes."""
     cur = conn.cursor()
     cur.execute("""
     CREATE TABLE IF NOT EXISTS route_projected_telemetry (
@@ -120,29 +115,24 @@ def init_projected_telemetry_table(conn: sqlite3.Connection):
     );
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_code ON route_projected_telemetry (route_code);")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_id ON route_projected_telemetry (route_id);")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_vehicle_epoch ON route_projected_telemetry (vehicle_id, device_epoch);")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_dir_s ON route_projected_telemetry (route_code, direction, s_bus_m);")
     conn.commit()
 
 
-def project_route(route_code: str, conn: sqlite3.Connection) -> int:
-    """Project all pings for a specific route onto TimBus official centerline."""
+def project_route(route_id: int, route_code: str, conn: sqlite3.Connection, st_dir: Dict[Tuple[int, int], str]) -> int:
+    """Project all telemetry pings for a route onto canonical shape master polylines."""
     cur = conn.cursor()
 
-    # Find busmap_route_id
-    r_info = cur.execute("SELECT busmap_route_id FROM dim_route_crosswalk WHERE route_code = ?", (route_code,)).fetchone()
-    if not r_info or r_info[0] is None:
-        return 0
-    busmap_route_id = r_info[0]
-
-    # Load shape points for both directions
+    # Load canonical shapes for both directions
     shapes = {"go": [], "re": []}
     for row in cur.execute("""
         SELECT direction, point_order, lat, lon, cum_distance_m 
-        FROM timbus_shape_master 
-        WHERE route_code = ? 
+        FROM canonical_shape_master 
+        WHERE route_id = ? 
         ORDER BY direction, point_order
-    """, (route_code,)).fetchall():
+    """, (route_id,)).fetchall():
         d = row[0].lower()
         if d in shapes:
             shapes[d].append((row[1], row[2], row[3], row[4]))
@@ -152,30 +142,63 @@ def project_route(route_code: str, conn: sqlite3.Connection) -> int:
 
     # Fetch unique pings for this route
     pings_query = """
-    SELECT ping_id, vehicle_id, plate, device_update_time, device_epoch, direction, lat, lon
+    SELECT ping_id, vehicle_id, plate, device_update_time, device_epoch, direction, lat, lon, current_station_id
     FROM vehicle_unique_pings
-    WHERE route_id = ? AND direction IN (0, 1) AND lat > 20.0 AND lon > 105.0
+    WHERE route_id = ? AND lat > 20.0 AND lon > 105.0
     ORDER BY vehicle_id, device_epoch;
     """
-    pings = cur.execute(pings_query, (busmap_route_id,)).fetchall()
+    pings = cur.execute(pings_query, (route_id,)).fetchall()
     if not pings:
         return 0
 
-    # Separate pings by direction: 1 -> "go", 0 -> "re"
+    # Assign initial direction using Station-Guidance
     pings_by_dir = {"go": [], "re": []}
     ping_meta = {}
     for p in pings:
-        d_str = "go" if p[5] == 1 else "re"
-        pings_by_dir[d_str].append((p[0], p[6], p[7], p[4]))
-        ping_meta[p[0]] = p
+        pid, vid, plate, t_str, epoch, p_dir, lat, lon, curr_st = p
+        if curr_st and (route_id, curr_st) in st_dir:
+            d_str = st_dir[(route_id, curr_st)]
+        else:
+            # BusMap convention: -1 -> go (Direction 0), 1 -> re (Direction 1)
+            d_str = "go" if p_dir == -1 else "re"
 
-    # Execute projection
+        pings_by_dir[d_str].append((pid, lat, lon, epoch))
+        ping_meta[pid] = p
+
+    # Execute primary projection
     projected_results = {}
     for d_str in ["go", "re"]:
         if shapes[d_str] and pings_by_dir[d_str]:
             res = project_points_to_shape(pings_by_dir[d_str], shapes[d_str])
             for pid, s_m, d_perp in res:
                 projected_results[pid] = (s_m, d_perp, d_str)
+
+    # Self-Healing Direction Guard: Strictly restricted to Terminal Turnaround Zones (s <= 500m or s >= L - 300m)
+    # Prevents mid-corridor cross-talk / direction flickering between parallel opposing lanes
+    needs_retry = []
+    for pid, (s_m, d_perp, d_str) in projected_results.items():
+        if d_perp > 45.0:
+            opp_dir = "re" if d_str == "go" else "go"
+            if shapes[opp_dir]:
+                shape_len = shapes[d_str][-1][3] if shapes[d_str] else 0.0
+                is_near_terminal = (s_m <= 500.0) or (s_m >= shape_len - 300.0)
+                if is_near_terminal:
+                    p = ping_meta[pid]
+                    needs_retry.append((opp_dir, (pid, p[6], p[7], p[4])))
+
+    if needs_retry:
+        retry_by_dir = {"go": [], "re": []}
+        for opp_dir, ping_item in needs_retry:
+            retry_by_dir[opp_dir].append(ping_item)
+
+        for opp_dir in ["go", "re"]:
+            if shapes[opp_dir] and retry_by_dir[opp_dir]:
+                retry_res = project_points_to_shape(retry_by_dir[opp_dir], shapes[opp_dir])
+                for pid, new_s, new_dperp in retry_res:
+                    orig_s, orig_dperp, orig_d = projected_results[pid]
+                    # Switch direction if opposite direction is significantly closer
+                    if new_dperp < 25.0 and (orig_dperp - new_dperp) > 20.0:
+                        projected_results[pid] = (new_s, new_dperp, opp_dir)
 
     # Calculate derived kinematics (delta_s / delta_t) per vehicle trajectory
     records = []
@@ -210,7 +233,7 @@ def project_route(route_code: str, conn: sqlite3.Connection) -> int:
             records.append((
                 pid,
                 route_code,
-                busmap_route_id,
+                route_id,
                 meta[1],  # vehicle_id
                 meta[2],  # plate
                 meta[3],  # device_update_time
@@ -225,7 +248,7 @@ def project_route(route_code: str, conn: sqlite3.Connection) -> int:
             ))
 
     # Upsert into route_projected_telemetry
-    cur.execute("DELETE FROM route_projected_telemetry WHERE route_code = ?", (route_code,))
+    cur.execute("DELETE FROM route_projected_telemetry WHERE route_id = ?", (route_id,))
     cur.executemany("""
     INSERT OR REPLACE INTO route_projected_telemetry (
         ping_id, route_code, route_id, vehicle_id, plate,
@@ -239,7 +262,7 @@ def project_route(route_code: str, conn: sqlite3.Connection) -> int:
 
 
 def run_multi_route_projection(db_path: Optional[str] = None, limit: Optional[int] = None):
-    """Run projection for all available routes."""
+    """Run projection for all available routes using Canonical Master."""
     if sys.stdout.encoding != 'utf-8':
         try:
             sys.stdout.reconfigure(encoding='utf-8')
@@ -250,13 +273,20 @@ def run_multi_route_projection(db_path: Optional[str] = None, limit: Optional[in
     init_projected_telemetry_table(conn)
 
     cur = conn.cursor()
-    # Find all routes that have both shape and telemetry
+
+    # Preload station directions lookup
+    print("Pre-loading canonical station directions lookup...")
+    cur.execute("SELECT route_id, station_id, direction FROM canonical_station_master;")
+    st_dir = {(r_id, st_id): d for r_id, st_id, d in cur.fetchall()}
+    print(f"Loaded {len(st_dir):,} canonical station direction markers.")
+
+    # Find all active routes with telemetry
     routes_query = """
-    SELECT DISTINCT c.route_code, count(t.ping_id) as pings
-    FROM dim_route_crosswalk c
-    JOIN vehicle_unique_pings t ON c.busmap_route_id = t.route_id
-    WHERE c.route_code IN (SELECT DISTINCT route_code FROM timbus_shape_master)
-    GROUP BY c.route_code
+    SELECT DISTINCT r.route_id, r.route_code, count(t.ping_id) as pings
+    FROM canonical_route_master r
+    JOIN vehicle_unique_pings t ON r.route_id = t.route_id
+    WHERE r.route_id IN (SELECT DISTINCT route_id FROM canonical_shape_master)
+    GROUP BY r.route_id, r.route_code
     ORDER BY pings DESC;
     """
     routes = cur.execute(routes_query).fetchall()
@@ -265,15 +295,15 @@ def run_multi_route_projection(db_path: Optional[str] = None, limit: Optional[in
         routes = routes[:limit]
 
     print("=" * 80)
-    print(f"MULTI-ROUTE FRENET PROJECTION PIPELINE ({len(routes)} ROUTES)")
+    print(f"CANONICAL MULTI-ROUTE FRENET PROJECTION PIPELINE ({len(routes)} ROUTES)")
     print("=" * 80)
 
     total_projected = 0
     t0 = time.time()
 
-    for idx, (rc, p_count) in enumerate(routes, start=1):
-        print(f"[{idx:02d}/{len(routes)}] Projecting Route {rc:<6} ({p_count:,} pings)...", end=" ", flush=True)
-        count = project_route(rc, conn)
+    for idx, (r_id, rc, p_count) in enumerate(routes, start=1):
+        print(f"[{idx:02d}/{len(routes)}] Projecting Route {rc:<6} (ID {r_id:<6}, {p_count:,} pings)...", end=" ", flush=True)
+        count = project_route(r_id, rc, conn, st_dir)
         total_projected += count
         print(f"OK ({count:,} projected)")
 
@@ -281,7 +311,7 @@ def run_multi_route_projection(db_path: Optional[str] = None, limit: Optional[in
     conn.close()
 
     print("=" * 80)
-    print("MULTI-ROUTE PROJECTION SUMMARY:")
+    print("CANONICAL MULTI-ROUTE PROJECTION SUMMARY:")
     print(f"- Total Routes Projected: {len(routes)}")
     print(f"- Total Pings Linear Referenced: {total_projected:,}")
     print(f"- Elapsed Time: {elapsed:.2f}s ({elapsed/len(routes):.2f}s per route)")
