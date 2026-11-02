@@ -95,7 +95,7 @@ def train_and_predict_cqr(
     p_med = np.maximum(0.0, base_test + test_res[:, 1])
     p_high_raw = np.maximum(p_med, base_test + test_res[:, 2])
 
-    p_low = np.maximum(0.0, p_low_raw - q_conformal * test_scale)
+    p_low = np.minimum(p_med, np.maximum(0.0, p_low_raw - q_conformal * test_scale))
     p_high = np.maximum(p_med, p_high_raw + q_conformal * test_scale)
 
     importance = dict(zip(feature_cols, q_model.feature_importances_))

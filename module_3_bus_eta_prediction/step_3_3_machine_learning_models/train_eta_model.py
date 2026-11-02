@@ -228,7 +228,7 @@ def train_and_benchmark_route_eta(
 
     # Apply Heteroscedastic Conformal Calibration adjustment
     test_scale = np.maximum(15.0, X_test["baseline_spread_sec"].to_numpy())
-    ml_low = np.maximum(0.0, ml_low_raw - q_conformal_scale * test_scale)
+    ml_low = np.minimum(ml_med, np.maximum(0.0, ml_low_raw - q_conformal_scale * test_scale))
     ml_high = np.maximum(ml_med, ml_high_raw + q_conformal_scale * test_scale)
     q_conformal = q_conformal_scale
 

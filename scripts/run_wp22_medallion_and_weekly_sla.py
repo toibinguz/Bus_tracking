@@ -310,8 +310,8 @@ def evaluate_weekly_sla_and_hybrid_serving(route_code: str, db_path: str, lakeho
 
     test_res = q_model.predict(X_test)
     test_scale = np.maximum(15.0, test_df["baseline_spread_sec"].to_numpy())
-    p_low_xgb = np.maximum(0.0, base_test + test_res[:, 0] - q_conformal * test_scale)
     p_med_xgb = np.maximum(0.0, base_test + test_res[:, 1])
+    p_low_xgb = np.minimum(p_med_xgb, np.maximum(0.0, base_test + test_res[:, 0] - q_conformal * test_scale))
     p_high_xgb = np.maximum(p_med_xgb, base_test + test_res[:, 2] + q_conformal * test_scale)
 
     # Maturity-Gated Hybrid Blending on Leader Blind-Spot (Doc 63 Section IV.2 - IV.4)
@@ -360,7 +360,7 @@ def evaluate_weekly_sla_and_hybrid_serving(route_code: str, db_path: str, lakeho
                     best_gamma_p50 = float(g50)
 
         cal_high_cqr = np.maximum(cal_p50, cal_p90 + q_conformal * cal_scale)
-        cal_low_cqr = np.maximum(0.0, cal_p10 - q_conformal * cal_scale)
+        cal_low_cqr = np.minimum(cal_p50, np.maximum(0.0, cal_p10 - q_conformal * cal_scale))
         m_cal_0 = compute_interval_metrics(
             y_cal[cal_blind_mask], cal_low_cqr[cal_blind_mask], cal_p50[cal_blind_mask], cal_high_cqr[cal_blind_mask]
         )
