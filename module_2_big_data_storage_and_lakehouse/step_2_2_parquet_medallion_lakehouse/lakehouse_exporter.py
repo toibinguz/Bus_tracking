@@ -22,6 +22,7 @@ using Apache Parquet with Snappy compression and Hive-style partitioning:
 import glob
 import json
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -63,7 +64,7 @@ def export_bronze_tomtom_incidents(
     by_date: Dict[str, List[str]] = {}
     for fpath in files:
         parts = os.path.normpath(fpath).split(os.sep)
-        dt_val = next((p for p in parts if len(p) == 10 and p.startswith("2026-")), None)
+        dt_val = next((p for p in parts if len(p) == 10 and re.match(r"^\d{4}-\d{2}-\d{2}$", p)), None)
         if dt_val:
             by_date.setdefault(dt_val, []).append(fpath)
 
@@ -165,41 +166,8 @@ def export_to_parquet_lakehouse(
     for d in (silver_tel_dir, silver_inc_dir, gold_batch_dir, gold_xval_dir):
         os.makedirs(d, exist_ok=True)
 
-    # Fast-path check if Silver Telemetry, Silver Incidents, and Gold Batch View are already materialized
     batch_file = os.path.join(gold_batch_dir, "part-00000.snappy.parquet")
     xval_file = os.path.join(gold_xval_dir, "part-00000.snappy.parquet")
-    existing_tel_files = glob.glob(os.path.join(silver_tel_dir, "route_code=*", "dt=*", "*.parquet"))
-    existing_inc_files = glob.glob(os.path.join(silver_inc_dir, "route_code=*", "*.parquet"))
-
-    if (
-        not force_overwrite
-        and len(existing_tel_files) >= 900
-        and len(existing_inc_files) >= 40
-        and os.path.exists(batch_file)
-        and os.path.exists(xval_file)
-    ):
-        total_tel_rows = sum(pq.read_metadata(fp).num_rows for fp in existing_tel_files)
-        total_inc_rows = sum(pq.read_metadata(fp).num_rows for fp in existing_inc_files)
-        total_batch_rows = pq.read_metadata(batch_file).num_rows
-        total_xval_rows = pq.read_metadata(xval_file).num_rows
-        elapsed = time.time() - t0
-        print("=" * 84, flush=True)
-        print(
-            f"[Silver & Gold Summary] Telemetry: {total_tel_rows:,} rows across {len(existing_tel_files)} partitions "
-            f"(0 newly written) | Incidents: {total_inc_rows:,} rows | "
-            f"Batch View: {total_batch_rows:,} cells | Elapsed: {elapsed:.2f}s",
-            flush=True,
-        )
-        print("=" * 84, flush=True)
-        return {
-            "bronze": bronze_stats,
-            "silver_telemetry_rows": total_tel_rows,
-            "silver_telemetry_partitions": len(existing_tel_files),
-            "silver_incident_rows": total_inc_rows,
-            "gold_batch_cells": total_batch_rows,
-            "gold_xval_pairs": total_xval_rows,
-            "elapsed_sec": round(elapsed, 2),
-        }
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
@@ -276,41 +244,54 @@ def export_to_parquet_lakehouse(
             )
 
     # Export Silver fact_route_tomtom_incidents partitioned by route_code
-    df_inc = pd.read_sql_query("SELECT * FROM fact_route_tomtom_incidents", conn)
-    for rc, sub_inc in df_inc.groupby("route_code"):
-        inc_r_dir = os.path.join(silver_inc_dir, f"route_code={rc}")
-        os.makedirs(inc_r_dir, exist_ok=True)
-        sub_inc.drop(columns=["route_code"]).to_parquet(
-            os.path.join(inc_r_dir, "part-00000.snappy.parquet"),
+    existing_inc_files = glob.glob(os.path.join(silver_inc_dir, "route_code=*", "*.parquet"))
+    if force_overwrite or len(existing_inc_files) == 0:
+        df_inc = pd.read_sql_query("SELECT * FROM fact_route_tomtom_incidents", conn)
+        for rc, sub_inc in df_inc.groupby("route_code"):
+            inc_r_dir = os.path.join(silver_inc_dir, f"route_code={rc}")
+            os.makedirs(inc_r_dir, exist_ok=True)
+            sub_inc.drop(columns=["route_code"]).to_parquet(
+                os.path.join(inc_r_dir, "part-00000.snappy.parquet"),
+                engine="pyarrow",
+                compression="snappy",
+                index=False,
+            )
+        total_inc_rows = len(df_inc)
+    else:
+        total_inc_rows = sum(pq.read_metadata(fp).num_rows for fp in existing_inc_files)
+
+    # Export Gold batch_view_travel_times & tomtom_vs_bus_kinematics
+    if force_overwrite or new_tel_files > 0 or not os.path.exists(batch_file):
+        df_batch = pd.read_sql_query("SELECT * FROM agg_segment_travel_times", conn)
+        df_batch.to_parquet(
+            batch_file,
             engine="pyarrow",
             compression="snappy",
             index=False,
         )
+        total_batch_rows = len(df_batch)
+    else:
+        total_batch_rows = pq.read_metadata(batch_file).num_rows
 
-    # Export Gold batch_view_travel_times & tomtom_vs_bus_kinematics
-    df_batch = pd.read_sql_query("SELECT * FROM agg_segment_travel_times", conn)
-    df_batch.to_parquet(
-        batch_file,
-        engine="pyarrow",
-        compression="snappy",
-        index=False,
-    )
-
-    df_xval = pd.read_sql_query("SELECT * FROM agg_tomtom_vs_bus_kinematics", conn)
-    df_xval.to_parquet(
-        xval_file,
-        engine="pyarrow",
-        compression="snappy",
-        index=False,
-    )
+    if force_overwrite or new_tel_files > 0 or not os.path.exists(xval_file):
+        df_xval = pd.read_sql_query("SELECT * FROM agg_tomtom_vs_bus_kinematics", conn)
+        df_xval.to_parquet(
+            xval_file,
+            engine="pyarrow",
+            compression="snappy",
+            index=False,
+        )
+        total_xval_rows = len(df_xval)
+    else:
+        total_xval_rows = pq.read_metadata(xval_file).num_rows
 
     conn.close()
     elapsed = time.time() - t0
     print("=" * 84, flush=True)
     print(
         f"[Silver & Gold Summary] Telemetry: {total_tel_rows:,} rows across {total_tel_files} partitions "
-        f"({new_tel_files} newly written) | Incidents: {len(df_inc):,} rows | "
-        f"Batch View: {len(df_batch):,} cells | Elapsed: {elapsed:.2f}s",
+        f"({new_tel_files} newly written) | Incidents: {total_inc_rows:,} rows | "
+        f"Batch View: {total_batch_rows:,} cells | Elapsed: {elapsed:.2f}s",
         flush=True,
     )
     print("=" * 84, flush=True)
@@ -318,9 +299,9 @@ def export_to_parquet_lakehouse(
         "bronze": bronze_stats,
         "silver_telemetry_rows": total_tel_rows,
         "silver_telemetry_partitions": total_tel_files,
-        "silver_incident_rows": len(df_inc),
-        "gold_batch_cells": len(df_batch),
-        "gold_xval_pairs": len(df_xval),
+        "silver_incident_rows": total_inc_rows,
+        "gold_batch_cells": total_batch_rows,
+        "gold_xval_pairs": total_xval_rows,
         "elapsed_sec": round(elapsed, 2),
     }
 
