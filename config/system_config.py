@@ -27,6 +27,7 @@ HF_TOKEN_FILE = "access_token_hf.txt"
 HF_DATASET_ID = os.environ.get("HF_DATASET_ID", "Toibinguz/hust-bus-data")
 
 DEFAULT_DB_PATH = "data/hanoi_bus_system.db"
+DEFAULT_LAKEHOUSE_ROOT = "data/lakehouse"
 LEGACY_AUDIT_DB_PATH = "archive/legacy_dumps/telemetry_audit_2026_10_17_18.db"
 
 def get_database_path() -> str:

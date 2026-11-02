@@ -9,25 +9,33 @@ with zero trip-level data leakage, combining:
   2. Multi-Ping Ego-Vehicle Kinematics & Realized Trip Pace (last 1, 2, 3 pings, 3m/10m rolling speed, acceleration trend, recent segment pace ratio)
   3. Downstream Leader ("Probe Vehicle") Real-Time Segment Traversals & Live Corridor Speed
   4. Same-Route Fleet Headway & Bus Bunching Dynamics (distance to leader/follower, time headway since previous bus)
+  5. Multi-Source TomTom Incident Fusion (WP 2.1 segment-by-segment accumulation)
+  6. Two-Stage Decoupled Feature Architecture (WP 2.2):
+     - Stage 1: Immutable Physical Kinematic Horizon Observations (partitioned by dt=YYYY-MM-DD in Parquet)
+     - Stage 2: Dynamic Weekly Matrix Re-binding (bind_stage2_dynamic_matrix) in <1s/route via vectorized NumPy lookup
 """
 
 import bisect
+import glob
 import math
 import os
 import sqlite3
 import sys
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Set, Tuple
 
 import numpy as np
 import pandas as pd
+import pyarrow.dataset as ds_pa
 
 # Ensure project root in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 sys.path.insert(0, os.path.abspath("."))
 
-from config.system_config import DEFAULT_DB_PATH, get_database_path
+from config.system_config import DEFAULT_DB_PATH, DEFAULT_LAKEHOUSE_ROOT, get_database_path
 from module_3_bus_eta_prediction.step_3_1_historical_baseline_model.baseline_segment_average import (
+    DAY_TYPES,
+    TIME_WINDOWS,
     get_day_type,
     get_time_window,
 )
@@ -80,6 +88,9 @@ TOMTOM_FEATURE_COLUMNS: List[str] = [
 V2_FEATURE_COLUMNS: List[str] = FEATURE_COLUMNS + TOMTOM_FEATURE_COLUMNS
 
 TARGET_COLUMN: str = "actual_remaining_sec"
+
+TIME_WINDOW_INDEX: Dict[str, int] = {w: i for i, w in enumerate(TIME_WINDOWS)}
+DAY_TYPE_INDEX: Dict[str, int] = {d: i for i, d in enumerate(DAY_TYPES)}
 
 
 def _load_route_baseline_matrix(
@@ -156,12 +167,18 @@ def extract_route_training_dataset(
     max_stops_ahead: int = 5,
     max_horizon_m: float = 3500.0,
     include_tomtom: bool = False,
+    target_dates: Optional[Set[str]] = None,
+    lakehouse_root: str = DEFAULT_LAKEHOUSE_ROOT,
 ) -> pd.DataFrame:
     """
     Extract supervised training dataset for point and interval ETA prediction.
     Computes strictly causal (t <= t_ping) multi-ping ego kinematics, downstream
     leader segment traversal times, and spatial/temporal headway to leader & follower buses.
     Optionally joins TomTom incident signals (WP 2.1) when include_tomtom=True.
+    When target_dates (set of 'YYYY-MM-DD' strings) is provided, only emits samples
+    for pings occurring on those dates while preserving causal fleet lookback.
+    Also records Stage 1 physical decoupling columns so Stage 2 dynamic weekly
+    matrix re-binding (bind_stage2_dynamic_matrix) executes in <1s/route.
     """
     resolved_db = db_path or str(get_database_path())
     conn = sqlite3.connect(resolved_db)
@@ -191,24 +208,50 @@ def extract_route_training_dataset(
     baseline_matrix = _load_route_baseline_matrix(conn, route_code)
 
     # 2.1 Load TomTom incident episodes per station segment into 10-minute buckets (WP 2.1)
-    # Keyed by tomtom_seg_buckets[direction][from_station_order][bucket_600s]
-    # -> List[(t_start, t_end, s_min, s_max, delay_sec, mag)]
+    # Prefer Silver Parquet partition if available to avoid SQLite contention across parallel workers
     tomtom_seg_buckets: Dict[str, Dict[int, Dict[int, List[Tuple[int, int, float, float, float, int]]]]] = {
         d: {} for d in stations_by_dir
     }
     if include_tomtom:
-        cur.execute(
-            """
-            SELECT direction, from_station_order,
-                   s_min_m, s_max_m,
-                   t_start_epoch, t_end_epoch,
-                   delay_seconds, magnitude_of_delay
-            FROM fact_route_tomtom_incidents
-            WHERE route_code = ? AND delay_seconds > 0
-            """,
-            (route_code,),
+        silver_inc_file = os.path.join(
+            lakehouse_root, "silver", "fact_route_tomtom_incidents",
+            f"route_code={route_code}", "part-00000.snappy.parquet"
         )
-        for d_dir, st_from_order, s_min_i, s_max_i, t_s, t_e, del_s, mag_d in cur.fetchall():
+        if os.path.exists(silver_inc_file):
+            tbl_inc = ds_pa.dataset(silver_inc_file, format="parquet").to_table(
+                columns=[
+                    "direction", "from_station_order", "s_min_m", "s_max_m",
+                    "t_start_epoch", "t_end_epoch", "delay_seconds", "magnitude_of_delay",
+                ],
+                filter=ds_pa.field("delay_seconds") > 0,
+            )
+            inc_rows = list(
+                zip(
+                    tbl_inc["direction"].to_pylist(),
+                    tbl_inc["from_station_order"].to_pylist(),
+                    tbl_inc["s_min_m"].to_pylist(),
+                    tbl_inc["s_max_m"].to_pylist(),
+                    tbl_inc["t_start_epoch"].to_pylist(),
+                    tbl_inc["t_end_epoch"].to_pylist(),
+                    tbl_inc["delay_seconds"].to_pylist(),
+                    tbl_inc["magnitude_of_delay"].to_pylist(),
+                )
+            )
+        else:
+            cur.execute(
+                """
+                SELECT direction, from_station_order,
+                       s_min_m, s_max_m,
+                       t_start_epoch, t_end_epoch,
+                       delay_seconds, magnitude_of_delay
+                FROM fact_route_tomtom_incidents
+                WHERE route_code = ? AND delay_seconds > 0
+                """,
+                (route_code,),
+            )
+            inc_rows = cur.fetchall()
+
+        for d_dir, st_from_order, s_min_i, s_max_i, t_s, t_e, del_s, mag_d in inc_rows:
             d_str = str(d_dir)
             if d_str not in tomtom_seg_buckets:
                 continue
@@ -227,19 +270,90 @@ def extract_route_training_dataset(
                 st_buckets.setdefault(b_i, []).append(inc_tuple)
 
     # 3. Fetch on-corridor projected telemetry (d_perp <= 35.0m per Doc 54)
-    cur.execute(
-        """
-        SELECT ping_id, vehicle_id, direction, device_epoch, device_update_time,
-               s_bus_m, cross_track_m, derived_speed_kmh, is_dwell
-        FROM route_projected_telemetry
-        WHERE route_code = ?
-          AND cross_track_m <= 35.0
-        ORDER BY direction, vehicle_id, device_epoch ASC
-        """,
-        (route_code,),
+    # Prefer Silver Parquet partitions (9.58x faster + zero SQLite lock contention in ProcessPoolExecutor)
+    silver_tel_route_dir = os.path.join(
+        lakehouse_root, "silver", "route_projected_telemetry", f"route_code={route_code}"
     )
-    raw_rows = cur.fetchall()
-    conn.close()
+    silver_tel_files = sorted(glob.glob(os.path.join(silver_tel_route_dir, "dt=*", "*.parquet")))
+    expanded_dates: Optional[Set[str]] = None
+    if target_dates:
+        expanded_dates = set()
+        for d_s in target_dates:
+            try:
+                d_obj = datetime.strptime(d_s, "%Y-%m-%d")
+                expanded_dates.add((d_obj - timedelta(days=1)).strftime("%Y-%m-%d"))
+                expanded_dates.add(d_s)
+                expanded_dates.add((d_obj + timedelta(days=1)).strftime("%Y-%m-%d"))
+            except ValueError:
+                expanded_dates.add(d_s)
+        min_date_q = min(expanded_dates)
+        max_date_q = max(expanded_dates)
+    else:
+        min_date_q = None
+        max_date_q = None
+
+    if silver_tel_files:
+        conn.close()
+        if expanded_dates is not None:
+            silver_tel_files = [
+                fp for fp in silver_tel_files
+                if os.path.basename(os.path.dirname(fp)).replace("dt=", "") in expanded_dates
+            ]
+        if not silver_tel_files:
+            return pd.DataFrame()
+        tbl_tel = ds_pa.dataset(silver_tel_files, format="parquet").to_table(
+            columns=[
+                "ping_id", "vehicle_id", "direction", "device_epoch", "device_update_time",
+                "s_bus_m", "cross_track_m", "derived_speed_kmh", "is_dwell",
+            ],
+            filter=ds_pa.field("cross_track_m") <= 35.0,
+            use_threads=True,
+        )
+        df_tel = tbl_tel.to_pandas().sort_values(
+            ["direction", "vehicle_id", "device_epoch"], kind="mergesort"
+        )
+        raw_rows = list(
+            zip(
+                df_tel["ping_id"].tolist(),
+                df_tel["vehicle_id"].tolist(),
+                df_tel["direction"].tolist(),
+                df_tel["device_epoch"].tolist(),
+                df_tel["device_update_time"].tolist(),
+                df_tel["s_bus_m"].tolist(),
+                df_tel["cross_track_m"].tolist(),
+                df_tel["derived_speed_kmh"].tolist(),
+                df_tel["is_dwell"].tolist(),
+            )
+        )
+    else:
+        if min_date_q and max_date_q:
+            cur.execute(
+                """
+                SELECT ping_id, vehicle_id, direction, device_epoch, device_update_time,
+                       s_bus_m, cross_track_m, derived_speed_kmh, is_dwell
+                FROM route_projected_telemetry
+                WHERE route_code = ?
+                  AND cross_track_m <= 35.0
+                  AND substr(device_update_time, 1, 10) >= ?
+                  AND substr(device_update_time, 1, 10) <= ?
+                ORDER BY direction, vehicle_id, device_epoch ASC
+                """,
+                (route_code, min_date_q, max_date_q),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT ping_id, vehicle_id, direction, device_epoch, device_update_time,
+                       s_bus_m, cross_track_m, derived_speed_kmh, is_dwell
+                FROM route_projected_telemetry
+                WHERE route_code = ?
+                  AND cross_track_m <= 35.0
+                ORDER BY direction, vehicle_id, device_epoch ASC
+                """,
+                (route_code,),
+            )
+        raw_rows = cur.fetchall()
+        conn.close()
 
     if not raw_rows:
         return pd.DataFrame()
@@ -282,10 +396,6 @@ def extract_route_training_dataset(
     # -------------------------------------------------------------------------
     # 5. Pre-pass: Build Trip Kinematics + Fleet Index + Segment Traversal Logs
     # -------------------------------------------------------------------------
-    # Per-direction structures for O(log N) causal fleet queries:
-    # seg_traversal_times[dir][k] = sorted list of (t_finish_epoch, actual_transit_sec, trip_idx)
-    # station_pass_times[dir][k]  = sorted list of (t_cross_epoch, trip_idx)
-    # time_buckets[dir][bucket_id] = list of trip_idx overlapping that 10-minute bucket
     seg_traversal_history: Dict[str, Dict[int, List[Tuple[float, float, int]]]] = {
         d: {} for d in stations_by_dir
     }
@@ -329,7 +439,6 @@ def extract_route_training_dataset(
 
         max_reach = _compute_valid_reach_indices(epochs, s_vals)
 
-        # Compute step speeds, rolling 180s/600s speeds, dwell duration, and 300s dwell ratio
         step_speeds = [0.0] * n_pings
         for i in range(n_pings):
             if i > 0 and (epochs[i] - epochs[i - 1]) > 0.5:
@@ -347,7 +456,6 @@ def extract_route_training_dataset(
             t_now = epochs[i]
             s_now = s_vals[i]
 
-            # 180s rolling speed
             j180 = i
             while j180 > 0 and (t_now - epochs[j180 - 1]) <= 180.0:
                 j180 -= 1
@@ -357,7 +465,6 @@ def extract_route_training_dataset(
                 min(65.0, (ds180 / dt180) * 3.6) if dt180 >= 15.0 else step_speeds[i]
             )
 
-            # 600s (10 min) rolling speed
             j600 = i
             while j600 > 0 and (t_now - epochs[j600 - 1]) <= 600.0:
                 j600 -= 1
@@ -369,13 +476,11 @@ def extract_route_training_dataset(
                 else rolling_180[i]
             )
 
-            # Continuous stationary dwell duration (ds < 15m)
             d_idx = i
             while d_idx > 0 and abs(s_now - s_vals[d_idx - 1]) < 15.0:
                 d_idx -= 1
             dwell_durations[i] = max(0.0, t_now - epochs[d_idx])
 
-            # Fraction of time spent stationary/dwelling in last 300s
             j300 = i
             dwell_sec_300 = 0.0
             while j300 > 0 and (t_now - epochs[j300 - 1]) <= 300.0:
@@ -390,9 +495,9 @@ def extract_route_training_dataset(
             )
 
         t_idx = len(processed_trips)
-        trip_id = f"{route_code}_{direction}_{vid}_{t_idx + 1:05d}"
+        # Deterministic trip_id anchored on start epoch so incremental and full runs match
+        trip_id = f"{route_code}_{direction}_{vid}_{int(epochs[0])}"
 
-        # Register station crossings and clean segment traversal times into causal history
         for k, (t_c, _) in crossings.items():
             station_pass_history[direction].setdefault(k, []).append((t_c, t_idx))
 
@@ -413,7 +518,6 @@ def extract_route_training_dataset(
                         (t2, dt_seg, t_idx)
                     )
 
-        # Register trip in 10-minute (600s) time buckets for fast spatial fleet lookup
         b_start = int((epochs[0] - 180.0) // 600.0)
         b_end = int((epochs[-1] + 180.0) // 600.0)
         for b in range(b_start, b_end + 1):
@@ -459,6 +563,10 @@ def extract_route_training_dataset(
     # 6. Second Pass: Extract Supervised Samples with Full Live Fleet Context
     # -------------------------------------------------------------------------
     records: List[dict] = []
+    date_meta_cache: Dict[str, Tuple[str, int]] = {}
+    hour_min_to_win: List[str] = [
+        get_time_window(m_idx / 60.0) for m_idx in range(24 * 60)
+    ]
 
     for tr in processed_trips:
         t_idx = tr["t_idx"]
@@ -486,7 +594,6 @@ def extract_route_training_dataset(
         dir_encoded = 1 if direction == "go" else 0
         n_pings = len(trip)
 
-        # Precompute ego trip's realized segment transit times (t_finish, k_seg, dt_ego)
         ego_completed_segs: List[Tuple[float, int, float]] = []
         for k_seg in range(n_stations - 1):
             if k_seg in crossings and (k_seg + 1) in crossings:
@@ -498,12 +605,16 @@ def extract_route_training_dataset(
         ego_seg_finish_times = [x[0] for x in ego_completed_segs]
 
         for i, p in enumerate(trip):
+            dt_str = str(p[4])
+            dt_date = dt_str[:10]
+            if target_dates and dt_date not in target_dates:
+                continue
+
             ping_id = int(p[0])
             t_ping = epochs[i]
-            dt_str = str(p[4])
             s_bus = s_vals[i]
             cross_track = float(p[6] or 0.0)
-            inst_speed = max(0.0, min(65.0, float(p[7] or 0.0)))
+            inst_speed = round(max(0.0, min(65.0, float(p[7] or 0.0))), 2)
             is_dwell = int(p[8] or 0)
 
             k = bisect.bisect_left(st_dists, s_bus)
@@ -512,31 +623,44 @@ def extract_route_training_dataset(
             if k >= n_stations:
                 continue
 
-            try:
-                dt_obj = datetime.strptime(dt_str[:19], "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                dt_obj = datetime.fromtimestamp(t_ping)
+            cached_date = date_meta_cache.get(dt_date)
+            if cached_date is None:
+                try:
+                    dt_d_obj = datetime.strptime(dt_date, "%Y-%m-%d")
+                except ValueError:
+                    dt_d_obj = datetime.fromtimestamp(t_ping)
+                dtype_val = get_day_type(dt_d_obj)
+                wknd_val = 1 if dtype_val in ("SATURDAY", "SUNDAY") else 0
+                cached_date = (dtype_val, wknd_val)
+                date_meta_cache[dt_date] = cached_date
+            dtype, is_weekend = cached_date
 
-            hour_val = dt_obj.hour + dt_obj.minute / 60.0
-            win = get_time_window(hour_val)
-            dtype = get_day_type(dt_obj)
-            is_weekend = 1 if dtype in ("SATURDAY", "SUNDAY") else 0
+            if len(dt_str) >= 16 and dt_str[13] == ":":
+                hr_int = int(dt_str[11:13])
+                mn_int = int(dt_str[14:16])
+            else:
+                dt_fallback = datetime.fromtimestamp(t_ping)
+                hr_int = dt_fallback.hour
+                mn_int = dt_fallback.minute
+            win = hour_min_to_win[hr_int * 60 + mn_int]
 
             # --- A. Multi-ping ego speeds & trend ---
             v_p1 = step_speeds[i]
             v_p2 = step_speeds[i - 1] if i >= 1 else v_p1
             v_p3 = step_speeds[i - 2] if i >= 2 else v_p2
-            v_r180 = rolling_180[i]
-            v_r600 = rolling_600[i]
+            v_r180 = round(rolling_180[i], 2)
+            v_r600 = round(rolling_600[i], 2)
             accel_trend = v_r180 - v_r600
 
             # --- B. Ego recent realized pace ratio on last 1-3 completed segments ---
             ego_pos = bisect.bisect_right(ego_seg_finish_times, t_ping)
+            ego_real_sum = 0.0
+            ego_k_list = [-1, -1, -1]
             if ego_pos > 0:
                 recent_ego = ego_completed_segs[max(0, ego_pos - 3) : ego_pos]
-                ego_real_sum = 0.0
                 ego_base_sum = 0.0
-                for _, k_s, dt_e in recent_ego:
+                for idx_eg, (_, k_s, dt_e) in enumerate(recent_ego):
+                    ego_k_list[idx_eg] = k_s
                     b_seg = baseline_matrix.get(
                         (direction, st_orders[k_s], win, dtype),
                         (seg_lengths[k_s] / 4.5, 15.0, 0.0, 0.0, 16.2),
@@ -607,6 +731,7 @@ def extract_route_training_dataset(
 
             # Lookup leader traversal for first partial segment (k-1 -> k)
             lead_t0, age0 = b0[0], 1800.0
+            has_lead0 = False
             f_epochs0 = seg_finish_epochs[direction].get(k - 1, [])
             if f_epochs0:
                 p0 = bisect.bisect_right(f_epochs0, t_ping) - 1
@@ -616,12 +741,15 @@ def extract_route_training_dataset(
                 if p0 >= 0 and (t_ping - f_epochs0[p0]) <= 2700.0:
                     lead_t0 = h_list0[p0][1]
                     age0 = t_ping - f_epochs0[p0]
+                    has_lead0 = True
 
             cum_base_med = alpha_first * b0[0]
             cum_base_var = (alpha_first * b0[1]) ** 2
             cum_base_p10 = alpha_first * b0[2]
             cum_base_p90 = alpha_first * b0[3]
             cum_leader_eta = alpha_first * lead_t0
+            cum_lead_obs_sec = (alpha_first * lead_t0) if has_lead0 else 0.0
+            lead_miss_mask = 0 if has_lead0 else 1
             leader_age_sum = age0
             leader_seg_cnt = 1
 
@@ -652,6 +780,7 @@ def extract_route_training_dataset(
             for m in range(k, max_m + 1):
                 if m > k:
                     seg_idx = m - 1
+                    slot_bit = 1 << (m - k)
                     bm = baseline_matrix.get(
                         (direction, st_orders[seg_idx], win, dtype),
                         (seg_lengths[seg_idx] / 4.5, 15.0, seg_lengths[seg_idx] / 6.0, seg_lengths[seg_idx] / 3.2, 16.2),
@@ -662,6 +791,7 @@ def extract_route_training_dataset(
                     cum_base_p90 += bm[3]
 
                     lead_tm, agem = bm[0], 1800.0
+                    has_leadm = False
                     f_epochsm = seg_finish_epochs[direction].get(seg_idx, [])
                     if f_epochsm:
                         pm = bisect.bisect_right(f_epochsm, t_ping) - 1
@@ -671,8 +801,13 @@ def extract_route_training_dataset(
                         if pm >= 0 and (t_ping - f_epochsm[pm]) <= 2700.0:
                             lead_tm = h_listm[pm][1]
                             agem = t_ping - f_epochsm[pm]
+                            has_leadm = True
 
                     cum_leader_eta += lead_tm
+                    if has_leadm:
+                        cum_lead_obs_sec += lead_tm
+                    else:
+                        lead_miss_mask |= slot_bit
                     leader_age_sum += agem
                     leader_seg_cnt += 1
 
@@ -691,7 +826,7 @@ def extract_route_training_dataset(
                         if best_magm > max_tomtom_mag:
                             max_tomtom_mag = best_magm
 
-                dist_rem = st_dists[m] - s_bus
+                dist_rem = round(st_dists[m] - s_bus, 2)
                 if dist_rem < 5.0 or dist_rem > max_horizon_m:
                     continue
 
@@ -736,18 +871,27 @@ def extract_route_training_dataset(
                     "route_code": route_code,
                     "direction": direction,
                     "direction_encoded": dir_encoded,
+                    "dt": dt_date,
+                    "k_idx": k,
+                    "alpha_first": alpha_first,
+                    "ego_real_sum": ego_real_sum,
+                    "ego_k0": ego_k_list[0],
+                    "ego_k1": ego_k_list[1],
+                    "ego_k2": ego_k_list[2],
+                    "lead_obs_sec": cum_lead_obs_sec,
+                    "lead_miss_mask": lead_miss_mask,
                     "target_station_order": st_orders[m],
                     "stops_ahead": (m - k + 1),
                     "s_bus_m": round(s_bus, 2),
-                    "distance_remaining_m": round(dist_rem, 2),
+                    "distance_remaining_m": dist_rem,
                     "dist_to_next_stop_m": round(dist_to_next_stop, 2),
                     "cross_track_m": round(cross_track, 2),
-                    "derived_speed_kmh": round(inst_speed, 2),
+                    "derived_speed_kmh": inst_speed,
                     "v_last_1_ping_kmh": round(v_p1, 2),
                     "v_last_2_ping_kmh": round(v_p2, 2),
                     "v_last_3_ping_kmh": round(v_p3, 2),
-                    "rolling_speed_180s_kmh": round(v_r180, 2),
-                    "rolling_speed_600s_kmh": round(v_r600, 2),
+                    "rolling_speed_180s_kmh": v_r180,
+                    "rolling_speed_600s_kmh": v_r600,
                     "accel_trend_kmh": round(accel_trend, 2),
                     "speed_vs_baseline_ratio": round(speed_ratio, 3),
                     "ego_recent_pace_ratio": round(ego_recent_pace_ratio, 3),
@@ -763,8 +907,8 @@ def extract_route_training_dataset(
                     "dist_to_follower_m": round(dist_to_follower, 1),
                     "headway_to_leader_sec": round(headway_sec, 1),
                     "active_fleet_count": active_fleet,
-                    "hour": dt_obj.hour,
-                    "minute": dt_obj.minute,
+                    "hour": hr_int,
+                    "minute": mn_int,
                     "is_weekend": is_weekend,
                     "time_window": win,
                     "day_type": dtype,
@@ -783,7 +927,172 @@ def extract_route_training_dataset(
 
                 records.append(rec_dict)
 
-    return pd.DataFrame(records)
+    df_out = pd.DataFrame(records)
+    if not df_out.empty:
+        df_out = bind_stage2_dynamic_matrix(df_out, route_code, db_path=resolved_db, inplace=True)
+    return df_out
+
+
+def bind_stage2_dynamic_matrix(
+    df: pd.DataFrame,
+    route_code: str,
+    db_path: Optional[str] = None,
+    inplace: bool = True,
+) -> pd.DataFrame:
+    """
+    Stage 2 of the Two-Stage Decoupled Feature Architecture (WP 2.2):
+    Given a DataFrame of Stage 1 immutable physical kinematic samples loaded from
+    Apache Parquet (across all historical weeks), dynamically re-binds the latest
+    Weekly `agg_segment_travel_times` matrix in <0.12s/route using vectorized
+    NumPy array indexing.
+    Updates:
+      - baseline_median_sec, baseline_p10_sec, baseline_p90_sec, baseline_std_sec, baseline_spread_sec
+      - ego_recent_pace_ratio
+      - speed_vs_baseline_ratio, kinematic_eta_sec
+      - leader_expected_eta_sec, leader_pace_ratio
+    Guarantees 0% Stale Matrix Drift across weeks as the travel time matrix matures.
+    """
+    if df.empty or "k_idx" not in df.columns:
+        return df
+
+    resolved_db = db_path or str(get_database_path())
+    conn = sqlite3.connect(resolved_db)
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT direction, station_order, cum_distance_m
+        FROM canonical_station_master
+        WHERE route_code = ?
+        ORDER BY direction, station_order ASC
+        """,
+        (route_code,),
+    )
+    stations_by_dir: Dict[str, List[Tuple[int, float]]] = {}
+    for d, st_order, cum_d in cur.fetchall():
+        stations_by_dir.setdefault(str(d), []).append((int(st_order), float(cum_d)))
+
+    baseline_matrix = _load_route_baseline_matrix(conn, route_code)
+    conn.close()
+
+    max_segs = max((len(v) for v in stations_by_dir.values()), default=2)
+    n_win = len(TIME_WINDOWS)
+    n_dt = len(DAY_TYPES)
+
+    # Build 4D lookup arrays: [dir_enc (2), win_idx (9), dtype_idx (3), seg_idx (max_segs)]
+    med_lut = np.zeros((2, n_win, n_dt, max_segs), dtype=np.float64)
+    std_lut = np.zeros((2, n_win, n_dt, max_segs), dtype=np.float64)
+    p10_lut = np.zeros((2, n_win, n_dt, max_segs), dtype=np.float64)
+    p90_lut = np.zeros((2, n_win, n_dt, max_segs), dtype=np.float64)
+
+    for d_str, d_enc in (("re", 0), ("go", 1)):
+        st_list = stations_by_dir.get(d_str, [])
+        n_st = len(st_list)
+        if n_st < 2:
+            continue
+        for seg_idx in range(n_st - 1):
+            st_ord = st_list[seg_idx][0]
+            seg_len = max(10.0, st_list[seg_idx + 1][1] - st_list[seg_idx][1])
+            def_tuple = (seg_len / 4.5, 15.0, seg_len / 6.0, seg_len / 3.2, 16.2)
+            for w_str, w_idx in TIME_WINDOW_INDEX.items():
+                for dt_str, dt_idx in DAY_TYPE_INDEX.items():
+                    b_val = baseline_matrix.get((d_str, st_ord, w_str, dt_str), def_tuple)
+                    med_lut[d_enc, w_idx, dt_idx, seg_idx] = b_val[0]
+                    std_lut[d_enc, w_idx, dt_idx, seg_idx] = b_val[1]
+                    p10_lut[d_enc, w_idx, dt_idx, seg_idx] = b_val[2]
+                    p90_lut[d_enc, w_idx, dt_idx, seg_idx] = b_val[3]
+
+    # Map hour + minute directly to window index in O(1) without hashing 800k strings
+    hour_min_win_lut = np.array(
+        [TIME_WINDOW_INDEX[get_time_window(m_idx / 60.0)] for m_idx in range(24 * 60)],
+        dtype=np.int32,
+    )
+    dir_arr = df["direction_encoded"].to_numpy(dtype=np.int32)
+    hr_arr = df["hour"].to_numpy(dtype=np.int32)
+    mn_arr = df["minute"].to_numpy(dtype=np.int32)
+    win_arr = hour_min_win_lut[np.clip(hr_arr * 60 + mn_arr, 0, 1439)]
+
+    # Fast categorical lookup for day_type (only 3 categories)
+    dt_cat = pd.Categorical(df["day_type"], categories=DAY_TYPES)
+    dt_arr = np.clip(dt_cat.codes.astype(np.int32), 0, n_dt - 1)
+
+    k_arr = df["k_idx"].to_numpy(dtype=np.int32)
+    stops_arr = df["stops_ahead"].to_numpy(dtype=np.int32)
+    alpha_arr = df["alpha_first"].to_numpy(dtype=np.float64)
+    lead_obs_arr = df["lead_obs_sec"].to_numpy(dtype=np.float64)
+    miss_mask_arr = df["lead_miss_mask"].to_numpy(dtype=np.int32)
+
+    # Slot 0: partial segment k - 1
+    seg0 = np.clip(k_arr - 1, 0, max_segs - 1)
+    b0_med = med_lut[dir_arr, win_arr, dt_arr, seg0]
+    b0_std = std_lut[dir_arr, win_arr, dt_arr, seg0]
+    b0_p10 = p10_lut[dir_arr, win_arr, dt_arr, seg0]
+    b0_p90 = p90_lut[dir_arr, win_arr, dt_arr, seg0]
+
+    cum_base_med = alpha_arr * b0_med
+    cum_base_var = (alpha_arr * b0_std) ** 2
+    cum_base_p10 = alpha_arr * b0_p10
+    cum_base_p90 = alpha_arr * b0_p90
+    cum_leader_eta = lead_obs_arr + np.where((miss_mask_arr & 1) != 0, alpha_arr * b0_med, 0.0)
+
+    # Slots 1..4: subsequent full segments k, k+1, k+2, k+3
+    max_s = int(stops_arr.max()) if len(stops_arr) > 0 else 1
+    for s_slot in range(1, max_s):
+        active = stops_arr > s_slot
+        segs = np.clip(k_arr - 1 + s_slot, 0, max_segs - 1)
+        bm_med = np.where(active, med_lut[dir_arr, win_arr, dt_arr, segs], 0.0)
+        bm_std = np.where(active, std_lut[dir_arr, win_arr, dt_arr, segs], 0.0)
+        bm_p10 = np.where(active, p10_lut[dir_arr, win_arr, dt_arr, segs], 0.0)
+        bm_p90 = np.where(active, p90_lut[dir_arr, win_arr, dt_arr, segs], 0.0)
+
+        cum_base_med += bm_med
+        cum_base_var += bm_std ** 2
+        cum_base_p10 += bm_p10
+        cum_base_p90 += bm_p90
+        miss_slot = active & ((miss_mask_arr & (1 << s_slot)) != 0)
+        cum_leader_eta += np.where(miss_slot, bm_med, 0.0)
+
+    # Recompute ego_recent_pace_ratio
+    ego_real = df["ego_real_sum"].to_numpy(dtype=np.float64)
+    ego_base = np.zeros_like(ego_real)
+    for col_k in ("ego_k0", "ego_k1", "ego_k2"):
+        ek = df[col_k].to_numpy(dtype=np.int32)
+        valid_ek = ek >= 0
+        ek_clamped = np.clip(ek, 0, max_segs - 1)
+        ego_base += np.where(valid_ek, med_lut[dir_arr, win_arr, dt_arr, ek_clamped], 0.0)
+
+    has_ego = df["ego_k0"].to_numpy(dtype=np.int32) >= 0
+    ego_pace_ratio = np.where(
+        has_ego,
+        np.clip(ego_real / np.maximum(ego_base, 10.0), 0.3, 2.5),
+        1.0,
+    )
+
+    # Recompute speed_vs_baseline_ratio & leader_pace_ratio
+    dist_rem = df["distance_remaining_m"].to_numpy(dtype=np.float64)
+    v_r180 = df["rolling_speed_180s_kmh"].to_numpy(dtype=np.float64)
+    inst_spd = df["derived_speed_kmh"].to_numpy(dtype=np.float64)
+
+    base_std = np.sqrt(cum_base_var)
+    base_spread = np.maximum(5.0, cum_base_p90 - cum_base_p10)
+    base_spd_kmh = np.maximum(4.0, (dist_rem / np.maximum(cum_base_med, 5.0)) * 3.6)
+    eff_spd_kmh = np.where(v_r180 >= 3.0, v_r180, np.maximum(inst_spd, base_spd_kmh * 0.75))
+    speed_ratio = np.clip(eff_spd_kmh / base_spd_kmh, 0.2, 2.5)
+    kinematic_eta = dist_rem / np.maximum(eff_spd_kmh / 3.6, 1.5)
+    leader_pace_ratio = np.clip(cum_leader_eta / np.maximum(cum_base_med, 5.0), 0.3, 2.5)
+
+    out = df if inplace else df.copy()
+    out["baseline_median_sec"] = np.round(cum_base_med, 2)
+    out["baseline_p10_sec"] = np.round(cum_base_p10, 2)
+    out["baseline_p90_sec"] = np.round(cum_base_p90, 2)
+    out["baseline_std_sec"] = np.round(base_std, 2)
+    out["baseline_spread_sec"] = np.round(base_spread, 2)
+    out["ego_recent_pace_ratio"] = np.round(ego_pace_ratio, 3)
+    out["speed_vs_baseline_ratio"] = np.round(speed_ratio, 3)
+    out["kinematic_eta_sec"] = np.round(kinematic_eta, 2)
+    out["leader_expected_eta_sec"] = np.round(cum_leader_eta, 2)
+    out["leader_pace_ratio"] = np.round(leader_pace_ratio, 3)
+    return out
 
 
 if __name__ == "__main__":

@@ -33,38 +33,58 @@ $$\text{ETA} = f(\text{Batch View}, \text{Real-time View})$$
 
 ---
 
-## II. KIẾN TRÚC PIPELINE 3 NHỊP ĐỘ (3-CADENCE LAMBDA PIPELINE) & TIÊU CHÍ THỜI GIAN (TIME SLA)
+## II. GIẢI QUYẾT BÀI TOÁN "MA TRẬN THỜI GIAN BIẾN ĐỘNG THEO TUẦN": KIẾN TRÚC TÁCH ĐÔI ĐỘNG HỌC VẬT LÝ BẤT BIẾN & ÁNH XẠ MA TRẬN ĐỘNG (TWO-STAGE DECOUPLED FEATURE STORE)
 
-Để giải quyết triệt để nút thắt cổ chai hiện tại (mỗi lần huấn luyện phải quét lại từ đầu bảng SQLite 5.5 triệu dòng mất ~35–45 phút cho 48 tuyến) và hiện thực hóa chiến lược **"Tái cập nhật mô hình mỗi tuần một lần (Weekly Retraining)"**, hệ thống được chuẩn hóa thành **3 nhịp độ vận hành độc lập**:
+> [!WARNING]
+> **Phát hiện kiến trúc cốt tử ở Giai đoạn Dữ liệu Trung gian (Intermediate Stage)**:
+> Vì dữ liệu lịch sử chưa bão hòa, mỗi tuần khi nạp thêm 7 ngày dữ liệu mới, bản thân **Ma trận thời gian di chuyển cơ sở (`Batch View`: `agg_segment_travel_times`) sẽ thay đổi giá trị** ở hàng chục nghìn ô `(route, direction, station, time_window, day_type)`.
+> - Nếu ta "đóng cứng" (bake) các cột phụ thuộc ma trận (`baseline_median_sec`, `baseline_spread_sec`, `ego_recent_pace_ratio`, `speed_vs_baseline_ratio`, `leader_pace_ratio`) vào file Parquet của Tuần 1, thì sang Tuần 4 các giá trị này sẽ bị **lệch chuẩn (stale matrix drift)** so với ma trận mới của Tuần 4!
+> - Ngược lại, nếu mỗi tuần đều chạy lại `feature_extractor.py` từ đầu trên toàn bộ dữ liệu thô để cập nhật theo ma trận mới thì thời gian chạy sẽ phình to tuyến tính theo số tuần!
+
+### Giải pháp Đột phá: Phân tách Bất biến Vật lý (Stage 1) và Liên kết Ma trận Động Vector hóa (Stage 2)
+
+Khi mổ xẻ 27 thuộc tính của `V2_FEATURE_COLUMNS` trong [`feature_extractor.py`](../module_3_bus_eta_prediction/step_3_2_feature_store_extractor/feature_extractor.py), ta thấy chúng chia làm **2 nhóm tách biệt hoàn toàn về bản chất vật lý và chi phí tính toán**:
+
+| Phân Nhóm | Các Thành Phần Cụ Thể | Chi Phí Tính Toán | Tính Chất Theo Thời Gian |
+| :--- | :--- | :---: | :--- |
+| **Stage 1: Sự kiện Động học & Không gian Vật lý (`Immutable Physical Kinematics`)** | - Nội suy thời điểm cắt trạm (`crossings`) & nhãn `actual_remaining_sec`<br>- Vận tốc xe: `v_last_1_ping`, `v_last_2_ping`, `rolling_speed_180s`, `rolling_speed_600s`, `is_dwell`, `current_dwell_sec`, `dwell_ratio_300s`<br>- Thời gian thực tế xe vừa đi qua 1–3 đoạn trước (`ego_real_sum` & chỉ số đoạn `ego_seg_k`)<br>- Khoảng cách đội xe: `dist_to_leader_m`, `dist_to_follower_m`, `headway_to_leader_sec`, thời gian thực tế của xe dẫn đường `leader_obs_sec` & mặt nạ đoạn thiếu xe dẫn đường `leader_missing_mask`<br>- Sự cố TomTom trên lộ trình: `tomtom_has_incident`, `tomtom_delay_sec`, `tomtom_magnitude` | **Chiếm `98.5%` thời gian CPU**<br>(Quét hàng triệu ping, vòng lặp cửa sổ trượt, tìm kiếm nhị phân `bisect` đội xe) | **BẤT BIẾN TUYỆT ĐỐI (100% Immutable)**:<br>Chuyến xe ngày `10/10/2026` chạy vận tốc bao nhiêu, cách xe trước bao nhiêu mét là sự thật lịch sử không bao giờ thay đổi! |
+| **Stage 2: Các Biến Phụ thuộc Ma trận Thời gian (`Dynamic Matrix-Bound Priors & Ratios`)** | - Tiên nghiệm ma trận mới nhất: `baseline_median_sec`, `baseline_p90_sec`, `baseline_spread_sec`, `baseline_std_sec`<br>- Các tỷ số chuẩn hóa theo ma trận mới nhất:<br>  + `ego_recent_pace_ratio = ego_real_sum / new_ego_base_sum`<br>  + `speed_vs_baseline_ratio = eff_spd / new_base_spd`<br>  + `leader_expected_eta_sec` & `leader_pace_ratio`<br>- Nhãn phần dư huấn luyện: `r = actual_remaining_sec - new_baseline_median_sec` | **Chỉ chiếm `1.5%` thời gian CPU**<br>(`~0.12 giây/tuyến` bằng mảng tổng tiền tố `Prefix-Sum Vectorization` trên NumPy/DuckDB) | **THAY ĐỔI MỖI TUẦN (Dynamic Weekly Re-binding)**:<br>Bắt buộc phải tính lại trên toàn bộ các tuần lịch sử mỗi khi bảng `agg_segment_travel_times` được cập nhật mới! |
 
 ```mermaid
-flowchart LR
-    subgraph C1["<b>NHỊP ĐỘ 1: SPEED LAYER</b><br/>(Chu kỳ 60s-90s | SLA < 50ms)"]
-        S_IN["Luồng Kafka:<br/>GPS (75s) + TomTom (15m)"]
-        --> S_STATE["Real-time View:<br/>Vị trí xe, V_180s, Leader Probe,<br/>Active TomTom Jam"]
-        --> S_SERVE["Hybrid Serving Engine:<br/>Model .json + Blind-Spot Gate<br/>Trả [P10, P50, P90] < 15ms"]
+flowchart TD
+    subgraph W1["<b>BƯỚC 1 & 2 (CHỈ CHẠY CHO 7 NGÀY MỚI TRONG TUẦN)</b>"]
+        RAW["Dữ liệu thô 7 ngày mới<br/>(dt=YYYY-MM-DD)"]
+        --> KIN["Trích xuất Động học Vật lý Bất biến (Stage 1)<br/>Ghi nối thêm vào silver/kinematic_horizon_samples/route_code=XX/dt=YYYY-MM-DD/*.parquet<br/>(Các tuần cũ đã có sẵn file Parquet -> Tốn 0 giây!)"]
     end
 
-    subgraph C2["<b>NHỊP ĐỘ 2: DAILY INCREMENTAL LAKEHOUSE</b><br/>(Cuối mỗi ngày 23:30 | SLA < 60 giây/ngày)"]
-        D_RAW["Dữ liệu mới trong ngày<br/>(dt=YYYY-MM-DD)"]
-        --> D_PARQ["Ghi nối thêm (Append) vào<br/>Bronze & Silver Parquet<br/>(dt=YYYY-MM-DD/hr=HH)"]
-        --> D_GOLD["Trích xuất sẵn Feature của riêng ngày mới<br/>vào Gold Parquet Feature Store<br/>(route_code=XX/dt=YYYY-MM-DD)"]
+    subgraph W2["<b>BƯỚC 3 (CẬP NHẬT MA TRẬN LỊCH SỬ TOÀN CỤC MỖI TUẦN)</b>"]
+        KIN --> MAT["Cập nhật Ma trận Thời gian Di chuyển Mới Nhất (Batch View)<br/>agg_segment_travel_times (Tuần thứ W) & agg_tomtom_vs_bus_kinematics"]
     end
 
-    subgraph C3["<b>NHỊP ĐỘ 3: WEEKLY MACRO-BATCH & RETRAIN</b><br/>(Chủ Nhật hàng tuần 02:00 | SLA < 3-5 phút)"]
-        D_PARQ --> W_BATCH["PySpark Batch View:<br/>Cập nhật agg_segment_travel_times (De-biased)<br/>& agg_tomtom_vs_bus_kinematics (< 90s)"]
-        D_GOLD --> W_TRAIN["Weekly XGB-CQR Trainer:<br/>Đọc trực tiếp Parquet 4-8 tuần gần nhất<br/>Huấn luyện lại 48 tuyến (< 3 phút!)"]
-        W_BATCH & W_TRAIN --> S_SERVE
+    subgraph W3["<b>BƯỚC 4 (LIÊN KẾT MA TRẬN ĐỘNG & HUẤN LUYỆN 48 TUYẾN < 3 PHÚT)</b>"]
+        KIN & MAT --> BIND["<b>Dynamic Prefix-Sum Matrix Binder (Stage 2)</b><br/>Đọc toàn bộ Parquet các tuần + Áp Ma trận Tuần W mới nhất<br/>Tính lại 100% baseline_*, ego_pace_ratio, leader_pace_ratio trong ~0.12s/tuyến!"]
+        --> TRAIN["Huấn luyện lại 48 model Residual XGB-CQR<br/>trên dữ liệu đồng nhất 100% với Ma trận Tuần W (< 3 phút toàn trình)"]
     end
 ```
 
-### Bảng Cam Kết Chỉ Tiêu Thời Gian Thực Thi (Operational Time SLAs)
+### Chứng minh Toán học: Liên kết Ma trận Động trong $O(1)$ bằng Mảng Tổng Tiền Tố (`Prefix-Sum Array`)
+Với mỗi tuyến $r$, chiều $d$, khung giờ $w$ và loại ngày $\text{dt}$, ngay sau khi bảng `agg_segment_travel_times` của Tuần $W$ vừa được cập nhật xong, hệ thống tạo mảng tổng tiền tố dọc theo thứ tự trạm $k \in \{0, \dots, M-1\}$:
+$$P_{\text{med}}[d, w, \text{dt}, k] = \sum_{j=0}^{k-1} \text{median\_transit\_sec}(d, j, w, \text{dt})$$
+*(Tương tự cho $P_{\text{var}}$, $P_{10}$, $P_{90}$).* Khi đó, trên hàng trăm nghìn mẫu lịch sử được đọc từ Parquet, mọi biến phụ thuộc ma trận đều được cập nhật tức thì bằng phép trừ mảng vector hóa trên NumPy mà **không cần bất kỳ vòng lặp Python nào**:
+1. **Cập nhật Tiên nghiệm Lịch sử mới nhất trên đoạn $[s_{\text{bus}}, \text{st\_dists}[m]]$**:
+   $$\text{baseline\_median\_sec}^{(W)} = \alpha_{\text{first}} \cdot \text{med}_{k-1}^{(W)} + \left(P_{\text{med}}^{(W)}[m] - P_{\text{med}}^{(W)}[k]\right)$$
+2. **Cập nhật `ego_recent_pace_ratio` theo Ma trận Tuần $W$**:
+   $$\text{ego\_base\_sum}^{(W)} = P_{\text{med}}^{(W)}[k_{\text{ego\_end}} + 1] - P_{\text{med}}^{(W)}[k_{\text{ego\_start}}] \implies \text{ego\_recent\_pace\_ratio}^{(W)} = \text{clip}\left(\frac{\text{ego\_real\_sum}}{\text{ego\_base\_sum}^{(W)}}, 0.3, 2.5\right)$$
+3. **Cập nhật `leader_expected_eta_sec` và `leader_pace_ratio` theo Ma trận Tuần $W$**:
+   - Những đoạn trạm có xe dẫn đường thực tế đi qua trong $\le 45$ phút giữ nguyên thời gian thực测 $\text{lead\_obs\_sec}$; những đoạn thiếu xe dẫn đường (được đánh dấu trong bitmask) tự động nhận giá trị $\text{med}_j^{(W)}$ mới nhất của Tuần $W$!
 
-| Nhịp Độ Vận Hành | Tần Suất | Đầu Vào & Cơ Chế Xử Lý Chuẩn Big Data | Thời Gian Mục Tiêu (SLA) | Giải Pháp Kỹ Thuật Cốt Lõi |
+### Bảng Cam Kết Chỉ Tiêu Thời Gian Thực Thi Khi Dồn Vào Phiên Hàng Tuần (Weekly Time SLAs)
+
+| Bước Trong Phiên Chạy Hàng Tuần | Tần Suất | Cơ Chế Xử Lý Chuẩn Big Data | Thời Gian Mục Tiêu (SLA) | Đảm Bảo Tính Nhất Quán Toán Học |
 | :--- | :---: | :--- | :---: | :--- |
-| **1. Real-Time Serving (Speed Layer)** | Liên tục (mỗi gói tin / truy vấn) | Trạng thái xe trực tuyến + Sự cố TomTom đang hiệu lực + Model `.json` trên RAM | **`< 15 ms` / truy vấn**<br>(`> 500 req/s`) | Giữ 48 model XGBoost trên bộ nhớ đệm; tra cứu sự cố qua chỉ mục xô 10 phút $O(1)$. |
-| **2. Daily Incremental ETL (Tích lũy Ngày)** | **1 lần / ngày** (23:30 đêm) | Chỉ xử lý ~`350k` ping GPS và ~`10k` bản ghi TomTom của **riêng ngày `dt=YYYY-MM-DD`** | **`< 60 giây`** cho toàn mạng lưới 48 tuyến | **Append-Only Partitioning**: Ghi nối thêm phân vùng mới vào `bronze/`, `silver/`, và tính sẵn `gold/feature_store/route_code=XX/dt=YYYY-MM-DD/`. **Tuyệt đối không tính lại các ngày cũ!** |
-| **3. Weekly Batch View & Retraining (Tái huấn luyện Tuần)** | **1 lần / tuần** (02:00 sáng Chủ Nhật) | Đọc trực tiếp các phân vùng Parquet trong cửa sổ trượt (Rolling Window 4–8 tuần) | **`< 3 – 5 phút`** cho toàn bộ 48 tuyến (~3.5s/tuyến) | Nhờ `gold/feature_store/` đã được vật chất hóa (materialized) dưới dạng cột Apache Parquet nén Snappy, bước huấn luyện tuần bỏ qua 100% vòng lặp Python trích xuất đặc trưng, chỉ thực hiện `read_parquet` + `XGBRegressor(tree_method="hist").fit()`. |
+| **Bước 1: Bù trừ Động học Vật lý cho 7 Ngày Mới (`Stage 1 Delta Parquet`)** | **1 lần / tuần** | Chỉ chạy trích xuất động học vật lý (Stage 1) cho các ngày `dt=YYYY-MM-DD` mới phát sinh trong tuần vừa qua và lưu vào Parquet. Các tuần cũ giữ nguyên 100%. | **`< 4 – 5 phút`** cho 7 ngày mới của 48 tuyến | Chỉ lưu các đại lượng vật lý bất biến (tốc độ xe, khoảng cách đội xe, thời gian cắt trạm, sự cố TomTom). |
+| **Bước 2: Cập nhật Ma trận Thời gian (`Batch View`) & Đối chứng Chéo** | **1 lần / tuần** | Tính lại toàn bộ bảng `agg_segment_travel_times` (có khử lệch sự cố) và `agg_tomtom_vs_bus_kinematics` trên tổng dữ liệu tích lũy đến Tuần $W$. | **`< 1.5 phút`** cho toàn bộ 48 tuyến | Ma trận lịch sử phản ánh đầy đủ độ chín dữ liệu mới nhất của Tuần $W$. |
+| **Bước 3: Liên kết Ma trận Động (`Stage 2 Dynamic Re-binding`) & Huấn luyện 48 Model** | **1 lần / tuần** | Đọc các phân vùng Parquet Stage 1 $\to$ Áp mảng `Prefix-Sum` của Ma trận Tuần $W$ trong `~0.12s/tuyến` $\to$ Huấn luyện `Residual XGB-CQR` (`tree_method="hist"`). | **`< 3 phút`** cho toàn bộ 48 tuyến (~3.5s/tuyến!) | **100% mẫu huấn luyện từ Tuần 1 đến Tuần $W$ đều được quy chiếu về cùng Ma trận Tuần $W$ mới nhất** (0% Stale Matrix Drift!). |
 
 > [!TIP]
 > **Lý do khoa học của chu kỳ 1 tuần/lần (Weekly Seasonality Invariance)**: Giao thông đô thị Hà Nội có tính chu kỳ 7 ngày rất mạnh (5 ngày làm việc Thứ Hai–Thứ Sáu và 2 ngày cuối tuần Thứ Bảy–Chủ Nhật). Việc tái huấn luyện định kỳ vào mỗi đêm Chủ Nhật đảm bảo tập dữ liệu nạp thêm luôn chứa **trọn vẹn 1 chu kỳ tuần cân bằng**, không bị lệch phân phối (covariate shift) về ngày thường hay cuối tuần.
@@ -95,20 +115,20 @@ data/lakehouse/
 │       └── route_code=XX/
 │           └── part-00000.snappy.parquet
 │
-└── gold/                                        # TẦNG VÀNG: Phục vụ OLAP, Feature Store & Weekly Retraining
-    ├── batch_view_travel_times/                 # Ma trận thời gian di chuyển lịch sử (đã khử lệch sự cố)
+└── gold/                                        # TẦNG VÀNG: Phục vụ OLAP, Dynamic Matrix Binding & Weekly Retraining
+    ├── batch_view_travel_times/                 # Ma trận thời gian di chuyển lịch sử (cập nhật lại mỗi tuần)
     │   └── part-00000.snappy.parquet
-    ├── tomtom_vs_bus_kinematics/                # Ma trận hệ số sốc sự cố thực nghiệm theo cặp trạm
+    ├── tomtom_vs_bus_kinematics/                # Ma trận hệ số sốc sự cố thực nghiệm theo cặp trạm (cập nhật mỗi tuần)
     │   └── part-00000.snappy.parquet
-    └── feature_store/                           # Kho đặc trưng 27 biến vật chất hóa sẵn cho Weekly Retraining
-        └── route_code=XX/
-            └── dt=YYYY-MM-DD/
+    └── kinematic_horizon_samples/               # Kho Động học Vật lý Bất biến (Stage 1) phân vùng theo tuyến & ngày
+        └── route_code=XX/                       # (Lưu vận tốc xe, cự ly đội xe, TomTom delay, chỉ số trạm k..m)
+            └── dt=YYYY-MM-DD/                   # -> Liên kết động với batch_view_travel_times mới nhất ở Stage 2!
                 └── part-00000.snappy.parquet
 ```
 
-### Cơ chế Loại bỏ Phân vùng (`Partition Pruning`) và Chiếu Cột (`Column Projection`)
-1. **Partition Pruning**: Khi tiến trình `Daily Incremental ETL` hoặc `Weekly Retraining` truy vấn dữ liệu của một tuyến (`route_code='02'`) hoặc một khoảng ngày (`dt >= '2026-10-15'`), công cụ đọc (`PyArrow` / `PySpark` / `DuckDB-Hive`) chỉ mở đúng các thư mục con thỏa mãn điều kiện mà bỏ qua toàn bộ các thư mục khác trên đĩa.
-2. **Column Projection**: Trong bảng `gold/feature_store/` (chứa 47 cột bao gồm cả metadata `ping_id`, `vehicle_id`, `time_window`), khi huấn luyện `XGBoost`, hệ thống chỉ đọc đúng `27` cột `V2_FEATURE_COLUMNS` + `1` cột `actual_remaining_sec`, giảm `40%` băng thông đọc I/O.
+### Cơ chế Loại bỏ Phân vùng (`Partition Pruning`), Chiếu Cột (`Column Projection`) & Liên kết Ma trận Động (`Dynamic Matrix Re-binding`)
+1. **Partition Pruning**: Khi tiến trình `Weekly Delta Catch-Up` kiểm tra dữ liệu của một tuyến (`route_code='02'`), nó chỉ trích xuất Stage 1 cho những ngày `dt=YYYY-MM-DD` chưa có trên đĩa.
+2. **Dynamic Matrix Re-binding (Không bao giờ bị lệch ma trận cũ)**: Ở bước huấn luyện hàng tuần, công cụ đọc (`PyArrow` / `DuckDB`) đọc các phân vùng `kinematic_horizon_samples` và thực hiện phép chiếu mảng tổng tiền tố (`Prefix-Sum Array Lookup`) lên bảng `batch_view_travel_times` vừa cập nhật của tuần đó để sinh ra đúng 27 cột `V2_FEATURE_COLUMNS` mới nhất trong `~0.12 giây/tuyến`.
 
 ---
 
@@ -160,3 +180,4 @@ $$\begin{aligned}
 3. **Task 2.2.3 — Benchmark Lưu Trữ & Tốc Độ Đào Tạo (`scripts/benchmark_lakehouse_storage_and_sla.py`)**:
    - Đo đạc thực nghiệm **Tỷ lệ nén dung lượng (MB)** và **Thời gian đọc / lọc I/O (giây)** giữa: (1) Raw JSONL/CSV, (2) SQLite B-Tree (`hanoi_bus_system.db`), và (3) Apache Parquet Snappy (với Partition Pruning + Column Projection).
    - Lưu kết quả vào bảng `storage_benchmark_comparison` trong `data/hanoi_bus_system.db` và xuất báo cáo `reports/wp22_medallion_lakehouse_and_weekly_sla_report.md`.
+
