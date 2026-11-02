@@ -170,20 +170,24 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
                 dt = epoch - prev_epoch
                 ds = abs(s_m - prev_s)
 
-                if 0 < dt <= 300 and d_str == prev_d_str:
+                # Strict 2-Point Consecutive Corridor Chain Rule:
+                # Both previous ping and current ping must be valid on-corridor (d_perp <= 35m).
+                # Eliminates boundary leakage from depot/garage and off-route deadheading.
+                # If v > 80.0 km/h or jump occurs, strictly drop to None (NO ARTIFICIAL CLAMPING).
+                is_corridor_chain = (d_perp <= 35.0) and (prev_d_perp <= 35.0)
+                is_same_trip = (0 < dt <= 300) and (d_str == prev_d_str) and (s_m >= prev_s - 50.0)
+
+                if is_corridor_chain and is_same_trip:
                     v_mps = ds / dt
-                    spd_kmh = v_mps * 3.6
-                    # Enforce trip continuity along corridor and physical speed ceiling:
-                    # In a single trip, bus moves forward along corridor (allow <=50m GPS jitter).
-                    # If bus resets trip (s_m << prev_s) or teleports (>100 km/h), do not compute speed.
-                    if (s_m >= prev_s - 50.0) and spd_kmh <= 100.0:
-                        derived_speed_kmh = min(80.0, round(spd_kmh, 2))
+                    spd_kmh = round(v_mps * 3.6, 2)
+                    if spd_kmh <= 80.0:
+                        derived_speed_kmh = spd_kmh
                     else:
                         derived_speed_kmh = None
 
-                    # Kinematic Dwell Condition: ds < 15m for dt >= 20s
-                    if ds < 15.0 and dt >= 20.0:
-                        is_dwell = 1
+                # Kinematic Dwell Condition: ds < 15m for dt >= 20s (strictly within corridor)
+                if (d_perp <= 35.0) and (ds < 15.0) and (dt >= 20.0):
+                    is_dwell = 1
 
             records.append((
                 pid,

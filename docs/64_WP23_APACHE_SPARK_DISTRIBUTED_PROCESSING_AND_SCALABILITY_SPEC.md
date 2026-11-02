@@ -52,18 +52,20 @@ flowchart LR
 ### Tác Vụ 2.3.1: PySpark Window ETL — Tính Động Học Dẫn Xuất & Lọc Nhiễu Trên 5.56M Dòng
 
 * **Mục tiêu**: Đọc toàn bộ phân vùng Silver Parquet `data/lakehouse/silver/route_projected_telemetry/route_code=*/dt=*/*.parquet` vào Spark DataFrame và tính toán động học dẫn xuất chuẩn hóa.
-* **Đặc tả logic toán học & Window**:
-  - Partitioning: `Window.partitionBy("vehicle_id").orderBy("device_epoch")`.
+* **Đặc tả logic toán học & Window (Quy tắc chuỗi 2 ping hợp lệ liên tiếp - Strict 2-Point Consecutive Corridor Chain)**:
+  - Partitioning: `Window.partitionBy("vehicle_id", "direction").orderBy("device_epoch")`.
+  - Kiểm tra ranh giới hành lang cho cả 2 điểm:
+    $$\text{is\_corridor} = (\text{cross\_track\_m} \le 35.0) \land (\text{lag}(\text{cross\_track\_m}, 1) \le 35.0)$$
   - Lag calculations:
     $$\Delta t = \text{device\_epoch} - \text{lag}(\text{device\_epoch}, 1)$$
-    $$\Delta s = |\text{s\_bus\_m} - \text{lag}(\text{s\_bus\_m}, 1)|$$
-  - Điều kiện vận tốc hợp lệ (áp dụng Bug 10 fix):
-    - Chuyển động tiến: $s_{\text{bus}} \ge \text{lag}(s_{\text{bus}}, 1) - 50.0\text{m}$.
-    - Thời gian hợp lệ: $0 < \Delta t \le 300\text{s}$ và cùng hướng (`direction == lag(direction)`).
-    - Vận tốc: $v_{\text{mps}} = \Delta s / \Delta t \implies v_{\text{kmh}} = \min(80.0, v_{\text{mps}} \times 3.6)$.
-    - Nếu $v_{\text{kmh}} > 100$ km/h hoặc nhảy ngược chuyến: gán `NULL`.
+    $$\Delta s = \text{s\_bus\_m} - \text{lag}(\text{s\_bus\_m}, 1)$$
+  - Điều kiện chuỗi động học liên tục & loại bỏ dị thường tận gốc (Drop Outliers, No Clamping):
+    - Chuỗi hợp lệ trong hành lang: $\text{is\_corridor} = \text{True}$.
+    - Chuỗi cùng chuyến đi: $0 < \Delta t \le 300\text{s}$ và $\Delta s \ge -50.0\text{m}$.
+    - Vận tốc vật lý đô thị: $v_{\text{kmh}} = \frac{\Delta s}{\Delta t} \times 3.6 \le 80.0\text{ km/h}$.
+    - **Nguyên tắc xử lý**: Nếu thỏa mãn $\implies$ Gán $v_{\text{kmh}}$. Nếu vi phạm bất kỳ điều kiện nào (xe trong bãi đỗ/gara, nhảy vọt GPS, quay đầu bến) $\implies$ **Gán thẳng `NULL` (Loại bỏ dị thường dứt điểm, tuyệt đối không dùng clamp 80.0 km/h để ngụy tạo dữ liệu)**.
   - Nhận diện Dwell Time (chuẩn Điều 5 & Bug 12):
-    $$\text{is\_dwell} = \mathbb{I}(\Delta s < 15.0\text{m} \land \Delta t \ge 20.0\text{s})$$
+    $$\text{is\_dwell} = \mathbb{I}((\text{cross\_track\_m} \le 35.0) \land (\Delta s < 15.0\text{m}) \land (\Delta t \ge 20.0\text{s}))$$
 * **Tệp mã nguồn**: `module_2_big_data_storage_and_lakehouse/step_2_3_spark_distributed_computing/spark_kinematic_etl.py`
 
 ---
@@ -173,3 +175,4 @@ Kính trình người dùng xem xét văn bản đặc tả thiết kế trên. 
 2. Xây dựng `spark_session_factory.py` tối ưu hóa cho Windows + Java 25 (tắt cảnh báo unneeded, tối ưu `spark.sql.shuffle.partitions`).
 3. Triển khai tuần tự Task 2.3.1 $\to$ 2.3.2 $\to$ 2.3.3 $\to$ 2.3.4.
 4. Chạy kiểm chứng thực nghiệm và commit từng bước lên Git.
+
