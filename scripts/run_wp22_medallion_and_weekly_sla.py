@@ -370,7 +370,7 @@ def evaluate_weekly_sla_and_hybrid_serving(route_code: str, db_path: str, lakeho
             m_g = compute_interval_metrics(
                 y_cal[cal_blind_mask], cal_low_cqr[cal_blind_mask], cal_p50[cal_blind_mask], cand_high
             )
-            if m_g["picp_coverage_pct"] >= 80.0 and m_g["winkler_score_sec"] < best_wink - 0.5:
+            if (m_g["picp_coverage_pct"] >= 80.0 or m_g["picp_coverage_pct"] >= m_cal_0["picp_coverage_pct"]) and m_g["winkler_score_sec"] < best_wink - 0.5:
                 best_wink = m_g["winkler_score_sec"]
                 best_gamma_p90 = float(g90)
 
