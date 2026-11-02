@@ -32,6 +32,7 @@ from config.system_config import get_database_path
 from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.feature_extractor import (
     FEATURE_COLUMNS,
     TARGET_COLUMN,
+    V2_FEATURE_COLUMNS,
     extract_route_training_dataset,
 )
 
@@ -123,6 +124,7 @@ def train_and_benchmark_route_eta(
         db_path=resolved_db,
         max_stops_ahead=max_stops_ahead,
         max_horizon_m=max_horizon_m,
+        include_tomtom=True,
     )
     if df.empty or len(df) < 100:
         print(
@@ -145,8 +147,9 @@ def train_and_benchmark_route_eta(
     cal_df = df[df["trip_id"].isin(cal_trips)]
     test_df = df[df["trip_id"].isin(test_trips)]
 
+    active_features = V2_FEATURE_COLUMNS if "tomtom_has_incident" in df.columns else FEATURE_COLUMNS
     print(
-        f"Dataset extracted in {time.time() - t0:.2f}s: {len(df):,} samples across {n_trips:,} independent trips."
+        f"Dataset extracted in {time.time() - t0:.2f}s: {len(df):,} samples across {n_trips:,} independent trips (Features: {len(active_features)})."
     )
     print(
         f"Strict Trip Split -> Train: {len(train_df):,} ({len(train_trips)} trips) | "
@@ -154,13 +157,13 @@ def train_and_benchmark_route_eta(
         f"Unseen Test: {len(test_df):,} ({len(test_trips)} trips)"
     )
 
-    X_train = train_df[FEATURE_COLUMNS]
+    X_train = train_df[active_features]
     y_train = train_df[TARGET_COLUMN].to_numpy()
 
-    X_cal = cal_df[FEATURE_COLUMNS]
+    X_cal = cal_df[active_features]
     y_cal = cal_df[TARGET_COLUMN].to_numpy()
 
-    X_test = test_df[FEATURE_COLUMNS]
+    X_test = test_df[active_features]
     y_test = test_df[TARGET_COLUMN].to_numpy()
 
     # -------------------------------------------------------------------------
@@ -244,7 +247,7 @@ def train_and_benchmark_route_eta(
     )
 
     # Feature Importance
-    importance = dict(zip(FEATURE_COLUMNS, q_model.feature_importances_))
+    importance = dict(zip(active_features, q_model.feature_importances_))
     sorted_importance = sorted(importance.items(), key=lambda x: x[1], reverse=True)
 
     # Save Model Artifact

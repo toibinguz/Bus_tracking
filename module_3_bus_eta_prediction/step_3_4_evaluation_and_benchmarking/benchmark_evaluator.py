@@ -31,6 +31,7 @@ from config.system_config import get_database_path
 from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.feature_extractor import (
     FEATURE_COLUMNS,
     TARGET_COLUMN,
+    V2_FEATURE_COLUMNS,
     extract_route_training_dataset,
 )
 from module_3_bus_eta_prediction.step_3_3_machine_learning_models.train_eta_model import (
@@ -162,7 +163,7 @@ def evaluate_and_persist_all_routes(
         )
 
         df = extract_route_training_dataset(
-            rc, db_path=resolved_db, max_stops_ahead=5, max_horizon_m=3500.0
+            rc, db_path=resolved_db, max_stops_ahead=5, max_horizon_m=3500.0, include_tomtom=True
         )
         unique_trips = df["trip_id"].unique() if not df.empty else []
         n_trips = len(unique_trips)
@@ -243,18 +244,20 @@ def evaluate_and_persist_all_routes(
         cal_df_all = df[df["trip_id"].isin(cal_trips)]
         test_df_all = df[df["trip_id"].isin(test_trips)]
 
+        active_features = V2_FEATURE_COLUMNS if "tomtom_has_incident" in df.columns else FEATURE_COLUMNS
+
         q_model = xgb.XGBRegressor()
         need_train = force_retrain or (not os.path.exists(model_path))
         if not need_train:
             try:
                 q_model.load_model(model_path)
-                if q_model.n_features_in_ != len(FEATURE_COLUMNS):
+                if q_model.n_features_in_ != len(active_features):
                     need_train = True
             except Exception:
                 need_train = True
 
         if need_train:
-            X_train = train_df[FEATURE_COLUMNS]
+            X_train = train_df[active_features]
             r_train = (
                 train_df[TARGET_COLUMN].to_numpy()
                 - train_df["baseline_median_sec"].to_numpy()
@@ -276,11 +279,11 @@ def evaluate_and_persist_all_routes(
             q_model.save_model(model_path)
 
         # Calibrate CQR scale on calibration trips
-        cal_res = q_model.predict(cal_df_all[FEATURE_COLUMNS])
+        cal_res = q_model.predict(cal_df_all[active_features])
         b_cal = cal_df_all["baseline_median_sec"].to_numpy()
         y_cal = cal_df_all[TARGET_COLUMN].to_numpy()
-        cal_p10 = np.maximum(0.0, b_cal + cal_res[:, 0])
-        cal_p50 = np.maximum(cal_p10, b_cal + cal_res[:, 1])
+        cal_p50 = np.maximum(0.0, b_cal + cal_res[:, 1])
+        cal_p10 = np.minimum(cal_p50, np.maximum(0.0, b_cal + cal_res[:, 0]))
         cal_p90 = np.maximum(cal_p50, b_cal + cal_res[:, 2])
         cal_scale = np.maximum(15.0, cal_df_all["baseline_spread_sec"].to_numpy())
         q_conf = float(
@@ -290,7 +293,7 @@ def evaluate_and_persist_all_routes(
         )
 
         # Multi-stop (1-5 stops) test evaluation
-        res_all = q_model.predict(test_df_all[FEATURE_COLUMNS])
+        res_all = q_model.predict(test_df_all[active_features])
         b_all = test_df_all["baseline_median_sec"].to_numpy()
         y_all = test_df_all[TARGET_COLUMN].to_numpy()
         p50_all = np.maximum(0.0, b_all + res_all[:, 1])
@@ -299,14 +302,14 @@ def evaluate_and_persist_all_routes(
 
         # Next-stop (stops_ahead == 1) station-pair evaluation
         te_df = test_df_all[test_df_all["stops_ahead"] == 1].copy()
-        te_res = q_model.predict(te_df[FEATURE_COLUMNS])
+        te_res = q_model.predict(te_df[active_features])
         b_te = te_df["baseline_median_sec"].to_numpy()
         te_scale = np.maximum(15.0, te_df["baseline_spread_sec"].to_numpy())
 
         p10_raw = np.maximum(0.0, b_te + te_res[:, 0])
         p50 = np.maximum(p10_raw, b_te + te_res[:, 1])
         p90_raw = np.maximum(p50, b_te + te_res[:, 2])
-        p10 = np.maximum(0.0, p10_raw - q_conf * te_scale)
+        p10 = np.minimum(p50, np.maximum(0.0, p10_raw - q_conf * te_scale))
         p90 = np.maximum(p50, p90_raw + q_conf * te_scale)
 
         te_df["pred_p10"] = p10
