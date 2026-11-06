@@ -5,3 +5,4 @@
 > **Nguồn chân lý thực nghiệm duy nhất**: Dữ liệu và trạng thái hệ thống được xác thực trực tiếp thông qua mã nguồn kiểm toán `scripts/verify_system_reality.py`.
 >
 > Thư mục này là không gian sạch sẽ dành riêng cho các tài liệu đặc tả kỹ thuật và báo cáo của giai đoạn triển khai tiếp theo (Serving API, Web Dashboard tương tác, Cụm phân tán Hadoop HDFS và PySpark Engine).
+
