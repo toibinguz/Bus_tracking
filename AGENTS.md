@@ -31,7 +31,7 @@
 
 ### Điều 5: Động Học Dẫn Xuất (Derived Kinematics Over Raw Instantaneous Sensors)
 1. **Không phụ thuộc vận tốc tức thời thô**: Trường vận tốc tức thời từ GPS cực kỳ không ổn định (nhiễu Doppler, nhảy ảo khi dừng đỗ, làm tròn về 0 khi bò chậm).
-2. **Nguyên lý không gian - thời gian**: Mọi tính toán động học, vận tốc di chuyển, bóc tách thời gian dừng đỗ (Dwell Time) và dự báo ETA bắt buộc phải dựa trên **vận tốc dẫn xuất không gian - thời gian** ($\bar{v} = \Delta s / \Delta t$) và **ngưỡng dịch chuyển không gian**. Nghiêm cấm dùng điều kiện vận tốc cảm biến tức thời bằng 0 để phán đoán dừng đỗ.
+2. **Nguyên lý không gian - thời gian**: Mọi tính toán động học, vận tốc di chuyển và dự báo ETA bắt buộc phải dựa trên **vận tốc dẫn xuất không gian - thời gian** ($\bar{v} = \Delta s / \Delta t$) và **ngưỡng dịch chuyển không gian**. Nghiêm cấm dùng điều kiện vận tốc cảm biến tức thời bằng 0 để phán đoán dừng đỗ.
 
 ### Điều 6: Phân Tầng Trọng Tâm (Layered Priority - Vertical Slice)
 1. **Ưu tiên End-to-End Vertical Slice**: Tập trung xây dựng luồng thông suốt từ Ingestion $\to$ Lakehouse $\to$ Baseline Thống kê $\to$ Serving. Chấm dứt tình trạng sa đà tối ưu quá mức ở một khâu cục bộ (rabbit-holing).
