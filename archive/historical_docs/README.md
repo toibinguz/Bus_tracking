@@ -1,7 +1,7 @@
 # KHO LƯU TRỮ TÀI LIỆU LỊCH SỬ DỰ ÁN HANOI BUS (HISTORICAL RESEARCH ARCHIVE)
 
-> **Mục đích**: Lưu trữ toàn bộ 62 tài liệu nghiên cứu, khảo sát ban đầu và các báo cáo thử nghiệm từ tháng 10/2026 đến đầu tháng 11/2026.  
-> **Nguyên tắc quản trị**: **KHÔNG HARD DELETE**. Toàn bộ tri thức và quá trình tiến hóa của hệ thống được bảo tồn 100% tại đây.
+> **Mục đích**: Lưu trữ toàn bộ 66 tài liệu nghiên cứu, khảo sát ban đầu và các báo cáo thử nghiệm từ giai đoạn đầu (tháng 10/2026 đến đầu tháng 11/2026, từ Doc 00 đến Doc 65).  
+> **Nguyên tắc quản trị**: **KHÔNG HARD DELETE**. Toàn bộ tri thức và quá trình tiến hóa của hệ thống được bảo tồn 100% tại đây nhằm tránh quán tính nhận thức và các giả định lỗi thời.
 
 ---
 
@@ -10,11 +10,12 @@
 > [!WARNING]
 > **TÀI LIỆU TẠI ĐÂY CHỈ CÓ GIÁ TRỊ LỊCH SỬ VÀ THAM KHẢO HỌC THUẬT.**  
 > Nhiều bài toán, trở ngại kỹ thuật hoặc lỗi dữ liệu được ghi nhận trong các tài liệu này (như bài toán ghép nối OSM, lệch pha trạm BusMap, lỗi nhảy cóc trạm, 60 cặp trạm vi phạm đơn điệu, kẹp trần vận tốc 80 km/h) **ĐÃ ĐƯỢC GIẢI QUYẾT TRIỆT ĐỂ** trong mã nguồn Production (`module_1`, `module_2`, `module_3`) và CSDL chuẩn tắc `data/hanoi_bus_system.db`.  
-> **TUYỆT ĐỐI KHÔNG SỬ DỤNG CÁC TÀI LIỆU TRONG THƯ MỤC NÀY ĐỂ KẾT LUẬN CÁC NÚT THẮT HIỆN TẠI CỦA DỰ ÁN.**
+> **TUYỆT ĐỐI KHÔNG SỬ DỤNG CÁC TÀI LIỆU TRONG THƯ MỤC NÀY ĐỂ KẾT LUẬN CÁC NÚT THẮT HIỆN TẠI CỦA DỰ ÁN.**  
+> **Nguồn chân lý thực nghiệm duy nhất hiện tại**: Chạy `scripts/verify_system_reality.py` để lấy trạng thái thực tế tức thời của cơ sở dữ liệu và lakehouse.
 
 ---
 
-## II. BẢNG PHÂN LOẠI 62 TÀI LIỆU LỊCH SỬ ĐÃ LƯU TRỮ
+## II. BẢNG PHÂN LOẠI 66 TÀI LIỆU LỊCH SỬ ĐÃ LƯU TRỮ (DOC 00 – 65)
 
 | Khoảng Tài Liệu | Tên Chủ Đề Giai Đoạn | Nội Dung Lịch Sử | Trạng Thái Hiện Tại Trong Codebase |
 | :---: | :--- | :--- | :--- |
@@ -24,17 +25,13 @@
 | **Doc 31 – 44** | 5 Trở ngại cốt lõi thời kỳ OSM & Phát hiện TimBus | Ghi nhận lệch pha trạm, trôi dạt GPS, độ trễ mạng, khám phá dữ liệu TimBus / TRAMOC. | Đã giải quyết: Chuẩn hóa Master TimBus (3,646 trạm WGS84, 17,631 điểm tim đường). |
 | **Doc 45 – 53** | Chuyển dịch sang Kiến trúc Chính tắc 3 tầng | Di dời BusMap Native, kiểm toán động học 48 tuyến, lưu trữ legacy module. | Đã hoàn thành 100%. `module_1`, `module_2`, `module_3` đã chuẩn hóa. |
 | **Doc 54 – 60** | Khảo sát Ma trận phân vị lịch sử & Dị thường ban đầu | Phát hiện 143/60 cặp trạm vi phạm đơn điệu của BusMap cũ, khảo sát dwell time. | Đã chuẩn hóa: `canonical_station_master` hiện tại có 0 cặp trạm vi phạm đơn điệu. |
-| **Doc 61** | Lộ trình WBS v2.0 ban đầu | Bản kế hoạch phân rã công việc ban đầu trước khi làm sạch CSDL. | Đã hoàn thành các gói WP 2.1 và WP 2.2. |
+| **Doc 61 – 65** | Kế hoạch WBS v2.0, TomTom v2.0, Lakehouse & Lộ trình cũ | Báo cáo thử nghiệm TomTom (Doc 62), Medallion Lakehouse (Doc 63), PySpark Spec (Doc 64), và phân tích điểm nghẽn (Doc 65). | Lưu trữ lịch sử. Toàn bộ trọng tâm chuyển sang triển khai sản phẩm thực tế (Demo First & Hadoop HDFS). |
 
 ---
 
-## III. NƠI TRA CỨU TÀI LIỆU CHÍNH THỨC HIỆN TẠI
+## III. NGUYÊN TẮC QUẢN TRỊ MỚI: EMPIRICAL CODE-FIRST
 
-Toàn bộ tài liệu chuẩn tắc, phản ánh 100% thực tế hệ thống hiện tại được đặt tại thư mục **`docs/`**:
-1. [`docs/00_MASTER_INDEX.md`](../../docs/00_MASTER_INDEX.md): Bản đồ tổng thể toàn bộ dự án.
-2. [`docs/01_CANONICAL_ARCHITECTURE_AND_DATABASE_SPEC.md`](../../docs/01_CANONICAL_ARCHITECTURE_AND_DATABASE_SPEC.md): Kiến trúc chính tắc & cấu trúc CSDL hiện tại.
-3. [`docs/02_SYSTEM_REALITY_AND_VERIFIED_BASELINE.md`](../../docs/02_SYSTEM_REALITY_AND_VERIFIED_BASELINE.md): Báo cáo kiểm chứng thực địa tự động.
-4. [`docs/03_WP21_TOMTOM_MULTI_SOURCE_FUSION_SPEC.md`](../../docs/03_WP21_TOMTOM_MULTI_SOURCE_FUSION_SPEC.md): Đặc tả tích hợp sự cố TomTom v2.0.
-5. [`docs/04_WP22_MEDALLION_LAKEHOUSE_AND_WEEKLY_SLA_SPEC.md`](../../docs/04_WP22_MEDALLION_LAKEHOUSE_AND_WEEKLY_SLA_SPEC.md): Đặc tả Medallion Lakehouse Parquet.
-6. [`docs/05_WP23_APACHE_SPARK_AND_HADOOP_HDFS_SPEC.md`](../../docs/05_WP23_APACHE_SPARK_AND_HADOOP_HDFS_SPEC.md): Đặc tả Spark & Cụm HDFS phân tán.
-7. [`docs/06_ACTIONABLE_ROADMAP_DEMO_FIRST.md`](../../docs/06_ACTIONABLE_ROADMAP_DEMO_FIRST.md): Lộ trình hành động (Demo First $\to$ HDFS $\to$ Spark).
+Kể từ thời điểm này:
+1. Mọi tài liệu cũ đã được cách ly trong thư mục này.
+2. Thư mục `docs/` được làm sạch hoàn toàn để chuẩn bị cho tài liệu phát triển giai đoạn mới (Phase 3).
+3. Hệ thống chỉ tin vào dữ liệu thực nghiệm kiểm chứng qua mã nguồn và trạng thái vận hành thực tế.
