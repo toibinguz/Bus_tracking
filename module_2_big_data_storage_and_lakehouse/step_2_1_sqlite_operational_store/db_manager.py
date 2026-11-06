@@ -19,7 +19,7 @@ from config.system_config import get_database_path, DEFAULT_DB_PATH
 
 
 class OperationalDatabaseManager:
-    """Manages the operational SQLite database holding clean telemetry and TimBus Master tables."""
+    """Manages the operational SQLite database holding clean telemetry and Canonical Master tables."""
 
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path or get_database_path()

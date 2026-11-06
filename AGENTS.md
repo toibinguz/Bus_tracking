@@ -26,7 +26,7 @@
    - Toàn bộ module cũ đã được lưu trữ vĩnh viễn trong `archive/legacy_modules/`.
 
 ### Điều 4: Nguồn Chân Lý Dữ Liệu Tối Thượng (Single Source of Truth)
-1. **Master Ground Truth duy nhất**: Danh bạ trạm dừng, tọa độ địa lý WGS84 và hình học tim đường chính thức của mạng lưới xe buýt bắt buộc căn cứ trên cơ sở dữ liệu có thẩm quyền của cơ quan quản lý nhà nước (TimBus / TRAMOC / Sở GTVT). Nghiêm cấm tự gom cụm tọa độ thủ công khi đã có dữ liệu chính thức.
+1. **Master Ground Truth duy nhất**: Danh bạ trạm dừng, tọa độ địa lý WGS84 và hình học tim đường chính thức của mạng lưới xe buýt căn cứ trên chuẩn BusMap Canonical Ground Truth (canonical_station_master, canonical_shape_master, canonical_route_master với 176 tuyến, 13.301 trạm và 118.563 điểm tim đường), đồng bộ 1:1 với mã trạm (current_station_id, next_station_id) và mã tuyến từ telemetry GPS. Nghiêm cấm sử dụng các nguồn danh bạ ngoại lai không khớp mã trạm.
 2. **Tập trung hóa điểm truy cập**: Mọi cấu hình hệ thống, ngưỡng vật lý, hằng số và đường dẫn lưu trữ CSDL vận hành phải được quản lý tập trung trong `config/system_config.py`. Nghiêm cấm hardcode đường dẫn file rải rác.
 
 ### Điều 5: Động Học Dẫn Xuất (Derived Kinematics Over Raw Instantaneous Sensors)

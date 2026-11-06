@@ -1,7 +1,7 @@
 """
 End-to-End Canonical Architecture Verification Script
 Tests the 3 strategic modules:
-- Module 1: Ingestion & Preprocessing (TimBus Ground Truth, 1D Frenet Projection)
+- Module 1: Ingestion & Preprocessing (BusMap Native Ground Truth, 1D Frenet Projection)
 - Module 2: Big Data Storage & Lakehouse (SQLite Operational Store, Parquet Lakehouse)
 - Module 3: Bus ETA Prediction (Baseline Travel Time Matrix, Model Artifacts)
 """
@@ -36,31 +36,20 @@ def verify():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    routes_cnt = cur.execute("SELECT count(1) FROM timbus_route_master").fetchone()[0]
-    stations_cnt = cur.execute("SELECT count(1) FROM timbus_station_master").fetchone()[0]
-    shapes_cnt = cur.execute("SELECT count(1) FROM timbus_shape_master").fetchone()[0]
-    crosswalk_cnt = cur.execute("SELECT count(1) FROM dim_station_crosswalk").fetchone()[0]
+    canon_routes = cur.execute("SELECT count(1) FROM canonical_route_master").fetchone()[0]
+    canon_stations = cur.execute("SELECT count(1) FROM canonical_station_master").fetchone()[0]
+    canon_shapes = cur.execute("SELECT count(1) FROM canonical_shape_master").fetchone()[0]
     proj_cnt = cur.execute("SELECT count(1) FROM route_projected_telemetry").fetchone()[0]
 
-    has_canonical = cur.execute("SELECT count(1) FROM sqlite_master WHERE type='table' AND name='canonical_shape_master'").fetchone()[0]
-    if has_canonical:
-        canon_routes = cur.execute("SELECT count(1) FROM canonical_route_master").fetchone()[0]
-        canon_stations = cur.execute("SELECT count(1) FROM canonical_station_master").fetchone()[0]
-        canon_shapes = cur.execute("SELECT count(1) FROM canonical_shape_master").fetchone()[0]
-        print(f"  * Canonical Master Routes       : {canon_routes:,} routes")
-        print(f"  * Canonical Master Stations     : {canon_stations:,} stations")
-        print(f"  * Canonical Centerline Points   : {canon_shapes:,} points")
-
-
-    print(f"  * Master Routes Extracted       : {routes_cnt} routes (Target: 48)")
-    print(f"  * Master Stations WGS84         : {stations_cnt:,} stations")
-    print(f"  * Master Centerline Polyline    : {shapes_cnt:,} points")
-    print(f"  * Station Crosswalk Records     : {crosswalk_cnt:,} records")
+    print(f"  * Canonical Master Routes       : {canon_routes:,} routes")
+    print(f"  * Canonical Master Stations     : {canon_stations:,} stations")
+    print(f"  * Canonical Centerline Points   : {canon_shapes:,} points")
     print(f"  * Projected Telemetry Pings     : {proj_cnt:,} pings")
 
-    assert routes_cnt >= 40, "Routes count below threshold"
-    assert stations_cnt >= 3000, "Stations count below threshold"
-    assert proj_cnt >= 200000, "Projected pings below threshold"
+    assert canon_routes >= 48, f"Routes count below threshold ({canon_routes})"
+    assert canon_stations >= 10000, f"Stations count below threshold ({canon_stations})"
+    assert canon_shapes >= 100000, f"Shape points below threshold ({canon_shapes})"
+    assert proj_cnt >= 200000, f"Projected pings below threshold ({proj_cnt})"
 
     # 2. Verify Analytical View
     print("\n[2] AUDITING GLOBAL ANALYTICAL VIEW (v_bus_to_next_station)...")

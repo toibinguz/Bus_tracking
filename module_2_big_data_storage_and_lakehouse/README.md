@@ -25,7 +25,7 @@ module_2_big_data_storage_and_lakehouse/
 flowchart TD
     subgraph BRONZE["TẦNG BRONZE (RAW STREAM)"]
         B1["Raw Telemetry Batches\n(data/telemetry_sync/raw_batches/*.jsonl)"]
-        B2["TimBus Raw JSON Envelopes\n(data/ground_truth/timbus_official/raw/*.json)"]
+        B2["BusMap Native Ground Truth\n(hanoi_bus_data/*)"]
     end
 
     subgraph SILVER["TẦNG SILVER (CLEAN & PROJECTED)"]

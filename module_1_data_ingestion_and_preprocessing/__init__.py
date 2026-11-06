@@ -50,14 +50,6 @@ from .step_1_1_busmap_crawler_and_relay.local_partition_writer import (
     save_incidents_batch
 )
 
-from .step_1_2_timbus_master_ground_truth.timbus_client import (
-    TimBusClient
-)
-
-from .step_1_2_timbus_master_ground_truth.timbus_pipeline import (
-    TimBusGroundTruthPipeline
-)
-
 from .step_1_3_telemetry_kinematic_sanitizer.kinematic_engine import (
     haversine_distance
 )
@@ -89,9 +81,6 @@ __all__ = [
     "get_hf_today_batch_count", "get_hf_today_traffic_batch_count", "fetch_hf_tomtom_quota_state",
     "upload_batches_to_hf_native", "append_jsonl_records",
     "save_bus_telemetry_batch", "save_traffic_flow_batch", "save_incidents_batch",
-
-    # Step 1.2: Master Ground Truth
-    "TimBusClient", "TimBusGroundTruthPipeline",
 
     # Step 1.3: Kinematic Sanitizer
     "haversine_distance", "sanitize_and_validate_telemetry",
