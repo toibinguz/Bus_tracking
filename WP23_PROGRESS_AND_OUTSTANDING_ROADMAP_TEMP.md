@@ -12,7 +12,7 @@
 Căn cứ chỉ đạo trực tiếp từ người dùng:
 * **TẠM HOÃN**: Chưa vội làm Gói Serving/Demo và Gói cụm Hadoop HDFS.
 * **TRỌNG TÂM TUYỆT ĐỐI**: **Tập trung dọn sạch dữ liệu**.
-* **Nguyên lý cốt lõi**: *"Dữ liệu chưa sạch thì mọi mô hình huấn luyện ra đơn giản chỉ là rác rưởi."* Việc huấn luyện các tệp mô hình riêng rẽ từng tuyến (`xgboost_eta_route_02.json`, `xgboost_eta_route_27.json`) là tư duy chắp vá, manh mún và không thể mở rộng. Toàn bộ tài nguyên phải dồn vào việc thanh lọc, chuẩn hóa và xử lý các dị thường dữ liệu cốt lõi trước khi xây dựng mô hình toàn mạng.
+* **Nguyên lý cốt lõi**: *"Dữ liệu chưa sạch thì mọi mô hình huấn luyện ra đơn giản chỉ là rác rưởi."* Toàn bộ tài nguyên phải dồn vào việc thanh lọc, chuẩn hóa và xử lý các dị thường dữ liệu cốt lõi trước khi xây dựng mô hình toàn mạng.
 
 ```mermaid
 flowchart TD
@@ -61,11 +61,7 @@ Sau khi đối chiếu thực nghiệm trên cơ sở dữ liệu và tiếp thu
 * **Hiện trạng**: Tần suất phát bản tin GPS từ thiết bị giám sát hành trình không đều (dao động từ 15s đến 180s, jitter ngẫu nhiên), gây méo mó đạo hàm vận tốc dẫn xuất không gian - thời gian ($\bar{v} = \Delta s / \Delta t$).
 * **Định hướng**: **Đã có ý tưởng giải quyết từ User**. AI sẽ chờ chi tiết đặc tả/ý tưởng của User để lập trình chính xác theo thiết kế, bảo đảm không làm biến dạng động học của xe buýt.
 
-#### 2. Xóa bỏ tư duy mô hình riêng rẽ từng tuyến — Chuẩn hóa Dữ liệu cho Mô hình Hợp nhất
-* **Hiện trạng**: Việc lưu trữ các tệp mô hình cục bộ `models/xgboost_eta_route_02.json` và `models/xgboost_eta_route_27.json` là giải pháp chắp vá ("rác rưởi"), phân mảnh tri thức giao thông và không thể bao quát toàn mạng.
-* **Nhiệm vụ dọn dẹp**: Tái cấu trúc tầng Gold Feature Store trong Lakehouse để phục vụ mô hình hợp nhất hành lang / toàn mạng (Network-wide / Corridor-level Feature Schema), tích hợp định danh tuyến, chỉ số chia sẻ hạ tầng đường và mật độ giao thông chung.
-
-#### 3. Thanh lọc Tầng Silver Hive Partitions & Lọc Nhiễu Dữ liệu Lớn
+#### 2. Thanh lọc Tầng Silver Hive Partitions & Lọc Nhiễu Dữ liệu Lớn
 * **Hiện trạng**: 942 partition Silver hiện tại chứa một lượng nhỏ các bản ghi có bước nhảy thời gian bất thường ($\Delta t > 300\text{s}$) hoặc các ping đứng yên kéo dài tại bãi đỗ nhưng vẫn có tín hiệu GPS lặp.
 * **Nhiệm vụ dọn dẹp**: Xây dựng pipeline kiểm toán và làm sạch sâu (Deep Cleansing Pipeline), loại bỏ các đoạn nhảy bước, lọc nhiễu GPS đa đường (Multipath GPS noise) trước khi đưa vào tính toán thống kê hay huấn luyện.
 
