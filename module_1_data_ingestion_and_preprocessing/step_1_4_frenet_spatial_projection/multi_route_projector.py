@@ -1,5 +1,5 @@
 """
-Module 1: Production Multi-Route Frenet Projection Engine.
+Module 1: Production Multi-Route Frenet Projection Engine (Canonical Clean v3.0).
 Linear references raw GPS pings (vehicle_unique_pings) onto Canonical BusMap Master Polylines
 (canonical_shape_master) to produce 1D progress coordinate (s_bus_m), orthogonal cross-track
 error (cross_track_m), and derived kinematics (v_derived = delta_s / delta_t).
@@ -28,31 +28,31 @@ sys.path.insert(0, ".")
 
 from config.system_config import get_database_path, DEFAULT_DB_PATH
 
-EARTH_RADIUS_M = 6371000.0
 
-
-def project_points_to_shape(pings: List[Tuple[Any, ...]], shape_pts: List[Tuple[float, float, float]]) -> List[Tuple[int, float, float]]:
+def project_points_to_shape(
+    vehicle_pings: List[Tuple[Any, ...]], 
+    shape_pts: List[Tuple[float, float, float]]
+) -> List[Tuple[int, float, float]]:
     """
-    Vectorized orthogonal projection of GPS points onto polyline segments.
-    shape_pts: list of (point_order, lat, lon, cum_distance_m)
-    pings: list of (ping_id, lat, lon, device_epoch)
-    Returns: list of (ping_id, best_s_m, min_cross_track_m)
+    Vectorized orthogonal projection of GPS points onto polyline segments
+    with Monotonicity Forward Sliding Window Guard for trajectory continuity.
+    vehicle_pings: list of (ping_id, lat, lon, device_epoch) sorted by epoch.
+    shape_pts: list of (point_order, lat, lon, cum_distance_m) sorted by point_order.
     """
-    if not shape_pts or not pings:
+    if not vehicle_pings or not shape_pts:
         return []
 
-    # Pre-extract polyline coordinates
-    s_lats = np.array([p[1] for p in shape_pts])
-    s_lons = np.array([p[2] for p in shape_pts])
-    s_cums = np.array([p[3] for p in shape_pts])
+    s_lats = np.array([p[1] for p in shape_pts], dtype=np.float64)
+    s_lons = np.array([p[2] for p in shape_pts], dtype=np.float64)
+    s_cums = np.array([p[3] for p in shape_pts], dtype=np.float64)
 
-    results = []
-    mid_lat = np.mean(s_lats)
-    cos_lat = math.cos(math.radians(mid_lat))
-    kx = EARTH_RADIUS_M * cos_lat * (math.pi / 180.0)
-    ky = EARTH_RADIUS_M * (math.pi / 180.0)
+    if len(s_lats) < 2:
+        return []
 
-    # Segment endpoints in local projection
+    mean_lat = np.mean(s_lats)
+    kx = 111320.0 * math.cos(math.radians(mean_lat))
+    ky = 110540.0
+
     x1 = s_lons[:-1] * kx
     y1 = s_lats[:-1] * ky
     x2 = s_lons[1:] * kx
@@ -63,32 +63,73 @@ def project_points_to_shape(pings: List[Tuple[Any, ...]], shape_pts: List[Tuple[
     seg_lens_sq = dx * dx + dy * dy
     safe_lens_sq = np.maximum(seg_lens_sq, 1e-6)
     cum_starts = s_cums[:-1]
+    seg_lens = np.sqrt(seg_lens_sq)
+    n_segs = len(dx)
 
-    for ping_id, p_lat, p_lon, p_epoch in pings:
+    results = []
+    prev_s = None
+    prev_epoch = None
+
+    for ping_id, p_lat, p_lon, p_epoch in vehicle_pings:
         px = p_lon * kx
         py = p_lat * ky
 
-        # Vector from segment start to point
+        # 1. Forward Sliding Window Guard within active trip (dt <= 300s)
+        use_window = False
+        if prev_s is not None and prev_epoch is not None:
+            dt = p_epoch - prev_epoch
+            if 0 < dt <= 300.0:
+                max_forward = max(1500.0, dt * 25.0)  # max 25 m/s (90 km/h)
+                win_s_min = max(0.0, prev_s - 20.0)
+                win_s_max = prev_s + max_forward
+
+                idx_start = max(0, int(np.searchsorted(cum_starts, win_s_min, side='left')) - 1)
+                idx_end = min(n_segs, int(np.searchsorted(cum_starts, win_s_max, side='right')) + 1)
+                if idx_end > idx_start:
+                    use_window = True
+
+        if use_window:
+            sub_x1 = x1[idx_start:idx_end]
+            sub_y1 = y1[idx_start:idx_end]
+            sub_dx = dx[idx_start:idx_end]
+            sub_dy = dy[idx_start:idx_end]
+            sub_safe_lens_sq = safe_lens_sq[idx_start:idx_end]
+            sub_seg_lens = seg_lens[idx_start:idx_end]
+            sub_cum_starts = cum_starts[idx_start:idx_end]
+
+            p_dx1 = px - sub_x1
+            p_dy1 = py - sub_y1
+            t = np.clip((p_dx1 * sub_dx + p_dy1 * sub_dy) / sub_safe_lens_sq, 0.0, 1.0)
+            proj_x = sub_x1 + t * sub_dx
+            proj_y = sub_y1 + t * sub_dy
+            dist_sq = (px - proj_x) ** 2 + (py - proj_y) ** 2
+            best_local_seg = np.argmin(dist_sq)
+            min_d = math.sqrt(dist_sq[best_local_seg])
+
+            if min_d <= 45.0:
+                best_t = t[best_local_seg]
+                best_s = sub_cum_starts[best_local_seg] + best_t * sub_seg_lens[best_local_seg]
+                results.append((ping_id, round(best_s, 1), round(min_d, 1)))
+                prev_s = best_s
+                prev_epoch = p_epoch
+                continue
+
+        # 2. Global Search Fallback
         p_dx1 = px - x1
         p_dy1 = py - y1
-
-        # Parameter t along each segment
-        t = (p_dx1 * dx + p_dy1 * dy) / safe_lens_sq
-        t = np.clip(t, 0.0, 1.0)
-
-        # Projected points
+        t = np.clip((p_dx1 * dx + p_dy1 * dy) / safe_lens_sq, 0.0, 1.0)
         proj_x = x1 + t * dx
         proj_y = y1 + t * dy
-
-        # Perpendicular distance to each segment
         dist_sq = (px - proj_x) ** 2 + (py - proj_y) ** 2
         best_seg = np.argmin(dist_sq)
 
         min_d = math.sqrt(dist_sq[best_seg])
         best_t = t[best_seg]
-        best_s = cum_starts[best_seg] + best_t * math.sqrt(seg_lens_sq[best_seg])
+        best_s = cum_starts[best_seg] + best_t * seg_lens[best_seg]
 
         results.append((ping_id, round(best_s, 1), round(min_d, 1)))
+        prev_s = best_s
+        prev_epoch = p_epoch
 
     return results
 
@@ -151,58 +192,36 @@ def project_route(route_id: int, route_code: str, conn: sqlite3.Connection, st_d
     if not pings:
         return 0
 
-    # Assign initial direction using Station-Guidance
-    pings_by_dir = {"go": [], "re": []}
-    ping_meta = {}
+    pings_by_veh_dir: Dict[Tuple[int, str], List[Tuple[int, float, float, float]]] = {}
+    ping_meta: Dict[int, Any] = {}
+
     for p in pings:
         pid, vid, plate, t_str, epoch, p_dir, lat, lon, curr_st = p
-        if curr_st and (route_id, curr_st) in st_dir:
-            d_str = st_dir[(route_id, curr_st)]
-        else:
-            # BusMap convention: -1 -> go (Direction 0), 1 -> re (Direction 1)
-            d_str = "go" if p_dir == -1 else "re"
-
-        pings_by_dir[d_str].append((pid, lat, lon, epoch))
         ping_meta[pid] = p
 
-    # Execute primary projection
-    projected_results = {}
-    for d_str in ["go", "re"]:
-        if shapes[d_str] and pings_by_dir[d_str]:
-            res = project_points_to_shape(pings_by_dir[d_str], shapes[d_str])
+        d_str = None
+        if curr_st and (route_id, curr_st) in st_dir:
+            d_str = st_dir[(route_id, curr_st)]
+        elif p_dir == 0:
+            d_str = "go"
+        elif p_dir == 1:
+            d_str = "re"
+        else:
+            continue
+
+        pings_by_veh_dir.setdefault((vid, d_str), []).append((pid, lat, lon, epoch))
+
+    projected_results: Dict[int, Tuple[float, float, str]] = {}
+    for (vid, d_str), v_pings in pings_by_veh_dir.items():
+        if shapes.get(d_str) and v_pings:
+            v_pings.sort(key=lambda x: x[3])
+            res = project_points_to_shape(v_pings, shapes[d_str])
             for pid, s_m, d_perp in res:
                 projected_results[pid] = (s_m, d_perp, d_str)
 
-    # Self-Healing Direction Guard: Strictly restricted to Terminal Turnaround Zones (s <= 500m or s >= L - 300m)
-    # Prevents mid-corridor cross-talk / direction flickering between parallel opposing lanes
-    needs_retry = []
-    for pid, (s_m, d_perp, d_str) in projected_results.items():
-        if d_perp > 45.0:
-            opp_dir = "re" if d_str == "go" else "go"
-            if shapes[opp_dir]:
-                shape_len = shapes[d_str][-1][3] if shapes[d_str] else 0.0
-                is_near_terminal = (s_m <= 500.0) or (s_m >= shape_len - 300.0)
-                if is_near_terminal:
-                    p = ping_meta[pid]
-                    needs_retry.append((opp_dir, (pid, p[6], p[7], p[4])))
-
-    if needs_retry:
-        retry_by_dir = {"go": [], "re": []}
-        for opp_dir, ping_item in needs_retry:
-            retry_by_dir[opp_dir].append(ping_item)
-
-        for opp_dir in ["go", "re"]:
-            if shapes[opp_dir] and retry_by_dir[opp_dir]:
-                retry_res = project_points_to_shape(retry_by_dir[opp_dir], shapes[opp_dir])
-                for pid, new_s, new_dperp in retry_res:
-                    orig_s, orig_dperp, orig_d = projected_results[pid]
-                    # Switch direction if opposite direction is significantly closer
-                    if new_dperp < 25.0 and (orig_dperp - new_dperp) > 20.0:
-                        projected_results[pid] = (new_s, new_dperp, opp_dir)
-
-    # Calculate derived kinematics (delta_s / delta_t) per vehicle trajectory
+    # Derived kinematics
     records = []
-    vehicles = {}
+    vehicles: Dict[int, List[Tuple[int, float, Tuple[float, float, str]]]] = {}
     for p in pings:
         pid = p[0]
         if pid in projected_results:
@@ -210,59 +229,47 @@ def project_route(route_id: int, route_code: str, conn: sqlite3.Connection, st_d
             vehicles.setdefault(vid, []).append((pid, p[4], projected_results[pid]))
 
     for vid, v_pings in vehicles.items():
-        v_pings.sort(key=lambda x: x[1])  # sort by epoch
+        v_pings.sort(key=lambda x: x[1])
         for i in range(len(v_pings)):
             pid, epoch, (s_m, d_perp, d_str) = v_pings[i]
             meta = ping_meta[pid]
 
             derived_speed_kmh = None
-            is_dwell = 0
 
             if i > 0:
                 prev_pid, prev_epoch, (prev_s, prev_d_perp, prev_d_str) = v_pings[i - 1]
                 dt = epoch - prev_epoch
-                ds = abs(s_m - prev_s)
+                ds = s_m - prev_s
 
-                # Strict 2-Point Consecutive Corridor Chain Rule:
-                # Both previous ping and current ping must be valid on-corridor (d_perp <= 35m).
-                # Eliminates boundary leakage from depot/garage and off-route deadheading.
-                # If v > 80.0 km/h or jump occurs, strictly drop to None (NO ARTIFICIAL CLAMPING).
                 is_corridor_chain = (d_perp <= 35.0) and (prev_d_perp <= 35.0)
-                is_same_trip = (0 < dt <= 300) and (d_str == prev_d_str) and (s_m >= prev_s - 50.0)
+                is_same_trip = (0 < dt <= 300.0) and (d_str == prev_d_str) and (ds >= -30.0)
 
                 if is_corridor_chain and is_same_trip:
-                    v_mps = ds / dt
+                    v_mps = abs(ds) / dt
                     spd_kmh = round(v_mps * 3.6, 2)
                     if spd_kmh <= 80.0:
                         derived_speed_kmh = spd_kmh
-                    else:
-                        derived_speed_kmh = None
-
-                # Kinematic Dwell Condition: ds < 15m for dt >= 20s (strictly within corridor)
-                if (d_perp <= 35.0) and (ds < 15.0) and (dt >= 20.0):
-                    is_dwell = 1
 
             records.append((
                 pid,
                 route_code,
                 route_id,
-                meta[1],  # vehicle_id
-                meta[2],  # plate
-                meta[3],  # device_update_time
-                meta[4],  # device_epoch
+                meta[1],
+                meta[2],
+                meta[3],
+                meta[4],
                 d_str,
-                meta[6],  # lat
-                meta[7],  # lon
+                meta[6],
+                meta[7],
                 s_m,
                 d_perp,
                 derived_speed_kmh,
-                is_dwell
+                0
             ))
 
-    # Upsert into route_projected_telemetry
     cur.execute("DELETE FROM route_projected_telemetry WHERE route_id = ?", (route_id,))
     cur.executemany("""
-    INSERT OR REPLACE INTO route_projected_telemetry (
+    INSERT INTO route_projected_telemetry (
         ping_id, route_code, route_id, vehicle_id, plate,
         device_update_time, device_epoch, direction,
         lat, lon, s_bus_m, cross_track_m, derived_speed_kmh, is_dwell
@@ -281,14 +288,19 @@ def run_multi_route_projection(db_path: Optional[str] = None, limit: Optional[in
         except Exception:
             pass
 
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path or get_database_path())
     init_projected_telemetry_table(conn)
 
     cur = conn.cursor()
 
-    # Preload station directions lookup
+    # Preload station directions lookup (unambiguous)
     print("Pre-loading canonical station directions lookup...")
-    cur.execute("SELECT route_id, station_id, direction FROM canonical_station_master;")
+    cur.execute("""
+        SELECT route_id, station_id, MIN(direction)
+        FROM canonical_station_master
+        GROUP BY route_id, station_id
+        HAVING COUNT(DISTINCT direction) = 1;
+    """)
     st_dir = {(r_id, st_id): d for r_id, st_id, d in cur.fetchall()}
     print(f"Loaded {len(st_dir):,} canonical station direction markers.")
 
@@ -302,35 +314,26 @@ def run_multi_route_projection(db_path: Optional[str] = None, limit: Optional[in
     ORDER BY pings DESC;
     """
     routes = cur.execute(routes_query).fetchall()
-
     if limit:
         routes = routes[:limit]
 
-    print("=" * 80)
-    print(f"CANONICAL MULTI-ROUTE FRENET PROJECTION PIPELINE ({len(routes)} ROUTES)")
-    print("=" * 80)
+    print(f"Found {len(routes)} active routes requiring Frenet projection.")
 
     total_projected = 0
     t0 = time.time()
+    for idx, (route_id, route_code, raw_count) in enumerate(routes, 1):
+        t_route = time.time()
+        cnt = project_route(route_id, route_code, conn, st_dir)
+        total_projected += cnt
+        dt_route = time.time() - t_route
+        rate = cnt / dt_route if dt_route > 0 else 0
+        print(f"[{idx:02d}/{len(routes):02d}] Route {route_code:<5} (ID {route_id:>3}): Projected {cnt:>7,} / {raw_count:>7,} pings in {dt_route:5.1f}s ({rate:,.0f} pings/s)")
 
-    for idx, (r_id, rc, p_count) in enumerate(routes, start=1):
-        print(f"[{idx:02d}/{len(routes)}] Projecting Route {rc:<6} (ID {r_id:<6}, {p_count:,} pings)...", end=" ", flush=True)
-        count = project_route(r_id, rc, conn, st_dir)
-        total_projected += count
-        print(f"OK ({count:,} projected)")
-
-    elapsed = time.time() - t0
     conn.close()
-
-    print("=" * 80)
-    print("CANONICAL MULTI-ROUTE PROJECTION SUMMARY:")
-    print(f"- Total Routes Projected: {len(routes)}")
-    print(f"- Total Pings Linear Referenced: {total_projected:,}")
-    print(f"- Elapsed Time: {elapsed:.2f}s ({elapsed/len(routes):.2f}s per route)")
-    print(f"- Target Table: route_projected_telemetry in {db_path}")
-    print("=" * 80)
+    elapsed = time.time() - t0
+    print("=" * 70)
+    print(f"Done! Projected {total_projected:,} pings across {len(routes)} routes in {elapsed:.1f}s.")
 
 
 if __name__ == "__main__":
-    db = sys.argv[1] if len(sys.argv) > 1 else get_database_path()
-    run_multi_route_projection(db)
+    run_multi_route_projection()

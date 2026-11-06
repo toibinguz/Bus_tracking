@@ -220,7 +220,7 @@ def export_to_parquet_lakehouse(
                    lat, lon, s_bus_m, cross_track_m, derived_speed_kmh, is_dwell,
                    substr(device_update_time, 1, 10) AS dt
             FROM route_projected_telemetry
-            WHERE route_code = ?
+            WHERE route_code = ? AND cross_track_m <= 35.0
             """,
             conn,
             params=[rc],
@@ -542,4 +542,5 @@ def parallel_sync_all_routes_stage1_parquet(
 if __name__ == "__main__":
     db = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_DB_PATH
     lake = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_LAKEHOUSE_ROOT
-    export_to_parquet_lakehouse(db, lake)
+    force = "--force" in sys.argv
+    export_to_parquet_lakehouse(db, lake, force_overwrite=force)

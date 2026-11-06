@@ -58,6 +58,10 @@ from .step_1_3_telemetry_kinematic_sanitizer.telemetry_sanitizer import (
     sanitize_and_validate_telemetry
 )
 
+from .step_1_3_telemetry_kinematic_sanitizer.trip_segmenter import (
+    segment_trajectory_into_trips
+)
+
 try:
     from .step_1_4_frenet_spatial_projection.multi_route_projector import (
         project_route,
@@ -82,8 +86,8 @@ __all__ = [
     "upload_batches_to_hf_native", "append_jsonl_records",
     "save_bus_telemetry_batch", "save_traffic_flow_batch", "save_incidents_batch",
 
-    # Step 1.3: Kinematic Sanitizer
-    "haversine_distance", "sanitize_and_validate_telemetry",
+    # Step 1.3: Kinematic Sanitizer & Trip Segmentation
+    "haversine_distance", "sanitize_and_validate_telemetry", "segment_trajectory_into_trips",
 
     # Step 1.4: Frenet Spatial Projection
     "project_route", "run_multi_route_projection"
