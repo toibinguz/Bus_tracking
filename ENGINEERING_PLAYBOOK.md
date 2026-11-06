@@ -52,16 +52,13 @@
 
 ## 2. KINH NGHIỆM MERGE DỮ LIỆU BẢN ĐỒ & KHÔNG GIAN (GIS & SPATIAL PIPELINE)
 
-### Bẫy "Hai Nguồn Chân Lý" Giữa App Thương Mại (BusMap) vs Quản Lý Nhà Nước (TimBus)
-- **Bản chất vấn đề**:
-  - **Dữ liệu BusMap**: Có trường GPS real-time của xe, nhưng danh bạ trạm dừng và đường đi bị trễ hạn, không có tim đường hình học phân đoạn chính thức.
-  - **Dữ liệu TimBus (TRAMOC / Sở GTVT Hà Nội)**: Có tọa độ WGS84 chuẩn của toàn bộ trạm dừng và chuỗi tọa độ tim đường chính thức, nhưng không cung cấp API GPS real-time công khai.
-- **Giải pháp Crosswalk (Station & Route Matching)**:
-  - Lấy TimBus làm **Master Ground Truth duy nhất** về không gian.
-  - Khởi tạo bảng trung gian `dim_station_crosswalk` và `dim_route_crosswalk`:
-    - Ánh xạ trạm bằng thuật toán lân cận không gian kết hợp điều kiện hướng:
-      $$\text{Distance}(P_{\text{BusMap}}, P_{\text{TimBus}}) \le 50\text{m} \quad \text{AND} \quad \text{Direction}_{\text{BusMap}} == \text{Direction}_{\text{TimBus}}$$
-  - **Bài học xương máu**: **BẮT BUỘC PHẢI KHỚP THEO CẢ HƯỚNG DI CHUYỂN (`go`/`return`)**. Nếu chỉ tìm trạm gần nhất theo cự ly Euclidean đơn thuần, thuật toán sẽ map nhầm sang trạm của chiều ngược lại ở phía đối diện đường đôi!
+### Bài Học "Hai Nguồn Chân Lý" & Thống Nhất BusMap Canonical Ground Truth
+- **Bản chất vấn đề lịch sử**:
+  - Trước đây, hệ thống cố gắng hòa trộn giữa telemetry thời gian thực của BusMap với danh bạ của TimBus thông qua bảng ánh xạ `dim_station_crosswalk`.
+  - **Hệ quả**: Gây xung đột mã trạm, sai lệch cự ly và phức tạp hóa kiến trúc không cần thiết.
+- **Giải pháp dứt khoát hiện tại**:
+  - Đã loại bỏ hoàn toàn TimBus và bảng `dim_station_crosswalk`.
+  - Thống nhất **BusMap Canonical Ground Truth** (`canonical_station_master`, `canonical_shape_master`, `canonical_route_master` với 176 tuyến, 13.301 trạm và 118.563 điểm tim đường) là Master Ground Truth duy nhất, đồng bộ 1:1 với telemetry GPS thời gian thực.
 
 ### Phép Chiếu Không Gian 1D Frenet & Xử Lý Đoạn Vòng Lặp (Looping Topology)
 - **Bản chất**: Biến đổi tọa độ GPS 2D $(lat, lon)$ thành hệ tọa độ 1D dọc tim đường:

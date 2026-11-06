@@ -15,7 +15,6 @@ data/telemetry_sync/
 data/temp_hf_sync/
 data/lakehouse/
 data/osm/
-data/ground_truth/timbus_official/raw/
 data/ground_truth/*.html
 data/visualizations/*.html
 archive/legacy_dumps/

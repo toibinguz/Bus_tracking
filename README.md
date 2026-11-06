@@ -2,7 +2,7 @@
 ### Hệ Thống Giám Sát Thời Gian Thực, Lưu Trữ Dữ Liệu Lớn & Dự Báo ETA Xe Buýt Hà Nội
 
 > **Mục tiêu**: Xây dựng luồng hệ thống dữ liệu lớn khép kín từ đầu đến cuối (End-to-End Vertical Slice):  
-> `Ingestion (BusMap/TomTom) ➔ Master Ground Truth (TimBus) ➔ Big Data Lakehouse (Parquet/DuckDB) ➔ Feature Store ➔ ETA Model (XGBoost) ➔ Evaluation`.  
+> `Ingestion (BusMap/TomTom) ➔ Master Ground Truth (BusMap Canonical) ➔ Big Data Lakehouse (Parquet/DuckDB) ➔ Feature Store ➔ ETA Model (XGBoost) ➔ Evaluation`.  
 > **Căn cứ quy chế hoạt động**: [AGENTS.md](AGENTS.md) & [GEMINI.md](GEMINI.md).
 
 ---
@@ -15,8 +15,8 @@ Dự án không dừng lại ở mức thử nghiệm vài tuyến nhỏ mà đ�
 | :--- | :--- | :--- |
 | **Tuyến buýt giám sát** | **48 tuyến hoạt động** | Các tuyến trục đô thị (01-99), BRT01 và mạng VinBus điện (E01-E11) |
 | **Đoàn xe Telemetry 24/7** | **504 xe buýt** | Thu thập định kỳ qua Raw Socket SSL & DNS Cache tại RAM |
-| **Danh bạ trạm dừng Master** | **3.646 trạm WGS84** | Trích xuất có thẩm quyền từ [TimBus.vn](http://timbus.vn) (TRAMOC / Sở GTVT Hà Nội) |
-| **Điểm tim đường (Centerline)** | **17.631 điểm** | Hình học tim đường chính thức, gán sẵn khoảng cách tích lũy $s$ (mét) |
+| **Danh bạ trạm dừng Master** | **13.301 trạm WGS84** | Chuẩn hóa từ BusMap Canonical Ground Truth (hanoi_bus_data) |
+| **Điểm tim đường (Centerline)** | **118.563 điểm** | Hình học tim đường chính thức, gán sẵn khoảng cách tích lũy $s$ (mét) |
 | **Telemetry chiếu 1D Frenet** | **285.621 bản ghi** | Ánh xạ vuông góc $s, d_\perp$, tính vận tốc dẫn xuất $\bar{v}$ và dừng đỗ `is_dwell` |
 | **Big Data Lakehouse** | **101 phân vùng Parquet** | Lưu trữ cột Snappy nén theo Medallion Silver Lakehouse |
 | **Độ chính xác ETA (XGBoost)** | **MAE 38.80s (0.65 min)** | Vượt trội **+45.72%** so với Baseline Historical Segment Average |
@@ -31,7 +31,7 @@ Toàn bộ workspace đã được dọn dẹp sạch sẽ, đóng gói vào đ�
 Bus_tracking/
 ├── module_1_data_ingestion_and_preprocessing/    # MODULE 1: Thu thập, Tiền xử lý & Ground Truth
 │   ├── step_1_1_busmap_crawler_and_relay/        # Crawler 24/7, TomTom Governor & HF Dataset Sync
-│   ├── step_1_2_timbus_master_ground_truth/       # Ingestion 48 tuyến, 3.646 trạm WGS84 từ TimBus
+│   ├── step_1_2_timbus_master_ground_truth/       # Ingestion 48 tuyến, 13.301 trạm WGS84 từ TimBus
 │   ├── step_1_3_telemetry_kinematic_sanitizer/    # Lọc hoán vị Lat/Lon, tính EMA & khử drift
 │   └── step_1_4_frenet_spatial_projection/        # Chiếu 1D Frenet 285k pings & cờ dừng đỗ is_dwell
 ├── module_2_big_data_storage_and_lakehouse/      # MODULE 2: Lưu Trữ Dữ Liệu Lớn & Lakehouse
@@ -72,9 +72,9 @@ Bus_tracking/
   ```
 
 ### Bước 2: Nạp Master Ground Truth & Chiếu Tọa Độ 1D Frenet
-- **Nạp toàn bộ 48 tuyến và trạm dừng từ TimBus**:
+- **Nạp toàn bộ 176 tuyến và 13.301 trạm dừng BusMap Canonical**:
   ```powershell
-  python module_1_data_ingestion_and_preprocessing/step_1_2_timbus_master_ground_truth/ingest_all_active_routes.py
+  python scripts/ingest_canonical_busmap_master.py
   ```
 - **Chiếu trực giao Telemetry lên tim đường (Frenet Linear Referencing)**:
   ```powershell
