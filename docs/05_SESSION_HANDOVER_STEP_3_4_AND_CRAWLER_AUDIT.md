@@ -190,3 +190,26 @@ Tầm `> 15` trạm: Calibrated `200,44s → 196,39s` (Baseline `246,84s`). `46/
   - Danh bạ toàn mạng được tinh gọn chuẩn hóa về **`614` xe hoạt động thực tế**, lưu vào `data/metadata/hust_cluster_config.json`.
   - Báo cáo `data/metadata/daily_catalog_health.json`: `active_rolling: 294`, `depot_idle: 199`, `stale_frozen: 33`, `pruned_zombies_count: 24`, `total_configured: 614`.
 - **`TD-24` chính thức đóng hoàn toàn (`[x]`)**.
+
+---
+
+### 8.3. Đối soát Thực nghiệm Tính Thống nhất giữa 2 API & Nhắc nhở Quản trị (`TD-27`)
+> **Script kiểm chứng thực nghiệm**: [`experiments/audit_api_parity_vehicle_vs_route.py`](file:///z:/Desktop/Bus_tracking/experiments/audit_api_parity_vehicle_vs_route.py)  
+> **Thời điểm chạy kiểm toán**: `21:14:48+07:00 07/11/2026` trên 35 xe buýt thực tế (Tuyến 02, 32, 40).
+
+1. **Phát hiện Bất đối xứng Hoán vị Tọa độ (Critical Data Convention Asymmetry)**:
+   - Trong `vehicle_hn/get?id=VID`: Backend BusMap hoán vị ngược trường tọa độ: `Lat` thực chất là Kinh độ ($\approx 105.x$), `Lng` thực chất là Vĩ độ ($\approx 20.x$).
+   - Trong `route_bus_gps?routeId=R&direction=D`: Backend BusMap trả về chuẩn quốc tế: `Lat` là Vĩ độ ($\approx 20.x$), `Lng` là Kinh độ ($\approx 105.x$).
+   - *Cảnh báo bắt buộc*: Khi trích xuất dữ liệu trực tuyến (Online Feature Serving), phải dùng hàm phân tách chuẩn hóa riêng theo từng API, tuyệt đối không hoán vị nhầm làm lật ngược bản đồ tọa độ Hà Nội!
+2. **Kiểm chứng Độ chính xác Tọa độ & Độ trễ (Zero Delta trên xe Active)**:
+   - Trên toàn bộ 35 xe đang chạy trên tuyến (14 xe Tuyến 02, 14 xe Tuyến 32, 7 xe Tuyến 40):
+     * Độ lệch khoảng cách giữa 2 API: **`0,000 m`** (chính xác tuyệt đối tới 6 chữ số thập phân). Điều này chứng minh backend BusMap **KHÔNG** áp dụng thuật toán map-matching làm biến dạng tọa độ so với hộp đen GPS.
+     * Vận tốc tức thời `Speed`: Trùng khớp `100%` (`r_spd == v_spd`).
+     * Mốc thời gian `lastUpdateTime`: Trùng khớp `100%` (`True`), không có độ trễ cache giữa 2 endpoint.
+3. **Hiện tượng Lọc Ngầm Bãi đỗ / Chờ tài / Detour phía Server BusMap**:
+   - Trong danh bạ Tuyến 40 có 9 xe active/depot. `route_bus_gps` chỉ trả về **7 xe** đang chạy trên tuyến; 2 xe còn lại (`8836674` và `8836694`) **bị ẩn hoàn toàn**.
+   - Khi kiểm tra sâu bằng `fetch_single_bus_raw`: Cả 2 xe này đều đang đỗ tại bãi Hai Bà Trưng với `direction = -1`, `Speed = 0`, `currentStationId = 0`. Server BusMap tự động loại bỏ xe ngoài tuyến khỏi kết quả `route_bus_gps`.
+   - *Kết luận*: `route_bus_gps` là API đã qua bộ lọc nghiệp vụ của BusMap (lọc theo chiều `direction` và ẩn xe bãi/xe lỗi). Do đó:
+     * **Crawler 24/7 BẮT BUỘC giữ nguyên `vehicle_hn/get`** để thu thập đầy đủ toàn bộ hành trình thô, trạng thái bãi và dữ liệu phục vụ tái lập lịch sử.
+     * **Online Serving** có thể sử dụng `route_bus_gps` để lấy ngay danh sách xe đang phục vụ khách thực tế, nhưng phải ghi nhớ tính chất này để không kết luận sai về tình trạng xe.
+     * **Checklist kiểm tra**: Duy trì chạy script [`experiments/audit_api_parity_vehicle_vs_route.py`](file:///z:/Desktop/Bus_tracking/experiments/audit_api_parity_vehicle_vs_route.py) trước các đợt phát hành để kiểm soát tính thống nhất.

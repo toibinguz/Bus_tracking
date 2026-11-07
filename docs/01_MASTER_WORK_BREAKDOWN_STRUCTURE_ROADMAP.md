@@ -4,8 +4,8 @@
 > **Mã tài liệu**: `docs/01_MASTER_WORK_BREAKDOWN_STRUCTURE_ROADMAP.md`  
 > **Căn cứ pháp lý**: Tuân thủ vô điều kiện **Điều 1** (Kỷ luật Thực nghiệm), **Điều 2** (Thiết kế trước, duyệt rồi mới code), **Điều 3** (Phân định ranh giới), **Điều 4** (Nguồn chân lý dữ liệu), **Điều 5** (Động học dẫn xuất), **Điều 6** (Phân tầng trọng tâm - Data Cleaning First), và **Điều 7** (Chuẩn runtime Python 3.14) của [AGENTS.md](file:///z:/Desktop/Bus_tracking/AGENTS.md).  
 > **Văn bản căn cứ**: [WP23_PROGRESS_AND_OUTSTANDING_ROADMAP_TEMP.md](file:///z:/Desktop/Bus_tracking/WP23_PROGRESS_AND_OUTSTANDING_ROADMAP_TEMP.md) & [audit_hardcoded_magic_numbers_and_data_flaws.md](file:///c:/Users/Giang/.gemini/antigravity/brain/08480f8a-49b3-4032-9adf-b8d940fac55c/audit_hardcoded_magic_numbers_and_data_flaws.md).  
-> **Ngày lập**: 06/11/2026 (Cập nhật dữ liệu mới nhất: 07/11/2026)  
-> **Trạng thái**: ĐANG THỰC THI (Phase 1: 80% Hoàn thành [WP 1.2-1.5 DONE, WP 1.1 Pending User Spec]; Phase 2: 100% HOÀN THÀNH [1.204 Parquet Silver Partitions - 5,62M dòng sạch, Audit 100% PASS]; Gold & Weekly SLA đã dọn sạch toàn diện để chuẩn bị cho Phase 3-4)
+> **Ngày lập**: 06/11/2026 (Cập nhật dữ liệu mới nhất: 07/11/2026 21:30)  
+> **Trạng thái**: ĐANG THỰC THI (Phase 1: 100% HOÀN THÀNH [Crawler 24/7 + Catalog Refresher TD-21/24/27 614 xe]; Phase 2: 100% HOÀN THÀNH [1.191 Parquet Silver - 5,56M dòng sạch, Audit 100% PASS]; Phase 3: 100% HOÀN THÀNH [Leak-free Baseline Matrix 3 loại ngày x 17 khung giờ, Tier 0/1 93,8%]; Phase 4: 100% HOÀN THÀNH [Unified Gold Feature Store 15,07M dòng x 60 cột, 0 NaN]; Phase 6: 100% HOÀN THÀNH [Unified ML ETA XGBoost Calibrated MAE 95,76s trên 3,70M Test, 46/47 tuyến cải thiện]; Phase 7: ĐANG TRIỂN KHAI [Step 3.5 Serving Engine & Online Feature Extractor TD-26]).
 
 ---
 
