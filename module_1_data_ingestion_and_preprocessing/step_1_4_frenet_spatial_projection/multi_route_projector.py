@@ -146,7 +146,7 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
     pings_query = """
     SELECT ping_id, vehicle_id, plate, device_update_time, device_epoch, direction, lat, lon, current_station_id
     FROM vehicle_unique_pings
-    WHERE route_id = ? AND lat > 20.0 AND lon > 105.0
+    WHERE route_id = ? AND lat > 20.0 AND lon > 105.0 AND device_update_time >= '2026-10-08'
     ORDER BY vehicle_id, device_epoch;
     """
     pings = cur.execute(pings_query, (route_id,)).fetchall()
@@ -311,13 +311,15 @@ def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] =
             shapes_by_route[r_id][d].append((pt_order, lat, lon, cum_dist))
     print(f"Loaded shapes for {len(shapes_by_route)} routes.")
 
-    # Find active routes with telemetry
+    # Find the 48 active cluster routes with persistent telemetry (>= 5 days)
     routes_query = """
     SELECT DISTINCT r.route_id, r.route_code, count(t.ping_id) as pings
     FROM canonical_route_master r
     JOIN vehicle_unique_pings t ON r.route_id = t.route_id
     WHERE r.route_id IN (SELECT DISTINCT route_id FROM canonical_shape_master)
+      AND t.device_update_time >= '2026-10-08'
     GROUP BY r.route_id, r.route_code
+    HAVING count(DISTINCT t.date_tag) >= 5
     ORDER BY pings DESC;
     """
     active_routes = cur.execute(routes_query).fetchall()
