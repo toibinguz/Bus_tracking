@@ -187,6 +187,12 @@ INCIDENT_CRITICAL_DELAY_SEC = 300        # Sự cố gây trễ từ 5 phút tr�
 INCIDENT_CRITICAL_MAGNITUDE = 3          # Mức độ nghiêm trọng của sự cố từ cấp 3
 STALE_DELTA_T_MIN_SEC = 3.0              # Khoảng cách tối thiểu để tính đạo hàm vận tốc
 STALE_DELTA_T_MAX_SEC = 300.0            # Khoảng cách tối đa (5 phút) coi là ping liên tục
+CATALOG_STALE_HOURS = 24.0                # TD-21: Xe có lastUpdateTime cũ hơn ngưỡng này bị coi là chết/đóng băng (STALE)
+CATALOG_MIN_ACTIVE_PER_ROUTE = 6          # TD-21: Số xe ACTIVE tối thiểu mỗi tuyến trước khi quét bổ sung
+CATALOG_SCAN_PREFIXES = (
+    [f"29B{n}" for n in range(10, 40)]
+    + [f"29F0{n}" for n in range(0, 10)]
+)                                         # TD-21: Tiền tố biển số quét tìm xe thay thế khi BusMap đổi dải ID
 WATCHDOG_MIN_RESPONSE_RATE = 0.60        # Cảnh báo nếu tỷ lệ phản hồi xe < 60%
 EMA_ALPHA = 0.65                         # Hệ số làm mịn vận tốc: v_smooth = 0.65*v_calc + 0.35*v_prev
 

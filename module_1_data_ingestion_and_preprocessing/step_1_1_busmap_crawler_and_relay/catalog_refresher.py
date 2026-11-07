@@ -30,14 +30,34 @@ from config import (
     BUS_MICRO_BATCH_DELAY_SEC,
     get_hanoi_time
 )
+from config.system_config import (
+    CATALOG_STALE_HOURS,
+    CATALOG_MIN_ACTIVE_PER_ROUTE,
+    CATALOG_SCAN_PREFIXES,
+)
 from module_1_data_ingestion_and_preprocessing import (
     fetch_single_bus_raw, search_vehicles_by_query, load_cluster_config, save_cluster_config
 )
 
 VEHICLES_CATALOG_FILE = "data/metadata/vehicles_catalog.json"
 
+def _parse_hours_since_update(raw):
+    """Số giờ kể từ lastUpdateTime của xe (None nếu không đọc được)."""
+    ts = raw.get("lastUpdateTime")
+    if not ts:
+        return None
+    try:
+        dt_upd = datetime.fromisoformat(str(ts))
+        if dt_upd.tzinfo is None:
+            dt_upd = dt_upd.replace(tzinfo=get_hanoi_time().tzinfo)
+        return (get_hanoi_time() - dt_upd).total_seconds() / 3600.0
+    except Exception:
+        return None
+
 def audit_vehicle(vid):
-    """Kiểm tra trạng thái sống và tuyến hiện tại của một xe buýt."""
+    """Kiểm tra trạng thái sống và tuyến hiện tại của một xe buýt.
+    Trạng thái: OFFLINE | STALE (lastUpdateTime đóng băng > CATALOG_STALE_HOURS)
+    | DEPOT (không tuyến / direction<=0 hoặc đứng yên chiều 0) | ACTIVE."""
     raw = fetch_single_bus_raw(vid)
     if not raw:
         return {"id": vid, "status": "OFFLINE", "route_id": None, "plate": ""}
@@ -46,8 +66,11 @@ def audit_vehicle(vid):
     plate = raw.get("VehicleNumber", "")
     speed = float(raw.get("Speed", 0.0))
     direction = int(raw.get("direction", 0))
+    age_h = _parse_hours_since_update(raw)
     
-    if route_id <= 0 or (direction == 0 and speed == 0):
+    if age_h is not None and age_h > CATALOG_STALE_HOURS:
+        status = "STALE"
+    elif route_id <= 0 or direction < 0 or (direction == 0 and speed == 0):
         status = "DEPOT"
     else:
         status = "ACTIVE"
@@ -100,13 +123,13 @@ def run_daily_catalog_refresh():
         vid = v["id"]
         res = audit_results.get(vid, {})
         actual_route = res.get("route_id")
-        if actual_route and actual_route != v["route_id"]:
+        if actual_route and actual_route != v.get("routeId"):
             reassigned.append((v, actual_route))
 
     if reassigned:
         print(f"[!] Phát hiện {len(reassigned)} xe đã bị điều chuyển tuyến khác:", flush=True)
         for old_v, new_r in reassigned:
-            print(f"    - Xe {old_v['plate']} (ID {old_v['id']}): Tuyến {old_v['route_no']} -> Route ID mới {new_r}", flush=True)
+            print(f"    - Xe {old_v.get('title')} (ID {old_v['id']}): Route ID cũ {old_v.get('routeId')} -> Route ID mới {new_r}", flush=True)
 
     # Pha 2: Tự động khám phá xe mới cho các tuyến thiếu hụt
     print(f"\n[*] [Pha 2/3] Quét mạng lưới tự động bổ sung xe cho các tuyến...", flush=True)
@@ -120,18 +143,26 @@ def run_daily_catalog_refresh():
 
     new_discovered_vehicles = []
     configured_vid_set = set(configured_vids)
+    scan_cache = None  # Quét tiền tố biển số tối đa 1 lần cho mọi tuyến thiếu hụt
 
     for route_no, route_id in configured_routes.items():
-        # Đếm số xe active hiện tại của tuyến
-        active_on_route = sum(1 for r in audit_results.values() if r.get("route_id") == route_id and r.get("status") in ("ACTIVE", "DEPOT"))
-        if active_on_route < 6: # Tuyến có ít hơn 6 xe phản hồi -> Cần quét bổ sung
-            print(f"    - Tuyến {route_no} chỉ có {active_on_route} xe hoạt động, đang quét tìm xe bổ sung...", flush=True)
-            found_raw = search_vehicles_by_query(route_no)
-            for raw in found_raw:
+        # Chỉ đếm xe ACTIVE thật sự (không tính DEPOT/STALE/OFFLINE)
+        active_on_route = sum(1 for r in audit_results.values() if r.get("route_id") == route_id and r.get("status") == "ACTIVE")
+        if active_on_route < CATALOG_MIN_ACTIVE_PER_ROUTE:
+            print(f"    - Tuyến {route_no} chỉ có {active_on_route} xe ACTIVE, đang quét tìm xe bổ sung...", flush=True)
+            if scan_cache is None:
+                scan_cache = []
+                for prefix in CATALOG_SCAN_PREFIXES:
+                    try:
+                        scan_cache.extend(search_vehicles_by_query(prefix))
+                    except Exception:
+                        pass
+                    time.sleep(0.3)
+            for raw in scan_cache:
                 try:
-                    f_vid = int(raw.get("VehicleId") or raw.get("Id") or 0)
-                    f_route = int(raw.get("RouteId") or 0)
-                    f_plate = str(raw.get("VehicleNumber") or "")
+                    f_vid = int(raw.get("id") or raw.get("VehicleId") or raw.get("Id") or 0)
+                    f_route = int(raw.get("routeId") or raw.get("RouteId") or 0)
+                    f_plate = str(raw.get("title") or raw.get("VehicleNumber") or "")
                     if f_vid > 0 and f_route == route_id and f_vid not in configured_vid_set:
                         new_discovered_vehicles.append({
                             "id": f_vid,
@@ -143,7 +174,6 @@ def run_daily_catalog_refresh():
                         print(f"      + Tìm thấy xe mới: {f_plate} (ID: {f_vid})", flush=True)
                 except Exception:
                     pass
-            time.sleep(0.5)
 
     # Pha 3: Cập nhật cấu hình cluster nếu có xe mới
     if new_discovered_vehicles:
@@ -151,9 +181,8 @@ def run_daily_catalog_refresh():
         for nv in new_discovered_vehicles:
             config["vehicles"].append({
                 "id": nv["id"],
-                "plate": nv["plate"],
-                "route_id": nv["route_id"],
-                "route_no": nv["route_no"]
+                "title": nv["plate"],
+                "routeId": nv["route_id"]
             })
         config["total_vehicles"] = len(config["vehicles"])
         print(f"[OK] Đã cập nhật tổng số xe lên {config['total_vehicles']} xe!", flush=True)

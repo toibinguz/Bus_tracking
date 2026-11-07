@@ -5,7 +5,7 @@
     "start": "05:00",
     "end": "22:00"
   },
-  "total_vehicles": 504,
+  "total_vehicles": 526,
   "target_route_ids": [
     101103,
     27,
@@ -3195,7 +3195,117 @@
       "routeId": 101111,
       "title": "29K-069.07",
       "description": "Tuyến E10: Khu đô thị Ocean Park – Nội Bài"
+    },
+    {
+      "id": 233281,
+      "title": "29B-203.34",
+      "routeId": 92
+    },
+    {
+      "id": 233282,
+      "title": "29B-204.67",
+      "routeId": 92
+    },
+    {
+      "id": 233285,
+      "title": "29F-000.75",
+      "routeId": 92
+    },
+    {
+      "id": 8830357,
+      "title": "29B-120.74",
+      "routeId": 17
+    },
+    {
+      "id": 8830368,
+      "title": "29B-123.56",
+      "routeId": 17
+    },
+    {
+      "id": 8830344,
+      "title": "29B-140.39",
+      "routeId": 17
+    },
+    {
+      "id": 8830395,
+      "title": "29B-144.89",
+      "routeId": 17
+    },
+    {
+      "id": 8835105,
+      "title": "29B-146.70",
+      "routeId": 17
+    },
+    {
+      "id": 1408841,
+      "title": "29F-000.91",
+      "routeId": 123
+    },
+    {
+      "id": 8169183,
+      "title": "29F-020.07",
+      "routeId": 101102
+    },
+    {
+      "id": 8653975,
+      "title": "29F-020.46",
+      "routeId": 101102
+    },
+    {
+      "id": 1151812,
+      "title": "29F-024.21",
+      "routeId": 101102
+    },
+    {
+      "id": 8830802,
+      "title": "29B-122.75",
+      "routeId": 438
+    },
+    {
+      "id": 231944,
+      "title": "29F-001.20",
+      "routeId": 1
+    },
+    {
+      "id": 8836680,
+      "title": "29B-190.63",
+      "routeId": 40
+    },
+    {
+      "id": 8836704,
+      "title": "29B-193.01",
+      "routeId": 40
+    },
+    {
+      "id": 8440202,
+      "title": "29B-200.92",
+      "routeId": 67
+    },
+    {
+      "id": 233626,
+      "title": "29F-001.05",
+      "routeId": 67
+    },
+    {
+      "id": 7837176,
+      "title": "29F-051.61",
+      "routeId": 67
+    },
+    {
+      "id": 232201,
+      "title": "29B-200.61",
+      "routeId": 13
+    },
+    {
+      "id": 232203,
+      "title": "29B-200.70",
+      "routeId": 13
+    },
+    {
+      "id": 8836674,
+      "title": "29B-148.62",
+      "routeId": 40
     }
   ],
-  "last_catalog_refresh": "2026-10-19 05:03:02"
+  "last_catalog_refresh": "2026-11-07 20:10:43"
 }
