@@ -59,13 +59,38 @@ Bảng dưới đây ghi nhận các lỗi cấu trúc và nợ kỹ thuật t�
   * **Quy tắc kiểm soát bắt buộc ở Module 3**: Khi join đặc trưng sự cố TomTom vào Feature Store, sử dụng `LEFT JOIN` với giá trị mặc định `COALESCE(delay_seconds, 0)` và `COALESCE(magnitude_of_delay, 0)`. Với tuyến `67` và `92`, mô hình sẽ tự động dựa vào tín hiệu động học thực tế của đoàn xe (`recent_speed_kmh`, `speed_ratio_to_baseline`).
 
 - [ ] **TD-O05: Chu kỳ lấy mẫu lịch sử $\Delta t \approx 80\text{s}$ dẫn đến hiện tượng nhảy cóc qua trạm ($\Delta \text{st} \ge 1$) và không tách được Dwell Time vi mô**
-  * **Vị trí**: Toàn bộ dữ liệu lịch sử 28 ngày (`5.336.214` bản ghi).
+  * **Vị trí**: Toàn bộ dữ liệu lịch sử 28 ngày (`5.565.232` bản ghi).
   * **Bản chất kỹ thuật**: Với trung vị $\Delta t = 80\text{s}$ và khoảng cách liên trạm trung vị $579,6\text{m}$, xe buýt thường đi qua 1–2 trạm giữa 2 lần phát tin và không có bản tin phát đúng lúc xe dừng 15–30s tại trạm.
   * **Quy tắc kiểm soát bắt buộc ở Module 3**:
     1. **Cấm xây dựng mô hình tách riêng thời gian dừng trạm (micro-dwell time)**. Thời gian di chuyển vĩ mô qua từng đoạn trạm ($\Delta t_{k \to k+1}$) đã tự động bao gồm cả thời gian chạy trên đường và thời gian dừng đón trả khách tại trạm.
-    2. Sử dụng nội suy tuyến tính thời điểm qua trạm $\hat{t}(s_k)$ với điều kiện kẹp chặt $\Delta t \le 150\text{s}, \Delta s \le 1.000\text{m}$ (sai số trung vị đã kiểm chứng thực nghiệm chỉ $\approx 5,5\text{s}$).
+    2. Sử dụng nội suy tuyến tính thời điểm qua trạm $\hat{t}(s_k)$ với điều kiện kẹp chặt $\Delta t \le 150\text{s}, \Delta s \le \max(1.000\text{m},\; 1,35 \times L_{\text{seg}})$ (sai số trung vị đã kiểm chứng thực nghiệm chỉ $\approx 5,5\text{s}$).
 
 - [ ] **TD-O06: Dung lượng trang trống (Freelist Pages) trong tệp SQLite `data/hanoi_bus_system.db`**
   * **Vị trí**: `data/hanoi_bus_system.db`.
   * **Bản chất kỹ thuật**: Sau khi xóa các bảng Gold cũ và nạp lại bảng `route_projected_telemetry`, SQLite giữ lại các trang trống bên trong file `.db` để tái sử dụng thay vì co nhỏ file trên đĩa nếu chưa chạy `VACUUM`.
-  * **Quy tắc kiểm soát**: Các tác vụ phân tích và huấn luyện ở Module 3 ưu tiên đọc trực tiếp từ **1.191 phân vùng Silver Parquet** (`data/lakehouse/silver/route_projected_telemetry/`, chỉ ~180 MB trên đĩa, tốc độ quét ~200.000 dòng/giây). Có thể chạy `VACUUM` cho SQLite vào cuối dự án khi đóng gói nghiệm thu.
+  * **Quy tắc kiểm soát**: Các tác vụ phân tích và huấn luyện ở Module 3 ưu tiên đọc trực tiếp từ **1.191 phân vùng Silver Parquet** (`data/lakehouse/silver/route_projected_telemetry/`, `5.565.232` dòng, chỉ ~185 MB trên đĩa, tốc độ quét ~204.177 dòng/giây). Có thể chạy `VACUUM` cho SQLite vào cuối dự án khi đóng gói nghiệm thu.
+
+---
+
+### Nhóm B: Checklist 4 Bất Thường Phát Hiện Qua EDA Bước 3.1 – 3.2 (Đã Xử Lý Tuần Tự Step-by-Step)
+
+| Thứ tự | Mã Hạng Mục | Bất Thường Phát Hiện Từ EDA Thực Nghiệm | Giải Pháp Kỹ Thuật & Kết Quả Nghiệm Thu Thực Nghiệm | Trạng Thái |
+| :---: | :---: | :--- | :--- | :---: |
+| **1** | **TD-B01** | **`HANOI_BBOX` cũ (`lat>=20.80, lon>=105.65`) cắt mất 28–38km lộ trình của 4 tuyến ngoại thành** (`67` Sơn Tây, `92` Ba Vì, `101A` Vân Đình, `107` Hòa Lạc — làm mất ~229.018 bản tin hợp lệ và đẩy `Tier 3` của tuyến 67 lên `98,3%`). | Mở rộng `HANOI_BBOX` trong [`config/system_config.py`](file:///z:/Desktop/Bus_tracking/config/system_config.py) thành `min_lat=20.50, max_lat=21.40, min_lon=105.20, max_lon=106.15` $\to$ Chiếu lại 48 tuyến & tái xuất Silver Parquet (`5.565.232` dòng sạch, tăng `+229.018` bản tin; `0` lỗi trên cả 4 kiểm định Silver). Cả 4 tuyến `67, 92, 101A, 107` khôi phục 100% chiều dài lộ trình $s \in [0, L]$. | ✅ **PASSED** |
+| **2** | **TD-B02** | **Ngưỡng cứng `BRACKET_MAX_DS_M = 1000.0m` chặn mất 515 đoạn trạm dài $> 1.000\text{m}$** (như cầu Nhật Tân, cầu Vĩnh Tuy, Đại lộ Thăng Long trên tuyến `90, 107, 123`), khiến tỷ lệ `Tier 3` ở đoạn $> 800\text{m}$ cao gấp đôi (`19,3%` vs `10,0%`). | Thay ngưỡng cứng bằng ngưỡng kẹp không gian thích ứng theo độ dài đoạn trạm: $\Delta s_{\max} = \max(\text{BRACKET\_MAX\_DS\_M},\; 1,35 \times L_{\text{seg}})$ trong `extract_bracketed_station_arrivals`. Tỷ lệ `Tier 3` ở đoạn $> 800\text{m}$ giảm mạnh từ `19,3%` xuống chỉ còn **`4,7%`** (tương đương đoạn ngắn `3,5%`). | ✅ **PASSED** |
+| **3** | **TD-B03** | **Bất đối xứng cỡ mẫu giữa 15 ngày thường (Weekday) và chỉ có 6 ngày cuối tuần (Weekend)** trong tập Train (`2026-10-08..31`), khiến áp ngưỡng cứng $N \ge 10$ làm tỷ lệ `Tier 0` cuối tuần chỉ đạt `32,8%` (trong khi ngày thường đạt `75,7%`). | Chuẩn hóa ngưỡng `Tier 0` theo mật độ mẫu trên số ngày quan sát thực tế: Ngày thường (15 ngày) giữ `BASELINE_TIER0_MIN_SAMPLES = 10` (`~0,67 mẫu/ngày`); Cuối tuần (6 ngày) dùng `BASELINE_TIER0_MIN_SAMPLES_WEEKEND = 5` (`~0,83 mẫu/ngày`). Tỷ lệ `Tier 0` toàn mạng tăng vọt từ **`49,7%` $\to$ `71,7%`** (`Tier 0 + Tier 1 = 83,2%`; trong khung giờ chính `06:00..20:00` ngày thường đạt **`84,3% Tier 0` / `93,3% Tier 0+1`**). | ✅ **PASSED** |
+| **4** | **TD-B04** | **Cộng tổng trung vị `sum(tt_p50_sec)` trên lộ trình đa trạm gây sai số chệch thiếu hệ thống (`Bias = +66,71s` ở $>15$ trạm)**, trong khi cộng trung bình `sum(tt_mean_sec)` bị kéo lệch âm (`Bias = -36,66s`) do các đuôi phải kẹt đèn đỏ. | Đánh giá song song cả `Sum(tt_p50_sec)` và `Sum(tt_mean_sec)` trên tập Test (`2026-11-01..07`). Lưu trữ đồng thời cả `tt_p50_sec`, `tt_mean_sec`, `tt_p10_sec`, `tt_p90_sec`, `tt_std_sec` trong `agg_segment_travel_times` để cung cấp cả hai đặc trưng nền (Median & Mean) cho tầng Feature Store (Bước 3.3) và mô hình GBDT (Bước 3.4). | ✅ **PASSED** |
+
+---
+
+### Nhóm C: Giải Phẫu 3,80% (`134 / 3.522`) Đoạn Trạm Thuộc `Tier 3` Còn Lại (Định Hướng Cho Bước 3.3)
+
+Qua kiểm toán [`experiments/eda_tier0_and_tier3_root_causes.py`](file:///z:/Desktop/Bus_tracking/experiments/eda_tier0_and_tier3_root_causes.py), toàn bộ `134 / 3.522` (`3,80%`) đoạn trạm thuộc `Tier 3` (tương ứng `4.824 / 126.792` ô ma trận) phân rã chính xác thành 2 nhóm vật lý:
+1. **`83 / 134` đoạn (`61,9%`) là đoạn trạm sát vạch xuất phát/đích (`station_order = 0->1` hoặc `N-1->N`)**:
+   * Do bộ cắt chuyến bật `trim_terminals=True` (`TD-O03`) để cắt bỏ các bản tin xe đứng im chờ xuất bến trong bán kính $150\text{m}$ quanh hai đầu bến và cấm ngoại suy ngược về `station_order = 0`, nên cặp trạm đầu tiên $0 \to 1$ (khi trạm 1 nằm gần bến xuất phát) được bảo vệ khỏi nhiễu đỗ bến và sử dụng vận tốc trung bình của chính tuyến đó (`route_avg_mps`).
+2. **`51 / 134` đoạn (`38,1%`) là các đoạn trạm đi vòng / tránh phố đi bộ vượt quá hành lang `35m` trên đúng 4 tuyến** (`44/48` tuyến còn lại có **`0`** đoạn nội tuyến nào rơi vào `Tier 3`):
+   * `Route 67` (`30` đoạn): Xe chạy thực tế trên Quốc lộ 21A / thị xã Sơn Tây đi thẳng trục chính thay vì rẽ vào nhánh đường dân sinh cũ trong hình học BusMap tĩnh ($d_{\perp} > 35\text{m}$).
+   * `Route E11` (`17` đoạn): Tuyến xe điện du lịch vòng quanh Hồ Hoàn Kiếm – Hồ Tây thường xuyên phân luồng tránh không gian phố đi bộ vào cuối tuần ($d_{\perp} > 35\text{m}$).
+   * `Route 40` (`2` đoạn tại `orders=[23, 24]`) và `Route 42` (`2` đoạn tại `orders=[12, 14]`): Điểm phân luồng rào chắn thi công cục bộ.
+   * **Hệ quả thực tế trên Tập Test (`648.778` lượt qua đoạn trạm)**: Chỉ có đúng **`4 / 648.778` (`0,0006%`)** lượt qua trạm trong tập Test rơi vào ô `Tier 3`, trong khi **`99,25%` (`643.898` lượt)** rơi trực tiếp vào `Tier 0` và `Tier 1`!
+

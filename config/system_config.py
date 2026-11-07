@@ -52,11 +52,12 @@ TOMTOM_INCIDENT_INTERVAL_SEC = 750        # ~12.5 phút/lần (17h x 60 / 12.5 �
 # -------------------------------------------------------------
 # 3. GEOGRAPHIC BOUNDING BOXES & BOTTLENECK NODES
 # -------------------------------------------------------------
+# Bao phủ toàn bộ địa giới Đại đô thị Hà Nội mở rộng (từ Ba Vì/Sơn Tây/Hòa Lạc đến Vân Đình/Mê Linh)
 HANOI_BBOX = {
-    "min_lat": 20.80,
-    "max_lat": 21.30,
-    "min_lon": 105.65,
-    "max_lon": 106.05
+    "min_lat": 20.50,
+    "max_lat": 21.40,
+    "min_lon": 105.20,
+    "max_lon": 106.15
 }
 
 # Quét sự cố trên toàn bộ vùng lõi đô thị mở rộng Hà Nội
@@ -190,10 +191,24 @@ WATCHDOG_MIN_RESPONSE_RATE = 0.60        # Cảnh báo nếu tỷ lệ phản h�
 EMA_ALPHA = 0.65                         # Hệ số làm mịn vận tốc: v_smooth = 0.65*v_calc + 0.35*v_prev
 
 # -------------------------------------------------------------
-# 6. OPERATING SCHEDULES & TIMEZONE
+# 6. OPERATING SCHEDULES, TIMEZONE & MODULE 3 BASELINE CONFIG
 # -------------------------------------------------------------
 OPERATING_START_HOUR = 5.0
 OPERATING_END_HOUR = 22.0
+
+TRAIN_SPLIT_END_DATE = "2026-10-31"          # Ngày kết thúc tập Train (21 ngày: 2026-10-08 -> 2026-10-31)
+TEST_SPLIT_START_DATE = "2026-11-01"         # Ngày bắt đầu tập Test độc lập (7 ngày: 2026-11-01 -> 2026-11-07)
+
+BRACKET_MAX_DT_SEC = 150.0                   # Khoảng kẹp thời gian tối đa nội suy thời điểm qua trạm (s)
+BRACKET_MAX_DS_M = 1000.0                    # Khoảng kẹp không gian cơ sở nội suy thời điểm qua trạm (m)
+BRACKET_SEG_LEN_FACTOR = 1.35                # Hệ số nới khoảng kẹp thích ứng cho các đoạn trạm dài (>1000m)
+SEGMENT_MIN_SPEED_KMPH = 1.5                 # Vận tốc liên trạm tối thiểu vật lý (tránh xe chết máy/nghỉ giữa đường)
+SEGMENT_MAX_SPEED_KMPH = 65.0                # Vận tốc liên trạm tối đa vật lý (km/h)
+
+BASELINE_TIER0_MIN_SAMPLES = 10              # Tier 0 (Weekday - 15 ngày Train): Đủ mẫu trực tiếp >= 10
+BASELINE_TIER0_MIN_SAMPLES_WEEKEND = 5       # Tier 0 (Weekend - 6 ngày Train): Đủ mẫu trực tiếp >= 5 (~0.83 mẫu/ngày)
+BASELINE_TIER1_MIN_SAMPLES = 3               # Tier 1: Mẫu thưa trực tiếp (3 <= N < Tier 0)
+DEFAULT_URBAN_BUS_SPEED_KMPH = 18.0          # Vận tốc trung bình mặc định toàn mạng khi không có mẫu lịch sử
 
 TZ_HANOI = timezone(timedelta(hours=7))
 

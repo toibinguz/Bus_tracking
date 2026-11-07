@@ -21,16 +21,17 @@ module_2_big_data_storage_and_lakehouse/
 
 ## 2. TRẠNG THÁI DỮ LIỆU HIỆN TẠI (PURE BRONZE & SILVER STATE)
 
-1. **Operational SQLite (`data/hanoi_bus_system.db` - 6 bảng chuẩn)**:
+1. **Operational SQLite (`data/hanoi_bus_system.db` - 6 bảng Bronze/Silver + 1 bảng Gold Baseline)**:
    - `canonical_route_master` (176 tuyến), `canonical_station_master` (13.301 trạm), `canonical_shape_master` (118.563 điểm tim đường).
    - `vehicle_unique_pings` (7.155.601 pings thô thuộc 48 tuyến chuẩn cụm HUST từ `2026-10-08`).
-   - `route_projected_telemetry` (5.340.551 pings đã chiếu Frenet tinh khiết 100%, 13 cột, $d_\perp \le 35,0\text{m}$, 0 lỗi nhảy lùi — đồng bộ 1:1 với Silver Parquet).
+   - `route_projected_telemetry` (5.565.232 pings đã chiếu Frenet tinh khiết 100%, 13 cột, $d_\perp \le 35,0\text{m}$, 0 lỗi nhảy lùi — đồng bộ 1:1 với Silver Parquet).
    - `fact_route_tomtom_incidents` (836.761 bản ghi sự cố TomTom khớp 46/48 tuyến trên 28 ngày).
+   - `agg_segment_travel_times` (126.792 ô ma trận thời gian di chuyển Baseline thống kê không rò rỉ dữ liệu từ tập Train `2026-10-08..31`).
 2. **Medallion Parquet Lakehouse (`data/lakehouse/`)**:
    - `bronze/tomtom_incidents_raw/dt=YYYY-MM-DD/` (28 phân vùng, 293.842 dòng, 84,1 MB).
-   - `silver/route_projected_telemetry/route_code=XX/dt=YYYY-MM-DD/` (1.191 phân vùng, 5.340.551 dòng).
+   - `silver/route_projected_telemetry/route_code=XX/dt=YYYY-MM-DD/` (1.191 phân vùng, 5.565.232 dòng).
    - `silver/fact_route_tomtom_incidents/route_code=XX/` (46 phân vùng, 836.761 dòng).
-   - `gold/`: Đang để trống hoàn toàn (Pre-Module 3 Clean Slate).
+   - `gold/agg_segment_travel_times/part-00000.snappy.parquet` (126.792 dòng, 48 tuyến × 2 chiều × 18 khung giờ `05..22` × 2 loại ngày).
 
 ---
 
