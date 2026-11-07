@@ -1,10 +1,11 @@
 {
-  "timestamp": "2026-11-07 20:10:43",
-  "total_configured": 504,
-  "active_responding": 469,
-  "active_rolling": 317,
-  "depot_idle": 152,
-  "offline": 2,
+  "timestamp": "2026-11-07 21:06:57",
+  "total_configured": 614,
+  "active_rolling": 294,
+  "depot_idle": 199,
+  "stale_frozen": 33,
+  "offline": 0,
   "reassigned_count": 0,
-  "newly_added_count": 21
+  "newly_added_count": 112,
+  "pruned_zombies_count": 24
 }

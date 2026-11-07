@@ -187,7 +187,8 @@ INCIDENT_CRITICAL_DELAY_SEC = 300        # Sự cố gây trễ từ 5 phút tr�
 INCIDENT_CRITICAL_MAGNITUDE = 3          # Mức độ nghiêm trọng của sự cố từ cấp 3
 STALE_DELTA_T_MIN_SEC = 3.0              # Khoảng cách tối thiểu để tính đạo hàm vận tốc
 STALE_DELTA_T_MAX_SEC = 300.0            # Khoảng cách tối đa (5 phút) coi là ping liên tục
-CATALOG_STALE_HOURS = 24.0                # TD-21: Xe có lastUpdateTime cũ hơn ngưỡng này bị coi là chết/đóng băng (STALE)
+CATALOG_STALE_HOURS = 24.0                # TD-21: Xe có lastUpdateTime cũ hơn ngưỡng này bị coi là treo (STALE)
+CATALOG_PRUNE_STALE_HOURS = 48.0          # TD-24: Xe không cập nhật liên tục > 48h được coi là xe chết (ZOMBIE) cần thanh lọc
 CATALOG_MIN_ACTIVE_PER_ROUTE = 6          # TD-21: Số xe ACTIVE tối thiểu mỗi tuyến trước khi quét bổ sung
 CATALOG_SCAN_PREFIXES = (
     [f"29B{n}" for n in range(10, 40)]

@@ -166,3 +166,27 @@ Tầm `> 15` trạm: Calibrated `200,44s → 196,39s` (Baseline `246,84s`). `46/
 **Kết luận**: Tăng gấp đôi dữ liệu và gần 3 lần số cây chỉ giảm MAE thêm `1,35s` (`-1,4%`), tức lợi ích biên rất nhỏ so với Baseline `-16,7%`. Calibrated vẫn là tốt nhất ở cả hai vòng; cắt tỉa không giúp (chỉ loại được `1` đặc trưng ở vòng này). Điểm nghẽn không còn ở dung lượng mô hình mà ở dịch chuyển phân phối (`TD-25`) và nhiễu cố hữu của dữ liệu.
 
 **Nợ còn lại của Bước 2**: chưa có khoảng tin cậy cho chênh `~1s`; Calibrated tốt hơn Full `0,8s` nhưng chưa kiểm định thống kê; Route `90` xấu đi khi tăng dung lượng (dấu hiệu overfit chế độ Train); Calibrated tối ưu trên Validation `10-24..31` có thể quá khớp với 8 ngày này; **Model sản xuất chính thức đã được người dùng phê duyệt**: `5_XGB_Global_Calibrated` bản `_r3_big` (`eta_xgb_global_full_54feat_r3_big.json` + `eta_xgb_metadata_and_calibrator_r3_big.json`). Commit git và push hoàn tất.
+
+
+---
+
+## 8. GIẢI QUYẾT DỨT ĐIỂM `TD-24` & PHÂN TÍCH KIẾN TRÚC QUERY TUYẾN VS QUERY XE
+
+### 8.1. Phân tích Kỹ thuật: Query Tuyến (`route_bus_gps`) vs. Query Xe (`vehicle_hn/get`)
+- **Query Tuyến (`route_bus_gps`)**:
+  - Ưu điểm: Lấy 100% xe đang chạy tức thời chỉ với 1 request/chiều, giảm 85% tải mạng (~70-96 req/chu kỳ so với 526 req), tự động phát hiện xe mới/xe tăng cường.
+  - Rủi ro khi chạy 24/7 trên Cloud: Bắt buộc Salt bí mật (`:Bus2019M@p_`) và chữ ký `epoch + proof MD5`. Nếu BusMap ra bản cập nhật app Android mới và đổi salt, server âm thầm trả về `HTTP 200 []` (Stealth Rejection), làm mù hoàn toàn crawler đám mây mà watchdog không phát hiện được.
+- **Kiến trúc Lai An toàn Tuyệt đối (Safe Hybrid Strategy)**:
+  1. **Crawler viễn trắc đám mây 24/7 (`cloud_crawler_runner.py`)**: Giữ nguyên cơ chế query theo ID xe (Keyless & Proofless), bảo đảm an toàn bất biến suốt 28 ngày qua (tuân thủ Điều 3.1).
+  2. **Tự động làm mới danh bạ đầu ngày (`catalog_refresher.py` lúc 05:00 sáng)**: Tích hợp `fetch_route_buses_live` (query theo tuyến có ký `epoch + proof`). Chỉ chạy 1 lần lúc sáng sớm để bổ sung xe mới và dọn dẹp xe chết.
+  3. **Bộ phục vụ trực tuyến (`TD-26`)**: Dùng `route_bus_gps` để khi người dùng tra cứu 1 tuyến cụ thể, lấy snapshot tức thời của tuyến đó chỉ với 1 request.
+
+### 8.2. Nghiệm thu Thực nghiệm Giải quyết `TD-24` (`scripts/daily_catalog_refresh.py`, exit code 0)
+- Nâng cấp `catalog_refresher.py` tích hợp `_get_live_route_headers()` ký `epoch + proof MD5` và gọi trực tiếp `route_bus_gps(route_id, direction)`.
+- Cài đặt cơ chế **Auto-Pruning**: Tự động thanh lọc các xe có trạng thái `STALE` quá 48h (`CATALOG_PRUNE_STALE_HOURS = 48.0`).
+- Kết quả chạy thực nghiệm ngày 07/11/2026:
+  - Khám phá và bổ sung **`112` xe mới đang lăn bánh** trên mạng lưới.
+  - Tự động thanh lọc **`24` xe zombie** (loại bỏ dứt điểm 7 xe chết cũ `232707..232721` của Tuyến 40; khôi phục Tuyến 40 lên đủ **9 xe mới đang chạy** `8836670..8836704`).
+  - Danh bạ toàn mạng được tinh gọn chuẩn hóa về **`614` xe hoạt động thực tế**, lưu vào `data/metadata/hust_cluster_config.json`.
+  - Báo cáo `data/metadata/daily_catalog_health.json`: `active_rolling: 294`, `depot_idle: 199`, `stale_frozen: 33`, `pruned_zombies_count: 24`, `total_configured: 614`.
+- **`TD-24` chính thức đóng hoàn toàn (`[x]`)**.
