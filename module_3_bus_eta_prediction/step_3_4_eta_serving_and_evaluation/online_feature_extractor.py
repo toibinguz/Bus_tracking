@@ -112,18 +112,30 @@ class OnlineFeatureExtractor:
 
         # 2. Stations
         self.stations_by_dir: Dict[Tuple[str, str], List[Tuple[int, int, str, float]]] = defaultdict(list)
+        self.station_coords: Dict[Tuple[str, str, int], Tuple[float, float]] = {}
+        self.station_details: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
         st_rows = cur.execute(
             """
-            SELECT route_code, direction, station_order, station_id, station_name, cum_distance_m
+            SELECT route_code, direction, station_order, station_id, station_name, lat, lon, cum_distance_m
             FROM canonical_station_master
             ORDER BY route_code, direction, station_order
             """
         ).fetchall()
-        for rc, dir_raw, s_ord, s_id, s_name, s_m in st_rows:
+        for rc, dir_raw, s_ord, s_id, s_name, lat, lon, s_m in st_rows:
             d_str = "go" if str(dir_raw) in ("0", "go", "Chiều đi") else "re"
-            self.stations_by_dir[(str(rc), d_str)].append(
+            k_rd = (str(rc), d_str)
+            self.stations_by_dir[k_rd].append(
                 (int(s_ord), int(s_id), str(s_name), float(s_m))
             )
+            self.station_coords[(str(rc), d_str, int(s_ord))] = (float(lat), float(lon))
+            self.station_details[k_rd].append({
+                "station_order": int(s_ord),
+                "station_id": int(s_id),
+                "station_name": str(s_name),
+                "lat": float(lat),
+                "lon": float(lon),
+                "cum_distance_m": float(s_m),
+            })
 
         # Precompute station distance arrays and order mappings
         self.st_s_vals: Dict[Tuple[str, str], np.ndarray] = {}

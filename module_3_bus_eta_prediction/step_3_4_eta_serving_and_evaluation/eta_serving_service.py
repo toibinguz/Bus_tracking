@@ -47,6 +47,19 @@ class EtaServingService:
     Combines online feature extraction and calibrated XGBoost residual inference.
     """
 
+    _instance: Optional["EtaServingService"] = None
+
+    @classmethod
+    def get_instance(
+        cls,
+        tag: str = "_r3_big",
+        db_path: str = DEFAULT_DB_PATH,
+    ) -> "EtaServingService":
+        """Singleton accessor ensuring in-memory models and tables are reused."""
+        if cls._instance is None:
+            cls._instance = cls(tag=tag, db_path=db_path)
+        return cls._instance
+
     def __init__(
         self,
         tag: str = "_r3_big",
@@ -99,6 +112,9 @@ class EtaServingService:
                 "route_code": r_code,
                 "direction": d_str,
                 "vehicle_id": vid,
+                "lat": actual_lat,
+                "lon": actual_lon,
+                "speed_kmh": round(speed_kmh, 1),
                 "status": "ERROR_ROUTE_NOT_FOUND",
                 "message": f"Route '{r_code}' direction '{d_str}' has no stations",
                 "latency_ms": round((time.time() - t0) * 1000.0, 2),
@@ -110,6 +126,9 @@ class EtaServingService:
                 "route_code": r_code,
                 "direction": d_str,
                 "vehicle_id": vid,
+                "lat": actual_lat,
+                "lon": actual_lon,
+                "speed_kmh": round(speed_kmh, 1),
                 "status": "DETOUR_OFF_CORRIDOR",
                 "s_bus_m": round(s_bus, 1),
                 "cross_track_m": round(d_perp, 1),
@@ -124,6 +143,9 @@ class EtaServingService:
                 "route_code": r_code,
                 "direction": d_str,
                 "vehicle_id": vid,
+                "lat": actual_lat,
+                "lon": actual_lon,
+                "speed_kmh": round(speed_kmh, 1),
                 "status": "AT_ORIGIN_TERMINAL",
                 "s_bus_m": round(s_bus, 1),
                 "message": "Bus is staging at origin terminal; waiting for scheduled dispatch",
@@ -134,6 +156,9 @@ class EtaServingService:
                 "route_code": r_code,
                 "direction": d_str,
                 "vehicle_id": vid,
+                "lat": actual_lat,
+                "lon": actual_lon,
+                "speed_kmh": round(speed_kmh, 1),
                 "status": "AT_DESTINATION_TERMINAL",
                 "s_bus_m": round(s_bus, 1),
                 "message": "Bus has completed trip and entered destination terminal depot",
@@ -192,6 +217,8 @@ class EtaServingService:
             "direction": d_str,
             "vehicle_id": vid,
             "status": "ACTIVE_IN_TRANSIT",
+            "lat": actual_lat,
+            "lon": actual_lon,
             "current_s_bus_m": round(s_bus, 1),
             "cross_track_m": round(d_perp, 1),
             "current_station_order": k_curr,
@@ -264,6 +291,7 @@ class EtaServingService:
                 is_vehicle_query=False,  # route_bus_gps has Lat=lat, Lng=lon
             )
             res["plate"] = v_num
+            res["heading_deg"] = round(float(b.get("Deg", 0.0)), 1)
             buses_out.append(res)
             if res.get("status") == "ACTIVE_IN_TRANSIT":
                 active_count += 1
