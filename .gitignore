@@ -13,6 +13,9 @@ access_token_hf.txt
 data/raw/
 data/telemetry_sync/
 data/temp_hf_sync/
+data/temp_*/
+data/*_temp/
+data/*_sync/
 data/lakehouse/
 data/osm/
 data/ground_truth/*.html

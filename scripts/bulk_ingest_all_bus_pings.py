@@ -21,7 +21,7 @@ if sys.stdout.encoding != 'utf-8':
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "data", "hanoi_bus_system.db")
-RAW_DATA_DIR = os.path.join(BASE_DIR, "data", "temp_hf_sync", "raw_data")
+RAW_DATA_DIR = os.path.join(BASE_DIR, "data", "raw")
 
 def main():
     print("=" * 70)

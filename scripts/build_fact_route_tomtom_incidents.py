@@ -22,7 +22,7 @@ from collections import defaultdict, Counter
 sys.stdout.reconfigure(encoding='utf-8')
 
 DB_PATH = "data/hanoi_bus_system.db"
-INCIDENTS_GLOB = "data/temp_hf_sync/raw_data/*/incidents/*.jsonl"
+INCIDENTS_GLOB = "data/raw/*/incidents/*.jsonl"
 MAX_BATCH_GAP_SEC = 1200  # 20 minutes max gap to chain consecutive batches
 DEFAULT_TTL_SEC = 900     # 15 minutes TTL for a single batch snapshot
 MAX_D_PERP_M = 35.0       # Strict corridor cross-track threshold (matches Module 1.4/3.2)

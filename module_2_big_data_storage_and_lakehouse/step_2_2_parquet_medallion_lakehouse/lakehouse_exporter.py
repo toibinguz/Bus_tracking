@@ -44,7 +44,7 @@ from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.feature_extrac
     extract_route_training_dataset,
 )
 
-INCIDENTS_GLOB = "data/temp_hf_sync/raw_data/*/incidents/*.jsonl"
+INCIDENTS_GLOB = "data/raw/*/incidents/*.jsonl"
 
 
 def export_bronze_tomtom_incidents(

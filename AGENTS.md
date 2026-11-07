@@ -46,6 +46,13 @@
    - Mọi môi trường ảo phải được khởi tạo từ Python 3.14 với cờ kế thừa hệ thống: `py -m venv .venv --system-site-packages`.
    - Thư mục `.venv/` bắt buộc được loại trừ trong `.gitignore`.
 
+### Điều 8: Nghiệm Thu Trung Thực & Minh Bạch Nợ Kỹ Thuật (Unfiltered Empirical Acceptance & Immediate Technical Debt Disclosure)
+1. **Tuyệt đối cấm che giấu khuyết tật & nợ kỹ thuật**: Mọi báo cáo tiến độ, kết quả chạy code hay kết luận nghiệm thu BẮT BUỘC phải phơi bày 100% các vấn đề tồn đọng, các trường hợp biên chưa xử lý (edge cases), các cảnh báo (warnings), dữ liệu ngoại lai hoặc các giả định đơn giản hóa tạm thời. Tuyệt đối CẤM dùng ngôn từ hoa mỹ, tô hồng kết quả, nói giảm nói tránh hoặc "bỏ qua" các lỗi chưa giải quyết.
+2. **Cấu trúc Bắt buộc của Mọi Báo Cáo Nghiệm Thu**: Mọi phản hồi nghiệm thu kết quả công việc phải có riêng một mục bắt buộc: **"CÁC VẤN ĐỀ TỒN ĐỌNG & NỢ KỸ THUẬT (TECHNICAL DEBT & OPEN ISSUES)"**, liệt kê chi tiết:
+   - Các điểm nghẽn, lỗi tiềm ẩn chưa được giải quyết dứt điểm.
+   - Các cảnh báo về tài nguyên đĩa, bộ nhớ, nguy cơ phình to CSDL hoặc rủi ro rò rỉ dữ liệu.
+   - Đánh giá mức độ ảnh hưởng và kế hoạch khắc phục rõ ràng để người dùng ra quyết định ngay lập tức, ngăn chặn việc tích lũy nợ kỹ thuật thầm lặng làm sụp đổ hệ thống về sau.
+
 ---
 
 ## II. RANH GIỚI BỊ CẤM (STRICT GUARDRAILS)
