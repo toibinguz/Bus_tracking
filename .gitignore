@@ -29,6 +29,7 @@ batch_*.jsonl
 temp_cloud_output/
 
 # Temp, Cache & Build
+*.bak*
 __pycache__/
 *.py[cod]
 .vscode/
