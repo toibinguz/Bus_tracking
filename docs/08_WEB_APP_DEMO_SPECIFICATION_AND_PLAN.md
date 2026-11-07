@@ -233,3 +233,70 @@ module_3_bus_eta_prediction/step_3_5_web_demo/
    - Click vào bất kỳ trạm nào $\to$ Bảng thông tin hiển thị các xe sắp tới, số phút chờ, giờ đến dự kiến và mốc giờ khuyến nghị có mặt tại trạm.
 4. **Không lỗi thời gian thực**:
    - Tự động nhận diện xe bến xuất phát, xe bến đích và xe detour lệch hành lang mà không gây lỗi máy chủ (500).
+
+---
+
+## 8. KẾT QUẢ TRIỂN KHAI THỰC TẾ & KIỂM ĐỊNH (EMPIRICAL VERIFICATION RESULTS)
+
+Đã hoàn thành 100% việc viết mã nguồn và kiểm thử độc lập qua `scripts/verify_web_app_demo.py` (Exit code 0):
+
+```text
+================================================================================
+KIỂM ĐỊNH 1: ENDPOINT /api/v1/health
+================================================================================
+[+] Health Response: status=healthy, RAM=197.1 MB, active_cache=0
+[PASS] Endpoint Health hợp lệ chuẩn 100%.
+
+================================================================================
+KIỂM ĐỊNH 2: ENDPOINT /api/v1/routes (DANH MỤC TUYẾN)
+================================================================================
+[+] Tổng số tuyến trong danh mục: 176 tuyến
+[+] Tìm thấy Tuyến 02: ID=2, Tên='Bác Cổ - Bến xe Yên Nghĩa'
+[PASS] Endpoint Routes hợp lệ chuẩn 100%.
+
+================================================================================
+KIỂM ĐỊNH 3: ENDPOINT /api/v1/routes/{route_code}/geometry (TIM ĐƯỜNG & TRẠM)
+================================================================================
+[+] Tuyến 02 Chiều Đi: Chiều dài=16466.6m, Số điểm tim đường=325, Số trạm=36
+[+] Kiểm tra mã lỗi 404 cho tuyến không tồn tại: Chính xác.
+[PASS] Endpoint Geometry hợp lệ chuẩn 100%.
+
+================================================================================
+KIỂM ĐỊNH 4: ENDPOINT /api/v1/routes/02/live-eta (LIVE PREDICTION & TTL CACHE)
+================================================================================
+[+] Request 1 (Cache Miss): cached=False, total_buses=6, active=3, latency=222.46ms
+    Tình trạng hành lang: 'Kẹt xe cục bộ (Vận tốc trung bình ~10 km/h)'
+[+] Request 2 (Cache Hit) : cached=True, latency=3.62ms
+    [*] Kiểm tra xe 29B-205.58: Đến 'Bệnh viện Hữu Nghị Việt Nam - Cu Ba.' | Dự kiến=22:14 | Cửa sổ an toàn=22:13 – 22:16 | Khuyến nghị=22:13
+[PASS] Endpoint Live ETA & TTL Cache hoạt động hoàn hảo!
+
+================================================================================
+KIỂM ĐỊNH 5: KIỂM CHỨNG HỢP ĐỒNG TỰ ĐỘNG BẰNG SCHEMATHESIS
+================================================================================
+[+] Đã tải OpenAPI Spec: Tiêu đề='Hanoi Bus Live ETA Prediction Service', Số endpoints=4
+[PASS] OpenAPI 3.1 Spec tương thích 100% với Schemathesis!
+
+================================================================================
+TẤT CẢ 5 BÀI KIỂM THỬ WEB DEMO ĐÃ VƯỢT QUA VỚI EXIT CODE 0!
+================================================================================
+```
+
+---
+
+## 9. CÁC VẤN ĐỀ TỒN ĐỌNG & DANH MỤC NỢ KỸ THUẬT (TECHNICAL DEBT & OPEN ISSUES)
+
+Tuân thủ nghiêm ngặt **Điều 8 của AGENTS.md**, toàn bộ các điểm nghẽn và nợ kỹ thuật liên quan đến Web App Demo được ghi nhận:
+
+1. **TD-28: Triển khai Web App Demo Dự báo ETA Thời Gian Thực (Bước 3.5 / Giai đoạn 7)**:
+   - *Trạng thái*: **ĐÃ GIẢI QUYẾT [x]**
+   - Đã hiện thực hóa kiến trúc Contract-First (`contract.py` $\to$ `api_routes.py` $\to$ `app.py` $\to$ `static/`).
+2. **TD-29: Bộ đệm TTL Cache In-Memory đơn tiến trình vs. Distributed Cache (Redis)**:
+   - *Trạng thái*: **ĐANG MỞ [ ]**
+   - Hiện tại `InMemoryTtlCache` lưu trên RAM của tiến trình Python đơn lẻ. Khi scale multi-worker (`--workers 4`) hoặc triển khai Kubernetes multi-pod, cần thay bằng Redis.
+3. **TD-30: Cơ chế hiển thị UX khi xe buýt ngừng hoạt động ban đêm (Fleet Staging / Off-Service Hours sau 22:30)**:
+   - *Trạng thái*: **ĐANG MỞ [ ]**
+   - Sau 22:30 đêm, mạng lưới xe buýt Hà Nội kết thúc ca chạy và xe rút về bến đỗ (`AT_DESTINATION_TERMINAL` hoặc danh sách rỗng). UI cần bổ sung thông tin giờ đóng luồng chuyến cuối để hành khách nắm rõ.
+4. **TD-31: Mở rộng độ phủ mô hình ML Residual cho các tuyến ngoài Tuyến 02**:
+   - *Trạng thái*: **ĐANG MỞ [ ]**
+   - Hiện tại mô hình XGBoost residual đang được tải với trọng số cụm HUST / Tuyến 02 (`_r3_big`). Các tuyến khác tự động fallback an toàn về Baseline P50. Cần tiếp tục mở rộng huấn luyện ML residual theo từng nhóm tuyến tương đương.
+
