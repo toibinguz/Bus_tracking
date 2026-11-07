@@ -39,6 +39,9 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, BASE_DIR)
 
 from config.system_config import (
+    BASELINE_MAX_HOUR_SLOT,
+    BASELINE_MIN_HOUR_SLOT,
+    BASELINE_SAT_SUN_KERNEL_MIN_DIRECT,
     BASELINE_TIER0_MIN_SAMPLES,
     BASELINE_TIER0_MIN_SAMPLES_WEEKEND,
     BASELINE_TIER1_MIN_SAMPLES,
@@ -46,9 +49,13 @@ from config.system_config import (
     BRACKET_MAX_DT_SEC,
     BRACKET_SEG_LEN_FACTOR,
     CANONICAL_START_DATE,
+    DAY_TYPE_SATURDAY,
+    DAY_TYPE_SUNDAY,
+    DAY_TYPE_WEEKDAY,
     DEFAULT_DB_PATH,
     DEFAULT_LAKEHOUSE_ROOT,
     DEFAULT_URBAN_BUS_SPEED_KMPH,
+    EXCLUDE_TERMINAL_BOUNDARY_STATIONS,
     SEGMENT_MAX_SPEED_KMPH,
     SEGMENT_MIN_SPEED_KMPH,
     TEST_SPLIT_START_DATE,
@@ -62,6 +69,36 @@ from module_1_data_ingestion_and_preprocessing.step_1_3_telemetry_kinematic_sani
 DB_PATH = os.path.join(BASE_DIR, DEFAULT_DB_PATH)
 SILVER_TEL_DIR = os.path.join(BASE_DIR, DEFAULT_LAKEHOUSE_ROOT, "silver", "route_projected_telemetry")
 GOLD_BASELINE_DIR = os.path.join(BASE_DIR, DEFAULT_LAKEHOUSE_ROOT, "gold", "agg_segment_travel_times")
+
+
+def get_active_corridor_stations(
+    st_list: List[Tuple[int, int, str, float]]
+) -> List[Tuple[int, int, str, float]]:
+    """
+    TD-19: Excludes the 2 terminal boundary stations (Origin Terminal station_order == 0
+    and Destination Terminal depot station_order == N) when EXCLUDE_TERMINAL_BOUNDARY_STATIONS
+    is enabled, returning the active in-transit corridor stations [1 .. N-1].
+    """
+    if EXCLUDE_TERMINAL_BOUNDARY_STATIONS and len(st_list) >= 4:
+        return st_list[1:-1]
+    return st_list
+
+
+def get_bus_terminal_or_corridor_status(
+    s_bus_m: float, st_list: List[Tuple[int, int, str, float]]
+) -> str:
+    """
+    TD-19: Classifies a same-direction bus into:
+      - 'AT_ORIGIN_TERMINAL'      : s_bus_m < s_station[1] (waiting for dispatch or exiting gate)
+      - 'AT_DESTINATION_TERMINAL' : s_bus_m >= s_station[N-1] (entering destination depot gate)
+      - 'ACTIVE_IN_TRANSIT'       : s_station[1] <= s_bus_m < s_station[N-1] (eligible for kinematic ETA)
+    """
+    if len(st_list) >= 4:
+        if s_bus_m < st_list[1][3]:
+            return "AT_ORIGIN_TERMINAL"
+        if s_bus_m >= st_list[-2][3]:
+            return "AT_DESTINATION_TERMINAL"
+    return "ACTIVE_IN_TRANSIT"
 
 
 def extract_bracketed_station_arrivals(
@@ -197,7 +234,8 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
 
     for (r_code, vid, d_str), grp in df_all.groupby(["route_code", "vehicle_id", "direction"], sort=False):
         r_len = shape_len_map.get((r_code, d_str), 0.0)
-        st_list = stations_map.get((r_code, d_str), [])
+        full_st_list = stations_map.get((r_code, d_str), [])
+        st_list = get_active_corridor_stations(full_st_list)
         if len(st_list) < 2:
             continue
 
@@ -256,10 +294,15 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
 
                     if is_train:
                         dt_obj = datetime.fromtimestamp(arrivals[ord_a], tz=TZ_HANOI)
-                        is_wknd = 1 if dt_obj.weekday() >= 5 else 0
-                        hr_slot = dt_obj.hour
-                        slot_samples[(r_code, d_str, ord_a, ord_b, is_wknd, hr_slot)].append(tt)
-                        daytype_samples[(r_code, d_str, ord_a, ord_b, is_wknd)].append(tt)
+                        wd = dt_obj.weekday()
+                        day_type = (
+                            DAY_TYPE_WEEKDAY
+                            if wd < 5
+                            else (DAY_TYPE_SATURDAY if wd == 5 else DAY_TYPE_SUNDAY)
+                        )
+                        hr_slot = min(BASELINE_MAX_HOUR_SLOT, max(BASELINE_MIN_HOUR_SLOT, dt_obj.hour))
+                        slot_samples[(r_code, d_str, ord_a, ord_b, day_type, hr_slot)].append(tt)
+                        daytype_samples[(r_code, d_str, ord_a, ord_b, day_type)].append(tt)
                         seg_all_samples[(r_code, d_str, ord_a, ord_b)].append(tt)
                         route_speed_accum[(r_code, d_str)][0] += seg_dist
                         route_speed_accum[(r_code, d_str)][1] += tt
@@ -276,17 +319,17 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
         flush=True,
     )
 
-    # 4. Build Complete Leak-Free Baseline Matrix across all active routes, segments, day types (0/1), and operating hours (5..22)
+    # 4. Build Complete Leak-Free Baseline Matrix across all active routes, segments, 3 day types (0/1/2), and 17 operating hours (5..21)
     active_routes = sorted(df_all["route_code"].unique())
     matrix_rows = []
     tier_counts = {0: 0, 1: 0, 2: 0, 3: 0}
 
-    # Lookup map for fast evaluation: (route_code, direction, from_order, to_order, is_weekend, hour_slot) -> (p50, p10, p90, mean, std, n, tier, seg_dist)
+    # Lookup map for fast evaluation: (route_code, direction, from_order, to_order, day_type, hour_slot) -> (p50, p10, p90, mean, std, n, tier, seg_dist)
     baseline_lookup: Dict[Tuple[str, str, int, int, int, int], Tuple[float, float, float, float, float, int, int, float]] = {}
 
     for r_code in active_routes:
         for d_str in ("go", "re"):
-            st_list = stations_map.get((r_code, d_str), [])
+            st_list = get_active_corridor_stations(stations_map.get((r_code, d_str), []))
             if len(st_list) < 2:
                 continue
 
@@ -298,33 +341,44 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
                 ord_b, id_b, name_b, s_b = st_list[k + 1]
                 seg_dist = round(max(15.0, s_b - s_a), 1)
 
-                for is_wknd in (0, 1):
-                    # TD-B03: Normalize Tier 0 threshold by number of available Train days
-                    # Weekday (15 days): N >= 10 (~0.67/day) | Weekend (6 days): N >= 5 (~0.83/day)
+                for day_type in (DAY_TYPE_WEEKDAY, DAY_TYPE_SATURDAY, DAY_TYPE_SUNDAY):
                     tier0_thresh = (
-                        BASELINE_TIER0_MIN_SAMPLES_WEEKEND if is_wknd == 1 else BASELINE_TIER0_MIN_SAMPLES
+                        BASELINE_TIER0_MIN_SAMPLES
+                        if day_type == DAY_TYPE_WEEKDAY
+                        else BASELINE_TIER0_MIN_SAMPLES_WEEKEND
                     )
-                    for hr_slot in range(5, 23):
-                        direct_vals = slot_samples.get((r_code, d_str, ord_a, ord_b, is_wknd, hr_slot), [])
+                    for hr_slot in range(BASELINE_MIN_HOUR_SLOT, BASELINE_MAX_HOUR_SLOT + 1):
+                        direct_vals = slot_samples.get((r_code, d_str, ord_a, ord_b, day_type, hr_slot), [])
                         n_direct = len(direct_vals)
 
-                        if n_direct >= tier0_thresh:
-                            q_tier = 0
-                            used_vals = direct_vals
-                        elif n_direct >= BASELINE_TIER1_MIN_SAMPLES:
-                            q_tier = 1
-                            used_vals = direct_vals
+                        # TD-18: For Saturday (4 days) and Sunday (3 days), apply 3-hour sliding kernel
+                        # [hr-1, hr, hr+1] strictly on the SAME day_type when direct count < 8
+                        if day_type in (DAY_TYPE_SATURDAY, DAY_TYPE_SUNDAY) and n_direct < BASELINE_SAT_SUN_KERNEL_MIN_DIRECT:
+                            eff_vals = []
+                            for h_adj in (hr_slot - 1, hr_slot, hr_slot + 1):
+                                eff_vals.extend(slot_samples.get((r_code, d_str, ord_a, ord_b, day_type, h_adj), []))
                         else:
-                            # Tier 2: Pool adjacent hours (hr-1, hr, hr+1) on same day type, or full segment samples
+                            eff_vals = direct_vals
+
+                        n_eff = len(eff_vals)
+
+                        if n_eff >= tier0_thresh:
+                            q_tier = 0
+                            used_vals = eff_vals
+                        elif n_eff >= BASELINE_TIER1_MIN_SAMPLES:
+                            q_tier = 1
+                            used_vals = eff_vals
+                        else:
+                            # Tier 2: Pool adjacent hours (hr-1, hr, hr+1) on same day type, or full day_type / segment samples
                             neighbor_vals = []
                             for h_adj in (hr_slot - 1, hr_slot, hr_slot + 1):
-                                neighbor_vals.extend(slot_samples.get((r_code, d_str, ord_a, ord_b, is_wknd, h_adj), []))
+                                neighbor_vals.extend(slot_samples.get((r_code, d_str, ord_a, ord_b, day_type, h_adj), []))
                             if len(neighbor_vals) >= BASELINE_TIER1_MIN_SAMPLES:
                                 q_tier = 2
                                 used_vals = neighbor_vals
-                            elif len(daytype_samples.get((r_code, d_str, ord_a, ord_b, is_wknd), [])) >= BASELINE_TIER1_MIN_SAMPLES:
+                            elif len(daytype_samples.get((r_code, d_str, ord_a, ord_b, day_type), [])) >= BASELINE_TIER1_MIN_SAMPLES:
                                 q_tier = 2
-                                used_vals = daytype_samples[(r_code, d_str, ord_a, ord_b, is_wknd)]
+                                used_vals = daytype_samples[(r_code, d_str, ord_a, ord_b, day_type)]
                             elif len(seg_all_samples.get((r_code, d_str, ord_a, ord_b), [])) >= 1:
                                 q_tier = 2
                                 used_vals = seg_all_samples[(r_code, d_str, ord_a, ord_b)]
@@ -359,9 +413,9 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
                             name_a,
                             name_b,
                             seg_dist,
-                            is_wknd,
+                            day_type,
                             hr_slot,
-                            n_direct,
+                            n_eff,
                             q_tier,
                             round(p10, 2),
                             round(p50, 2),
@@ -370,13 +424,13 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
                             round(std_v, 2),
                         )
                         matrix_rows.append(row_tuple)
-                        baseline_lookup[(r_code, d_str, ord_a, ord_b, is_wknd, hr_slot)] = (
+                        baseline_lookup[(r_code, d_str, ord_a, ord_b, day_type, hr_slot)] = (
                             round(p50, 2),
                             round(p10, 2),
                             round(p90, 2),
                             round(mean_v, 2),
                             round(std_v, 2),
-                            n_direct,
+                            n_eff,
                             q_tier,
                             seg_dist,
                         )
@@ -395,7 +449,7 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
             from_station_name TEXT,
             to_station_name TEXT,
             segment_length_m REAL NOT NULL,
-            is_weekend INTEGER NOT NULL,
+            day_type INTEGER NOT NULL,
             hour_slot INTEGER NOT NULL,
             sample_count INTEGER NOT NULL,
             quality_tier INTEGER NOT NULL,
@@ -404,7 +458,7 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
             tt_p90_sec REAL NOT NULL,
             tt_mean_sec REAL NOT NULL,
             tt_std_sec REAL NOT NULL,
-            PRIMARY KEY (route_code, direction, from_station_order, to_station_order, is_weekend, hour_slot)
+            PRIMARY KEY (route_code, direction, from_station_order, to_station_order, day_type, hour_slot)
         )
         """
     )
@@ -421,7 +475,7 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
         columns=[
             "route_code", "direction", "from_station_order", "to_station_order",
             "from_station_id", "to_station_id", "from_station_name", "to_station_name",
-            "segment_length_m", "is_weekend", "hour_slot", "sample_count", "quality_tier",
+            "segment_length_m", "day_type", "hour_slot", "sample_count", "quality_tier",
             "tt_p10_sec", "tt_p50_sec", "tt_p90_sec", "tt_mean_sec", "tt_std_sec",
         ],
     )
@@ -434,9 +488,9 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
 
     total_cells = len(matrix_rows)
     print(
-        f"[3/4] Built Leak-Free Baseline Matrix: {total_cells:,} cells | "
-        f"Tier 0 (Weekday>=10, Wknd>=5): {tier_counts[0]:,} ({tier_counts[0]/total_cells*100:.1f}%) | "
-        f"Tier 1 (3..9): {tier_counts[1]:,} ({tier_counts[1]/total_cells*100:.1f}%) | "
+        f"[3/4] Built Leak-Free Baseline Matrix (3 Day-Types x 17 Hours): {total_cells:,} cells | "
+        f"Tier 0: {tier_counts[0]:,} ({tier_counts[0]/total_cells*100:.1f}%) | "
+        f"Tier 1: {tier_counts[1]:,} ({tier_counts[1]/total_cells*100:.1f}%) | "
         f"Tier 2 (Neighbor): {tier_counts[2]:,} ({tier_counts[2]/total_cells*100:.1f}%) | "
         f"Tier 3 (Fallback): {tier_counts[3]:,} ({tier_counts[3]/total_cells*100:.1f}%)",
         flush=True,
@@ -444,11 +498,12 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
 
     # 5. Evaluate Baseline Matrix on Held-Out Test Set (2026-11-01 .. 2026-11-07)
     seg_errors_by_tier: Dict[int, List[float]] = defaultdict(list)
+    seg_errors_by_daytype: Dict[int, List[float]] = defaultdict(list)
     horizon_errors_p50: Dict[str, List[float]] = defaultdict(list)
     horizon_errors_mean: Dict[str, List[float]] = defaultdict(list)
 
     for r_code, d_str, tr, arrivals in test_trips_eval:
-        st_list = stations_map[(r_code, d_str)]
+        st_list = get_active_corridor_stations(stations_map[(r_code, d_str)])
         # Map station_order -> index k in st_list
         ord_to_k = {st[0]: idx_k for idx_k, st in enumerate(st_list)}
         sorted_arr_orders = sorted(arrivals.keys())
@@ -464,13 +519,19 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
                 if not (SEGMENT_MIN_SPEED_KMPH <= spd_kmh <= SEGMENT_MAX_SPEED_KMPH):
                     continue
                 dt_obj = datetime.fromtimestamp(arrivals[ord_a], tz=TZ_HANOI)
-                is_wknd = 1 if dt_obj.weekday() >= 5 else 0
-                hr_slot = min(22, max(5, dt_obj.hour))
-                cell = baseline_lookup.get((r_code, d_str, ord_a, ord_b, is_wknd, hr_slot))
+                wd = dt_obj.weekday()
+                day_type = (
+                    DAY_TYPE_WEEKDAY
+                    if wd < 5
+                    else (DAY_TYPE_SATURDAY if wd == 5 else DAY_TYPE_SUNDAY)
+                )
+                hr_slot = min(BASELINE_MAX_HOUR_SLOT, max(BASELINE_MIN_HOUR_SLOT, dt_obj.hour))
+                cell = baseline_lookup.get((r_code, d_str, ord_a, ord_b, day_type, hr_slot))
                 if cell:
                     pred_p50 = cell[0]
                     q_tier = cell[6]
                     seg_errors_by_tier[q_tier].append(actual_tt - pred_p50)
+                    seg_errors_by_daytype[day_type].append(actual_tt - pred_p50)
 
         # 5b. Multi-station ETA evaluation along the trip (TD-B04: compare Sum(P50) vs Additive Sum(Mean))
         for i_a in range(len(sorted_arr_orders)):
@@ -478,8 +539,13 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
             k_start = ord_to_k[ord_start]
             t_start = arrivals[ord_start]
             dt_obj = datetime.fromtimestamp(t_start, tz=TZ_HANOI)
-            is_wknd = 1 if dt_obj.weekday() >= 5 else 0
-            hr_slot = min(22, max(5, dt_obj.hour))
+            wd = dt_obj.weekday()
+            day_type = (
+                DAY_TYPE_WEEKDAY
+                if wd < 5
+                else (DAY_TYPE_SATURDAY if wd == 5 else DAY_TYPE_SUNDAY)
+            )
+            hr_slot = min(BASELINE_MAX_HOUR_SLOT, max(BASELINE_MIN_HOUR_SLOT, dt_obj.hour))
 
             for i_b in range(i_a + 1, len(sorted_arr_orders)):
                 ord_end = sorted_arr_orders[i_b]
@@ -499,7 +565,7 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
                 for k_step in range(k_start, k_end):
                     o_u = st_list[k_step][0]
                     o_v = st_list[k_step + 1][0]
-                    cell = baseline_lookup.get((r_code, d_str, o_u, o_v, is_wknd, hr_slot))
+                    cell = baseline_lookup.get((r_code, d_str, o_u, o_v, day_type, hr_slot))
                     if not cell:
                         valid_path = False
                         break
@@ -537,7 +603,7 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
             f"MedAE={np.median(abs_e):>6.2f}s | Bias={np.mean(arr_e):>+6.2f}s | RMSE={np.sqrt(np.mean(arr_e**2)):>6.2f}s",
             flush=True,
         )
-    print("  [B] Estimator: Sum(tt_mean_sec) (TD-B04 Expectation-Additive for multi-station MAE & zero bias):", flush=True)
+    print("  [B] Estimator: Sum(tt_mean_sec) (TD-11 Expectation-Additive for multi-station MAE & zero bias):", flush=True)
     for h_key in ("1_hop_adjacent", "2_to_5_stations", "6_to_15_stations", "gt_15_stations"):
         errs = horizon_errors_mean.get(h_key, [])
         if not errs:
@@ -548,6 +614,16 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
             f"    * Horizon {h_key:<18}: N={len(arr_e):>9,} | "
             f"MAE={np.mean(abs_e):>6.2f}s ({np.mean(abs_e)/60:.2f}m) | "
             f"MedAE={np.median(abs_e):>6.2f}s | Bias={np.mean(arr_e):>+6.2f}s | RMSE={np.sqrt(np.mean(arr_e**2)):>6.2f}s",
+            flush=True,
+        )
+    print("-" * 100, flush=True)
+    day_labels = {0: "Weekday (Mon-Fri)", 1: "Saturday (Thứ 7) ", 2: "Sunday (Chủ Nhật)"}
+    for dt_k in sorted(seg_errors_by_daytype.keys()):
+        arr_e = np.array(seg_errors_by_daytype[dt_k], dtype=np.float64)
+        abs_e = np.abs(arr_e)
+        print(
+            f"  * Day-Type {dt_k} [{day_labels[dt_k]}]: N={len(arr_e):>9,} | "
+            f"MAE={np.mean(abs_e):>6.2f}s | MedAE={np.median(abs_e):>6.2f}s | Bias={np.mean(arr_e):>+6.2f}s | RMSE={np.sqrt(np.mean(arr_e**2)):>6.2f}s",
             flush=True,
         )
     print("-" * 100, flush=True)

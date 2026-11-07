@@ -205,10 +205,18 @@ BRACKET_SEG_LEN_FACTOR = 1.35                # Hệ số nới khoảng kẹp th
 SEGMENT_MIN_SPEED_KMPH = 1.5                 # Vận tốc liên trạm tối thiểu vật lý (tránh xe chết máy/nghỉ giữa đường)
 SEGMENT_MAX_SPEED_KMPH = 65.0                # Vận tốc liên trạm tối đa vật lý (km/h)
 
+BASELINE_MIN_HOUR_SLOT = 5                   # Khung giờ vận hành bắt đầu (05:00)
+BASELINE_MAX_HOUR_SLOT = 21                  # Khung giờ vận hành cuối (21:00+, gộp đuôi sau 21h vào slot 21 -> 17 khung giờ)
+DAY_TYPE_WEEKDAY = 0                         # Thứ 2 .. Thứ 6 (15 ngày Train)
+DAY_TYPE_SATURDAY = 1                        # Thứ 7 (4 ngày Train - hành vi giao thông riêng biệt)
+DAY_TYPE_SUNDAY = 2                          # Chủ Nhật (3 ngày Train - thông thoáng)
+
 BASELINE_TIER0_MIN_SAMPLES = 10              # Tier 0 (Weekday - 15 ngày Train): Đủ mẫu trực tiếp >= 10
-BASELINE_TIER0_MIN_SAMPLES_WEEKEND = 5       # Tier 0 (Weekend - 6 ngày Train): Đủ mẫu trực tiếp >= 5 (~0.83 mẫu/ngày)
+BASELINE_TIER0_MIN_SAMPLES_WEEKEND = 5       # Tier 0 (Thứ 7 / Chủ Nhật sau khi gom trượt 3h cùng loại ngày): >= 5 mẫu
+BASELINE_SAT_SUN_KERNEL_MIN_DIRECT = 8       # Ngưỡng mẫu trực tiếp tối thiểu trước khi kích hoạt cửa sổ trượt 3h [h-1,h,h+1] cùng loại ngày cho Thứ 7/CN
 BASELINE_TIER1_MIN_SAMPLES = 3               # Tier 1: Mẫu thưa trực tiếp (3 <= N < Tier 0)
 DEFAULT_URBAN_BUS_SPEED_KMPH = 18.0          # Vận tốc trung bình mặc định toàn mạng khi không có mẫu lịch sử
+EXCLUDE_TERMINAL_BOUNDARY_STATIONS = True    # TD-19: Tách biệt 2 trạm đầu cuối (0 và N); chỉ tính ETA động học cho hành lang nội tuyến [1 .. N-1]
 
 TZ_HANOI = timezone(timedelta(hours=7))
 
