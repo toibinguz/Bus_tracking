@@ -101,13 +101,19 @@ Khi người dùng click vào một trạm dừng trên bản đồ hoặc chọ
 
 ---
 
-## 4. PHÂN RÃ MODULE & KIẾN TRÚC MÃ NGUỒN (CODEBASE ARCHITECTURE)
+## 4. KIẾN TRÚC CONTRACT-FIRST & PHÂN RÃ MODULE
+
+Ứng dụng tuân thủ nghiêm ngặt **Kiến trúc Hợp đồng Đi trước (Contract-First Architecture)**:
+1. **Hợp đồng API (API Contract)**: Định nghĩa đầu tiên, độc lập và bất biến tại [`contract.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/contract.py) bằng Pydantic v2 Models & OpenAPI 3.1 Schemas.
+2. **Đẩy về Backend (BE Driven by Contract)**: Router FastAPI kế thừa trực tiếp các schemas từ `contract.py` làm `response_model` và input validator, tự động xuất `/openapi.json` và tài liệu `/docs`.
+3. **Đẩy về Frontend (FE Driven by Contract)**: Client JavaScript đọc các trường chuẩn hóa 1:1 từ Contract, loại bỏ hoàn toàn suy đoán kiểu dữ liệu và sai lệch thuộc tính.
 
 ```
 module_3_bus_eta_prediction/step_3_5_web_demo/
 ├── __init__.py               # Package descriptor
+├── contract.py               # [TRỌNG TÂM CONTRACT-FIRST] Pydantic v2 Schemas & OpenAPI Specification
 ├── app.py                    # FastAPI entrypoint, lifespan startup (nạp trước EtaServingService), CORS, static mount
-├── api_routes.py             # Router phục vụ 4 endpoints RESTful JSON
+├── api_routes.py             # Router phục vụ 4 endpoints RESTful JSON tuân thủ contract.py
 ├── cache_manager.py          # In-Memory TTL Cache thread-safe (15s) chống nghẽn Gateway BusMap
 └── static/                   # Frontend SPA (Single Page Application thuần túy)
     ├── index.html            # Khung HTML5, Tailwind CSS CDN, Leaflet.js CDN, Sidebar điều khiển
