@@ -1,15 +1,13 @@
 """
-Sync tool: Download all accumulated bus and traffic data from Hugging Face Dataset
-to local laptop storage.
-Usage: python scripts/sync_from_hf.py
+Sync tool: Download all accumulated bus, traffic, and incident data from Hugging Face Dataset
+directly into canonical local hierarchy: data/raw/YYYY-MM-DD/{bus,incidents,traffic}/*.jsonl
+Usage: py scripts/sync_from_hf.py
 """
 
 import os
 import sys
 import glob
-import json
-import urllib.request
-from datetime import datetime
+import shutil
 
 if sys.stdout.encoding != 'utf-8':
     try:
@@ -17,77 +15,52 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# Add parent directory to sys.path so core package is importable
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from config import HF_DATASET_ID, get_hf_token
+from config import HF_DATASET_ID, RAW_DATA_DIR, get_hf_token
 
-DATASET_ID = HF_DATASET_ID
-LOCAL_RAW_DIR = "data/raw"
 
 def main():
     token = get_hf_token()
     if not token:
-        print("[ERROR] Chua tim thay access_token_hf.txt!")
+        print("[ERROR] Missing access_token_hf.txt!")
         return
 
-    print("=" * 60)
-    print("🔄 DONG BO DU LIEU TU HUGGING FACE DATASET VE LAPTOP")
-    print(f"📦 Dataset: https://huggingface.co/datasets/{DATASET_ID}")
-    print("=" * 60)
+    print("=" * 68)
+    print("SYNCING CANONICAL TELEMETRY FROM HUGGING FACE DATASET TO data/raw/")
+    print(f"Dataset: https://huggingface.co/datasets/{HF_DATASET_ID}")
+    print("=" * 68)
 
-    try:
-        from huggingface_hub import snapshot_download
-    except ImportError:
-        print("[INFO] Dang cai dat thu vien huggingface_hub...")
-        os.system(f"{sys.executable} -m pip install huggingface_hub -q")
-        from huggingface_hub import snapshot_download
+    from huggingface_hub import snapshot_download
 
-    temp_sync_dir = "data/temp_hf_sync"
-    os.makedirs(temp_sync_dir, exist_ok=True)
-    os.makedirs(os.path.join(LOCAL_RAW_DIR, "bus"), exist_ok=True)
-    os.makedirs(os.path.join(LOCAL_RAW_DIR, "traffic"), exist_ok=True)
-
-    print("[*] Dang tai cac file moi nhat tu Cloud ve...")
+    os.makedirs(RAW_DATA_DIR, exist_ok=True)
     downloaded_path = snapshot_download(
-        repo_id=DATASET_ID,
+        repo_id=HF_DATASET_ID,
         repo_type="dataset",
-        local_dir=temp_sync_dir,
-        token=token
+        local_dir=RAW_DATA_DIR,
+        allow_patterns=["raw_data/*/*/*.jsonl"],
+        token=token,
     )
-    print(f"[OK] Da tai ve thu muc tam: {downloaded_path}")
 
-    # Merge chunks by date into local data/raw
-    all_chunks = glob.glob(os.path.join(temp_sync_dir, "raw_data", "**", "*.jsonl"), recursive=True)
-    print(f"[*] Tim thay tong cong {len(all_chunks)} chunks du lieu tren Cloud.")
+    # Normalize HF's raw_data/YYYY-MM-DD/... subfolder into data/raw/YYYY-MM-DD/...
+    hf_raw_subdir = os.path.join(RAW_DATA_DIR, "raw_data")
+    moved_files = 0
+    if os.path.exists(hf_raw_subdir):
+        for chunk in glob.glob(os.path.join(hf_raw_subdir, "*", "*", "*.jsonl")):
+            rel = os.path.relpath(chunk, hf_raw_subdir)
+            dst = os.path.join(RAW_DATA_DIR, rel)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.move(chunk, dst)
+            moved_files += 1
+        shutil.rmtree(hf_raw_subdir, ignore_errors=True)
 
-    total_records = 0
-    copied_files = 0
-    import shutil
-    for chunk in all_chunks:
-        if "\\bus\\" in chunk or "/bus/" in chunk:
-            category = "bus"
-        elif "\\incidents\\" in chunk or "/incidents/" in chunk:
-            category = "incidents"
-        else:
-            category = "traffic"
-        
-        target_dir = os.path.join(LOCAL_RAW_DIR, category)
-        os.makedirs(target_dir, exist_ok=True)
-        target_file = os.path.join(target_dir, os.path.basename(chunk))
-        
-        # Count lines
-        with open(chunk, "r", encoding="utf-8") as f:
-            lines_count = sum(1 for _ in f)
-        total_records += lines_count
+    # Clean HF local cache metadata inside data/raw/.cache if created
+    hf_cache = os.path.join(RAW_DATA_DIR, ".cache")
+    if os.path.exists(hf_cache):
+        shutil.rmtree(hf_cache, ignore_errors=True)
 
-        # Copy or overwrite if updated
-        shutil.copy2(chunk, target_file)
-        copied_files += 1
+    print(f"[OK] Synced {moved_files} new/updated files into canonical {os.path.abspath(RAW_DATA_DIR)}")
 
-    print(f"\n🎉 Dong bo thanh cong {copied_files} files voi {total_records:,} records ve may tinh cua ban!")
-    print(f"📂 Vi tri luu tru: {os.path.abspath(LOCAL_RAW_DIR)}")
 
 if __name__ == "__main__":
     main()
-

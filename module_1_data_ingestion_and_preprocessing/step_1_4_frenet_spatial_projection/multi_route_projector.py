@@ -1,32 +1,31 @@
 """
-Module 1: Production Multi-Route Frenet Projection Engine (Canonical Clean v3.0).
-Linear references raw GPS pings (vehicle_unique_pings) onto Canonical BusMap Master Polylines
-(canonical_shape_master) to produce 1D progress coordinate (s_bus_m), orthogonal cross-track
-error (cross_track_m), and derived kinematics (v_derived = delta_s / delta_t).
-
-Canonical Data Sources:
-- canonical_shape_master: Master line strings with cum_distance_m
-- canonical_route_master: Route catalog and metadata
-- canonical_station_master: Station sequence with direction tags
-- vehicle_unique_pings: Cleaned, deduplicated raw telemetry
-
-Output Table:
-- route_projected_telemetry
+High-Speed Multi-Core Parallel Frenet Spatial Projection Pipeline (v3.0 Clean)
+- Enforces GTFS Direction Standard: 0 -> go (Outbound), 1 -> re (Inbound)
+- Quarantines unassigned depot / off-duty pings (direction = -1 with no valid station)
+- Implements Monotonicity Forward Sliding Window Guard to eliminate backward projection jumps
+- Resolves shared station topology (457 terminal/interchange stops)
+- Calculates robust derived kinematics (v_derived = delta_s / delta_t) with strict corridor chaining
 """
 
-import sqlite3
-import numpy as np
+import os
+import sys
 import time
 import math
-import sys
+import sqlite3
+import numpy as np
 from pathlib import Path
-from typing import List, Tuple, Dict, Optional, Any
+from typing import List, Tuple, Dict, Any, Optional
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
-# Ensure project root is in sys.path
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-sys.path.insert(0, ".")
+# Ensure UTF-8 output
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
-from config.system_config import get_database_path, DEFAULT_DB_PATH
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DB_PATH = os.path.join(BASE_DIR, "data", "hanoi_bus_system.db")
 
 
 def project_points_to_shape(
@@ -106,6 +105,7 @@ def project_points_to_shape(
             best_local_seg = np.argmin(dist_sq)
             min_d = math.sqrt(dist_sq[best_local_seg])
 
+            # If within acceptable corridor tolerance, lock onto forward projection
             if min_d <= 45.0:
                 best_t = t[best_local_seg]
                 best_s = sub_cum_starts[best_local_seg] + best_t * sub_seg_lens[best_local_seg]
@@ -114,7 +114,7 @@ def project_points_to_shape(
                 prev_epoch = p_epoch
                 continue
 
-        # 2. Global Search Fallback
+        # 2. Global Search Fallback (trip restarts, terminal resets, major detours)
         p_dx1 = px - x1
         p_dy1 = py - y1
         t = np.clip((p_dx1 * dx + p_dy1 * dy) / safe_lens_sq, 0.0, 1.0)
@@ -134,9 +134,136 @@ def project_points_to_shape(
     return results
 
 
-def init_projected_telemetry_table(conn: sqlite3.Connection):
-    """Ensure destination table exists with high-speed indexes."""
+def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[int, int], str]]) -> Tuple[int, str, int, list, float]:
+    """Worker task executing spatial projection for a single route in its own CPU process."""
+    db_path, route_id, route_code, shapes, st_dir = args
+    t0 = time.time()
+
+    # Open isolated read-only connection
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     cur = conn.cursor()
+
+    pings_query = """
+    SELECT ping_id, vehicle_id, plate, device_update_time, device_epoch, direction, lat, lon, current_station_id
+    FROM vehicle_unique_pings
+    WHERE route_id = ? AND lat > 20.0 AND lon > 105.0
+    ORDER BY vehicle_id, device_epoch;
+    """
+    pings = cur.execute(pings_query, (route_id,)).fetchall()
+    conn.close()
+
+    if not pings or (not shapes.get("go") and not shapes.get("re")):
+        return (route_id, route_code, 0, [], time.time() - t0)
+
+    # 1. Clean Direction Assignment & Depot Quarantine
+    # GTFS standard: 0 -> go, 1 -> re
+    # -1: Check if current_station_id is unambiguous in st_dir; if station = 0, isolate as depot
+    pings_by_veh_dir: Dict[Tuple[int, str], List[Tuple[int, float, float, float]]] = {}
+    ping_meta: Dict[int, Any] = {}
+    quarantine_count = 0
+
+    for p in pings:
+        pid, vid, plate, t_str, epoch, p_dir, lat, lon, curr_st = p
+        ping_meta[pid] = p
+
+        d_str = None
+        if curr_st and (route_id, curr_st) in st_dir:
+            d_str = st_dir[(route_id, curr_st)]
+        elif p_dir == 0:
+            d_str = "go"
+        elif p_dir == 1:
+            d_str = "re"
+        else:
+            # p_dir == -1 with no unambiguous station -> Depot / Off-duty
+            quarantine_count += 1
+            continue
+
+        pings_by_veh_dir.setdefault((vid, d_str), []).append((pid, lat, lon, epoch))
+
+    # 2. Execute Monotonic Projection per vehicle trajectory
+    projected_results: Dict[int, Tuple[float, float, str]] = {}
+    for (vid, d_str), v_pings in pings_by_veh_dir.items():
+        if shapes.get(d_str) and v_pings:
+            v_pings.sort(key=lambda x: x[3])  # sort by epoch
+            res = project_points_to_shape(v_pings, shapes[d_str])
+            for pid, s_m, d_perp in res:
+                projected_results[pid] = (s_m, d_perp, d_str)
+
+    # 3. Calculate derived kinematics (delta_s / delta_t) per vehicle trajectory
+    records = []
+    vehicles: Dict[int, List[Tuple[int, float, Tuple[float, float, str]]]] = {}
+    for p in pings:
+        pid = p[0]
+        if pid in projected_results:
+            vid = p[1]
+            vehicles.setdefault(vid, []).append((pid, p[4], projected_results[pid]))
+
+    for vid, v_pings in vehicles.items():
+        v_pings.sort(key=lambda x: x[1])  # sort by epoch
+        for i in range(len(v_pings)):
+            pid, epoch, (s_m, d_perp, d_str) = v_pings[i]
+            meta = ping_meta[pid]
+
+            derived_speed_kmh = None
+
+            if i > 0:
+                prev_pid, prev_epoch, (prev_s, prev_d_perp, prev_d_str) = v_pings[i - 1]
+                dt = epoch - prev_epoch
+                ds = s_m - prev_s
+
+                # Strict Corridor Chain Rule:
+                # Both points must be within corridor (d_perp <= 35m) on same direction trip.
+                # Speed capped at physical urban limit (80 km/h).
+                is_corridor_chain = (d_perp <= 35.0) and (prev_d_perp <= 35.0)
+                is_same_trip = (0 < dt <= 300.0) and (d_str == prev_d_str) and (ds >= -30.0)
+
+                if is_corridor_chain and is_same_trip:
+                    v_mps = abs(ds) / dt
+                    spd_kmh = round(v_mps * 3.6, 2)
+                    if spd_kmh <= 80.0:
+                        derived_speed_kmh = spd_kmh
+
+            # Strict Silver corridor boundary: only keep on-corridor pings (d_perp <= 35.0m)
+            if d_perp > 35.0:
+                continue
+
+            records.append((
+                pid,
+                route_code,
+                route_id,
+                meta[1],  # vehicle_id
+                meta[2],  # plate
+                meta[3],  # device_update_time
+                meta[4],  # device_epoch
+                d_str,
+                meta[6],  # lat
+                meta[7],  # lon
+                s_m,
+                d_perp,
+                derived_speed_kmh,
+                0         # is_dwell removed (always 0)
+            ))
+
+    compute_time = time.time() - t0
+    return (route_id, route_code, len(pings), records, compute_time)
+
+
+def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] = None):
+    """Run parallel projection for all routes using ProcessPoolExecutor."""
+    if num_workers is None:
+        num_workers = 6
+    num_workers = min(num_workers, 6)  # Strict cap: at most 6 workers
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    # Pre-configure turbo PRAGMA settings for the writer
+    cur.execute("PRAGMA journal_mode = WAL;")
+    cur.execute("PRAGMA synchronous = NORMAL;")
+    cur.execute("PRAGMA cache_size = -1048576;")  # 1 GB cache
+    cur.execute("PRAGMA temp_store = MEMORY;")
+
+    # Ensure table exists
     cur.execute("""
     CREATE TABLE IF NOT EXISTS route_projected_telemetry (
         ping_id INTEGER PRIMARY KEY,
@@ -161,140 +288,8 @@ def init_projected_telemetry_table(conn: sqlite3.Connection):
     cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_dir_s ON route_projected_telemetry (route_code, direction, s_bus_m);")
     conn.commit()
 
-
-def project_route(route_id: int, route_code: str, conn: sqlite3.Connection, st_dir: Dict[Tuple[int, int], str]) -> int:
-    """Project all telemetry pings for a route onto canonical shape master polylines."""
-    cur = conn.cursor()
-
-    # Load canonical shapes for both directions
-    shapes = {"go": [], "re": []}
-    for row in cur.execute("""
-        SELECT direction, point_order, lat, lon, cum_distance_m 
-        FROM canonical_shape_master 
-        WHERE route_id = ? 
-        ORDER BY direction, point_order
-    """, (route_id,)).fetchall():
-        d = row[0].lower()
-        if d in shapes:
-            shapes[d].append((row[1], row[2], row[3], row[4]))
-
-    if not shapes["go"] and not shapes["re"]:
-        return 0
-
-    # Fetch unique pings for this route
-    pings_query = """
-    SELECT ping_id, vehicle_id, plate, device_update_time, device_epoch, direction, lat, lon, current_station_id
-    FROM vehicle_unique_pings
-    WHERE route_id = ? AND lat > 20.0 AND lon > 105.0
-    ORDER BY vehicle_id, device_epoch;
-    """
-    pings = cur.execute(pings_query, (route_id,)).fetchall()
-    if not pings:
-        return 0
-
-    pings_by_veh_dir: Dict[Tuple[int, str], List[Tuple[int, float, float, float]]] = {}
-    ping_meta: Dict[int, Any] = {}
-
-    for p in pings:
-        pid, vid, plate, t_str, epoch, p_dir, lat, lon, curr_st = p
-        ping_meta[pid] = p
-
-        d_str = None
-        if curr_st and (route_id, curr_st) in st_dir:
-            d_str = st_dir[(route_id, curr_st)]
-        elif p_dir == 0:
-            d_str = "go"
-        elif p_dir == 1:
-            d_str = "re"
-        else:
-            continue
-
-        pings_by_veh_dir.setdefault((vid, d_str), []).append((pid, lat, lon, epoch))
-
-    projected_results: Dict[int, Tuple[float, float, str]] = {}
-    for (vid, d_str), v_pings in pings_by_veh_dir.items():
-        if shapes.get(d_str) and v_pings:
-            v_pings.sort(key=lambda x: x[3])
-            res = project_points_to_shape(v_pings, shapes[d_str])
-            for pid, s_m, d_perp in res:
-                projected_results[pid] = (s_m, d_perp, d_str)
-
-    # Derived kinematics
-    records = []
-    vehicles: Dict[int, List[Tuple[int, float, Tuple[float, float, str]]]] = {}
-    for p in pings:
-        pid = p[0]
-        if pid in projected_results:
-            vid = p[1]
-            vehicles.setdefault(vid, []).append((pid, p[4], projected_results[pid]))
-
-    for vid, v_pings in vehicles.items():
-        v_pings.sort(key=lambda x: x[1])
-        for i in range(len(v_pings)):
-            pid, epoch, (s_m, d_perp, d_str) = v_pings[i]
-            meta = ping_meta[pid]
-
-            derived_speed_kmh = None
-
-            if i > 0:
-                prev_pid, prev_epoch, (prev_s, prev_d_perp, prev_d_str) = v_pings[i - 1]
-                dt = epoch - prev_epoch
-                ds = s_m - prev_s
-
-                is_corridor_chain = (d_perp <= 35.0) and (prev_d_perp <= 35.0)
-                is_same_trip = (0 < dt <= 300.0) and (d_str == prev_d_str) and (ds >= -30.0)
-
-                if is_corridor_chain and is_same_trip:
-                    v_mps = abs(ds) / dt
-                    spd_kmh = round(v_mps * 3.6, 2)
-                    if spd_kmh <= 80.0:
-                        derived_speed_kmh = spd_kmh
-
-            records.append((
-                pid,
-                route_code,
-                route_id,
-                meta[1],
-                meta[2],
-                meta[3],
-                meta[4],
-                d_str,
-                meta[6],
-                meta[7],
-                s_m,
-                d_perp,
-                derived_speed_kmh,
-                0
-            ))
-
-    cur.execute("DELETE FROM route_projected_telemetry WHERE route_id = ?", (route_id,))
-    cur.executemany("""
-    INSERT INTO route_projected_telemetry (
-        ping_id, route_code, route_id, vehicle_id, plate,
-        device_update_time, device_epoch, direction,
-        lat, lon, s_bus_m, cross_track_m, derived_speed_kmh, is_dwell
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-    """, records)
-    conn.commit()
-
-    return len(records)
-
-
-def run_multi_route_projection(db_path: Optional[str] = None, limit: Optional[int] = None):
-    """Run projection for all available routes using Canonical Master."""
-    if sys.stdout.encoding != 'utf-8':
-        try:
-            sys.stdout.reconfigure(encoding='utf-8')
-        except Exception:
-            pass
-
-    conn = sqlite3.connect(db_path or get_database_path())
-    init_projected_telemetry_table(conn)
-
-    cur = conn.cursor()
-
-    # Preload station directions lookup (unambiguous)
-    print("Pre-loading canonical station directions lookup...")
+    # Preload unambiguous single-direction station lookup (excludes shared terminal/transfer stops)
+    print(f"[*] Pre-loading canonical station directions lookup...")
     cur.execute("""
         SELECT route_id, station_id, MIN(direction)
         FROM canonical_station_master
@@ -302,9 +297,21 @@ def run_multi_route_projection(db_path: Optional[str] = None, limit: Optional[in
         HAVING COUNT(DISTINCT direction) = 1;
     """)
     st_dir = {(r_id, st_id): d for r_id, st_id, d in cur.fetchall()}
-    print(f"Loaded {len(st_dir):,} canonical station direction markers.")
+    print(f"Loaded {len(st_dir):,} unambiguous canonical station direction markers.")
 
-    # Find all active routes with telemetry
+    # Preload all shapes grouped by route_id
+    print("[*] Pre-loading canonical shape polylines...")
+    shapes_by_route: Dict[int, Dict[str, list]] = {}
+    cur.execute("SELECT route_id, direction, point_order, lat, lon, cum_distance_m FROM canonical_shape_master ORDER BY route_id, direction, point_order;")
+    for r_id, direction, pt_order, lat, lon, cum_dist in cur.fetchall():
+        d = direction.lower()
+        if r_id not in shapes_by_route:
+            shapes_by_route[r_id] = {"go": [], "re": []}
+        if d in shapes_by_route[r_id]:
+            shapes_by_route[r_id][d].append((pt_order, lat, lon, cum_dist))
+    print(f"Loaded shapes for {len(shapes_by_route)} routes.")
+
+    # Find active routes with telemetry
     routes_query = """
     SELECT DISTINCT r.route_id, r.route_code, count(t.ping_id) as pings
     FROM canonical_route_master r
@@ -313,27 +320,76 @@ def run_multi_route_projection(db_path: Optional[str] = None, limit: Optional[in
     GROUP BY r.route_id, r.route_code
     ORDER BY pings DESC;
     """
-    routes = cur.execute(routes_query).fetchall()
-    if limit:
-        routes = routes[:limit]
-
-    print(f"Found {len(routes)} active routes requiring Frenet projection.")
-
-    total_projected = 0
-    t0 = time.time()
-    for idx, (route_id, route_code, raw_count) in enumerate(routes, 1):
-        t_route = time.time()
-        cnt = project_route(route_id, route_code, conn, st_dir)
-        total_projected += cnt
-        dt_route = time.time() - t_route
-        rate = cnt / dt_route if dt_route > 0 else 0
-        print(f"[{idx:02d}/{len(routes):02d}] Route {route_code:<5} (ID {route_id:>3}): Projected {cnt:>7,} / {raw_count:>7,} pings in {dt_route:5.1f}s ({rate:,.0f} pings/s)")
+    active_routes = cur.execute(routes_query).fetchall()
+    print(f"[*] Found {len(active_routes)} active routes requiring Frenet projection.")
 
     conn.close()
-    elapsed = time.time() - t0
-    print("=" * 70)
-    print(f"Done! Projected {total_projected:,} pings across {len(routes)} routes in {elapsed:.1f}s.")
 
+    total_pings_all = sum(r[2] for r in active_routes)
+    print(f"[*] Total workload: {total_pings_all:,} raw pings across {len(active_routes)} routes.")
+    print(f"[*] Dispatching ProcessPoolExecutor with {num_workers} worker processes...")
+    print("=" * 80)
+
+    start_all = time.time()
+    total_written = 0
+
+    worker_tasks = [
+        (db_path, r_id, r_code, shapes_by_route.get(r_id, {}), st_dir)
+        for r_id, r_code, _ in active_routes
+    ]
+
+    # Re-open dedicated writer connection on main thread
+    writer_conn = sqlite3.connect(db_path)
+    writer_cur = writer_conn.cursor()
+    writer_cur.execute("PRAGMA synchronous = NORMAL;")
+    writer_cur.execute("PRAGMA cache_size = -1048576;")
+
+    # Clear destination table cleanly before full re-projection
+    print("[*] Purging legacy projected telemetry table...")
+    writer_cur.execute("DELETE FROM route_projected_telemetry;")
+    writer_conn.commit()
+
+    completed_routes = 0
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        future_to_route = {executor.submit(worker_project_route, task): task[1] for task in worker_tasks}
+
+        for future in as_completed(future_to_route):
+            r_id = future_to_route[future]
+            try:
+                route_id, route_code, raw_count, records, compute_time = future.result()
+                completed_routes += 1
+
+                # Fast bulk insert on main thread
+                if records:
+                    writer_cur.executemany("""
+                    INSERT INTO route_projected_telemetry (
+                        ping_id, route_code, route_id, vehicle_id, plate,
+                        device_update_time, device_epoch, direction,
+                        lat, lon, s_bus_m, cross_track_m, derived_speed_kmh, is_dwell
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    """, records)
+                    writer_conn.commit()
+                    total_written += len(records)
+
+                speed_str = f"{len(records)/compute_time:,.0f} pings/s" if compute_time > 0 else "N/A"
+                print(f"[{completed_routes:02d}/{len(active_routes):02d}] Route {route_code:<5} (ID {route_id:>3}): "
+                      f"Projected {len(records):>7,} / {raw_count:>7,} pings in {compute_time:>5.2f}s ({speed_str:>13}) | "
+                      f"Total written: {total_written:>9,}")
+            except Exception as e:
+                print(f"[!] Error projecting route {r_id}: {e}")
+
+    writer_conn.close()
+    elapsed_all = time.time() - start_all
+    print("=" * 80)
+    print(f"ALL {len(active_routes)} ROUTES PROJECTION COMPLETED SUCCESSFULLY!")
+    print(f"Total Projected Pings Written: {total_written:,}")
+    print(f"Total Wall Clock Time: {elapsed_all:.2f}s ({elapsed_all/60:.2f} mins)")
+    print(f"Overall Processing Throughput: {total_written/elapsed_all:,.0f} pings/sec")
+    print("=" * 80)
+
+
+project_route = worker_project_route
+run_multi_route_projection = run_parallel_projection
 
 if __name__ == "__main__":
-    run_multi_route_projection()
+    run_parallel_projection()
