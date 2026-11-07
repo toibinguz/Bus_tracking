@@ -12,11 +12,14 @@ module_1_data_ingestion_and_preprocessing/
 │   ├── cloud_crawler_runner.py                # Entrypoint chạy trên GitHub Actions (9 phút/phiên)
 │   ├── local_production_crawler.py            # Crawler chạy trên máy trạm / VPS Windows / Linux
 │   └── hf_lake_sync.py                        # Đồng bộ dữ liệu batch từ Hugging Face về Local
-├── step_1_3_telemetry_kinematic_sanitizer/    # Tầng làm sạch động học & lọc trôi dạt
+├── step_1_3_telemetry_kinematic_sanitizer/    # Tầng làm sạch động học, nạp lô & tách chuyến
+│   ├── bulk_ping_ingester.py                  # Nạp và khử trùng lặp pings thô vào vehicle_unique_pings
 │   ├── kinematic_engine.py                    # Tính khoảng cách Haversine & động học vi phân
-│   └── telemetry_sanitizer.py                 # Chuẩn hóa WGS84, lọc tọa độ ngoại lai
+│   ├── telemetry_sanitizer.py                 # Chuẩn hóa WGS84, lọc tọa độ ngoại lai
+│   └── trip_segmenter.py                      # Tách chuyến có nối lỗ thủng detour & cắt đuôi bến đỗ
 ├── step_1_4_frenet_spatial_projection/        # Tầng chiếu hóa hình học 1D (Frenet Frame)
-│   └── multi_route_projector.py               # Vectorized projector chiếu pings lên tim đường
+│   ├── multi_route_projector.py               # Vectorized projector chiếu pings lên tim đường (48 tuyến)
+│   └── tomtom_incident_projector.py           # Chiếu sự cố giao thông TomTom khớp đoạn trạm
 └── step_1_5_busmap_canonical_migration/       # Tầng nạp Ground Truth BusMap Canonical
     └── ingest_busmap_canonical.py             # Script nạp 176 tuyến, 13.301 trạm, 118.563 shape points
 ```

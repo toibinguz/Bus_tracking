@@ -20,15 +20,26 @@ from datetime import datetime
 from collections import defaultdict, Counter
 
 sys.stdout.reconfigure(encoding='utf-8')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+from config.system_config import (
+    DEFAULT_DB_PATH,
+    RAW_DATA_DIR,
+    MAX_CORRIDOR_CROSS_TRACK_M,
+    TOMTOM_MAX_BATCH_GAP_SEC,
+    TOMTOM_DEFAULT_TTL_SEC,
+    TOMTOM_MIN_COS_THETA,
+    TOMTOM_GRID_SCALE,
+    TOMTOM_BBOX_PAD_DEG,
+)
 
-DB_PATH = "data/hanoi_bus_system.db"
-INCIDENTS_GLOB = "data/raw/*/incidents/*.jsonl"
-MAX_BATCH_GAP_SEC = 1200  # 20 minutes max gap to chain consecutive batches
-DEFAULT_TTL_SEC = 900     # 15 minutes TTL for a single batch snapshot
-MAX_D_PERP_M = 35.0       # Strict corridor cross-track threshold (matches Module 1.4/3.2)
-MIN_COS_THETA = 0.50      # Angle between incident vector and bus route <= 60 degrees
-GRID_SCALE = 500.0        # ~220m grid cells for O(1) exact segment lookup
-PAD_DEG = 0.00045         # ~46m bounding box padding (> 35.0m MAX_D_PERP_M)
+DB_PATH = DEFAULT_DB_PATH
+INCIDENTS_GLOB = f"{RAW_DATA_DIR}/*/incidents/*.jsonl"
+MAX_BATCH_GAP_SEC = TOMTOM_MAX_BATCH_GAP_SEC
+DEFAULT_TTL_SEC = TOMTOM_DEFAULT_TTL_SEC
+MAX_D_PERP_M = MAX_CORRIDOR_CROSS_TRACK_M
+MIN_COS_THETA = TOMTOM_MIN_COS_THETA
+GRID_SCALE = TOMTOM_GRID_SCALE
+PAD_DEG = TOMTOM_BBOX_PAD_DEG
 
 
 def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:

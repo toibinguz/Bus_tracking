@@ -25,7 +25,25 @@ if sys.stdout.encoding != 'utf-8':
         pass
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DB_PATH = os.path.join(BASE_DIR, "data", "hanoi_bus_system.db")
+sys.path.insert(0, BASE_DIR)
+
+from config.system_config import (
+    DEFAULT_DB_PATH,
+    CANONICAL_START_DATE,
+    MIN_CLUSTER_ROUTE_DAYS,
+    HANOI_BBOX,
+    METERS_PER_DEG_LON_EQUATOR,
+    METERS_PER_DEG_LAT,
+    MAX_CORRIDOR_CROSS_TRACK_M,
+    MAX_GPS_BACKWARD_JITTER_M,
+    FRENET_MIN_FORWARD_WINDOW_M,
+    FRENET_MAX_SPEED_MPS,
+    GPS_DRIFT_MAX_SPEED_KMPH,
+    STALE_DELTA_T_MAX_SEC,
+    TERMINAL_RESET_ZONE_M,
+)
+
+DB_PATH = os.path.join(BASE_DIR, DEFAULT_DB_PATH)
 
 
 def project_points_to_shape(
@@ -49,8 +67,8 @@ def project_points_to_shape(
         return []
 
     mean_lat = np.mean(s_lats)
-    kx = 111320.0 * math.cos(math.radians(mean_lat))
-    ky = 110540.0
+    kx = METERS_PER_DEG_LON_EQUATOR * math.cos(math.radians(mean_lat))
+    ky = METERS_PER_DEG_LAT
 
     x1 = s_lons[:-1] * kx
     y1 = s_lats[:-1] * ky
@@ -64,6 +82,7 @@ def project_points_to_shape(
     cum_starts = s_cums[:-1]
     seg_lens = np.sqrt(seg_lens_sq)
     n_segs = len(dx)
+    route_len = float(s_cums[-1])
 
     results = []
     prev_s = None
@@ -73,13 +92,16 @@ def project_points_to_shape(
         px = p_lon * kx
         py = p_lat * ky
 
-        # 1. Forward Sliding Window Guard within active trip (dt <= 300s)
+        # 1. Forward Sliding Window Guard within active trip (dt <= STALE_DELTA_T_MAX_SEC)
         use_window = False
+        dt = None
         if prev_s is not None and prev_epoch is not None:
             dt = p_epoch - prev_epoch
-            if 0 < dt <= 300.0:
-                max_forward = max(1500.0, dt * 25.0)  # max 25 m/s (90 km/h)
-                win_s_min = max(0.0, prev_s - 20.0)
+            if dt <= 0:
+                continue
+            if dt <= STALE_DELTA_T_MAX_SEC:
+                max_forward = max(FRENET_MIN_FORWARD_WINDOW_M, dt * FRENET_MAX_SPEED_MPS)
+                win_s_min = max(0.0, prev_s - MAX_GPS_BACKWARD_JITTER_M)
                 win_s_max = prev_s + max_forward
 
                 idx_start = max(0, int(np.searchsorted(cum_starts, win_s_min, side='left')) - 1)
@@ -106,13 +128,14 @@ def project_points_to_shape(
             min_d = math.sqrt(dist_sq[best_local_seg])
 
             # If within acceptable corridor tolerance, lock onto forward projection
-            if min_d <= 45.0:
+            if min_d <= MAX_CORRIDOR_CROSS_TRACK_M:
                 best_t = t[best_local_seg]
-                best_s = sub_cum_starts[best_local_seg] + best_t * sub_seg_lens[best_local_seg]
-                results.append((ping_id, round(best_s, 1), round(min_d, 1)))
-                prev_s = best_s
-                prev_epoch = p_epoch
-                continue
+                best_s = round(float(sub_cum_starts[best_local_seg] + best_t * sub_seg_lens[best_local_seg]), 1)
+                if round(best_s - prev_s, 1) >= -MAX_GPS_BACKWARD_JITTER_M:
+                    results.append((ping_id, best_s, round(min_d, 1)))
+                    prev_s = best_s
+                    prev_epoch = p_epoch
+                    continue
 
         # 2. Global Search Fallback (trip restarts, terminal resets, major detours)
         p_dx1 = px - x1
@@ -125,11 +148,24 @@ def project_points_to_shape(
 
         min_d = math.sqrt(dist_sq[best_seg])
         best_t = t[best_seg]
-        best_s = cum_starts[best_seg] + best_t * seg_lens[best_seg]
+        best_s = round(float(cum_starts[best_seg] + best_t * seg_lens[best_seg]), 1)
 
-        results.append((ping_id, round(best_s, 1), round(min_d, 1)))
-        prev_s = best_s
-        prev_epoch = p_epoch
+        # Guard against unphysical mid-route backward jumps within an active trip (0 < dt <= STALE_DELTA_T_MAX_SEC)
+        if min_d <= MAX_CORRIDOR_CROSS_TRACK_M:
+            if prev_s is not None and dt is not None and (0 < dt <= STALE_DELTA_T_MAX_SEC):
+                ds = round(best_s - prev_s, 1)
+                if ds < -MAX_GPS_BACKWARD_JITTER_M:
+                    is_turnaround_reset = (
+                        route_len > 1000.0
+                        and prev_s >= (route_len - TERMINAL_RESET_ZONE_M)
+                        and best_s <= TERMINAL_RESET_ZONE_M
+                    )
+                    if not is_turnaround_reset:
+                        # Reject mid-route backward jump (wrong-way or loop self-intersection snap)
+                        continue
+            results.append((ping_id, best_s, round(min_d, 1)))
+            prev_s = best_s
+            prev_epoch = p_epoch
 
     return results
 
@@ -146,10 +182,13 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
     pings_query = """
     SELECT ping_id, vehicle_id, plate, device_update_time, device_epoch, direction, lat, lon, current_station_id
     FROM vehicle_unique_pings
-    WHERE route_id = ? AND lat > 20.0 AND lon > 105.0 AND device_update_time >= '2026-10-08'
+    WHERE route_id = ? AND lat > ? AND lon > ? AND device_update_time >= ?
     ORDER BY vehicle_id, device_epoch;
     """
-    pings = cur.execute(pings_query, (route_id,)).fetchall()
+    pings = cur.execute(
+        pings_query,
+        (route_id, HANOI_BBOX["min_lat"], HANOI_BBOX["min_lon"], CANONICAL_START_DATE),
+    ).fetchall()
     conn.close()
 
     if not pings or (not shapes.get("go") and not shapes.get("re")):
@@ -158,7 +197,7 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
     # 1. Clean Direction Assignment & Depot Quarantine
     # GTFS standard: 0 -> go, 1 -> re
     # -1: Check if current_station_id is unambiguous in st_dir; if station = 0, isolate as depot
-    pings_by_veh_dir: Dict[Tuple[int, str], List[Tuple[int, float, float, float]]] = {}
+    pings_by_veh: Dict[int, List[Tuple[int, float, float, float, str]]] = {}
     ping_meta: Dict[int, Any] = {}
     quarantine_count = 0
 
@@ -178,25 +217,52 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
             quarantine_count += 1
             continue
 
-        pings_by_veh_dir.setdefault((vid, d_str), []).append((pid, lat, lon, epoch))
+        pings_by_veh.setdefault(vid, []).append((pid, lat, lon, epoch, d_str))
 
-    # 2. Execute Monotonic Projection per vehicle trajectory
+    # 2. Execute Monotonic Projection per vehicle across contiguous same-direction runs
+    #    (First collapse any short opposite-direction glitch bursts within dt <= STALE_DELTA_T_MAX_SEC)
     projected_results: Dict[int, Tuple[float, float, str]] = {}
-    for (vid, d_str), v_pings in pings_by_veh_dir.items():
-        if shapes.get(d_str) and v_pings:
-            v_pings.sort(key=lambda x: x[3])  # sort by epoch
-            res = project_points_to_shape(v_pings, shapes[d_str])
-            for pid, s_m, d_perp in res:
-                projected_results[pid] = (s_m, d_perp, d_str)
+    for vid, v_pings in pings_by_veh.items():
+        v_pings.sort(key=lambda x: x[3])  # sort chronologically by epoch
+        dir_runs: List[List[Any]] = []
+        for p_item in v_pings:
+            if not dir_runs or p_item[4] != dir_runs[-1][0]:
+                dir_runs.append([p_item[4], [p_item]])
+            else:
+                dir_runs[-1][1].append(p_item)
 
-    # 3. Calculate derived kinematics (delta_s / delta_t) per vehicle trajectory
+        idx_r = 1
+        while idx_r < len(dir_runs) - 1:
+            prev_run = dir_runs[idx_r - 1]
+            curr_run = dir_runs[idx_r]
+            next_run = dir_runs[idx_r + 1]
+            dt_span = next_run[1][0][3] - prev_run[1][-1][3]
+            if prev_run[0] == next_run[0] and 0 < dt_span <= STALE_DELTA_T_MAX_SEC:
+                # Merge short opposite-direction glitch burst into surrounding direction run
+                relabeled = [(x[0], x[1], x[2], x[3], prev_run[0]) for x in curr_run[1]]
+                prev_run[1].extend(relabeled)
+                prev_run[1].extend(next_run[1])
+                del dir_runs[idx_r : idx_r + 2]
+            else:
+                idx_r += 1
+
+        for r_dir, r_pings in dir_runs:
+            if shapes.get(r_dir) and r_pings:
+                cur_run = [(x[0], x[1], x[2], x[3]) for x in r_pings]
+                for r_pid, s_m, d_perp in project_points_to_shape(cur_run, shapes[r_dir]):
+                    projected_results[r_pid] = (s_m, d_perp, r_dir)
+
+    # 3. Filter to strict Silver corridor (d_perp <= MAX_CORRIDOR_CROSS_TRACK_M) FIRST,
+    #    then calculate derived kinematics (delta_s / delta_t) per vehicle trajectory
     records = []
     vehicles: Dict[int, List[Tuple[int, float, Tuple[float, float, str]]]] = {}
     for p in pings:
         pid = p[0]
         if pid in projected_results:
-            vid = p[1]
-            vehicles.setdefault(vid, []).append((pid, p[4], projected_results[pid]))
+            s_m, d_perp, d_str = projected_results[pid]
+            if d_perp <= MAX_CORRIDOR_CROSS_TRACK_M:
+                vid = p[1]
+                vehicles.setdefault(vid, []).append((pid, p[4], (s_m, d_perp, d_str)))
 
     for vid, v_pings in vehicles.items():
         v_pings.sort(key=lambda x: x[1])  # sort by epoch
@@ -209,23 +275,18 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
             if i > 0:
                 prev_pid, prev_epoch, (prev_s, prev_d_perp, prev_d_str) = v_pings[i - 1]
                 dt = epoch - prev_epoch
-                ds = s_m - prev_s
+                ds = round(s_m - prev_s, 1)
 
                 # Strict Corridor Chain Rule:
-                # Both points must be within corridor (d_perp <= 35m) on same direction trip.
-                # Speed capped at physical urban limit (80 km/h).
-                is_corridor_chain = (d_perp <= 35.0) and (prev_d_perp <= 35.0)
-                is_same_trip = (0 < dt <= 300.0) and (d_str == prev_d_str) and (ds >= -30.0)
+                # Both points are already guaranteed within corridor (d_perp <= MAX_CORRIDOR_CROSS_TRACK_M).
+                # Speed capped at physical urban limit (GPS_DRIFT_MAX_SPEED_KMPH).
+                is_same_trip = (0 < dt <= STALE_DELTA_T_MAX_SEC) and (d_str == prev_d_str) and (ds >= -MAX_GPS_BACKWARD_JITTER_M)
 
-                if is_corridor_chain and is_same_trip:
-                    v_mps = abs(ds) / dt
+                if is_same_trip:
+                    v_mps = max(0.0, ds) / dt
                     spd_kmh = round(v_mps * 3.6, 2)
-                    if spd_kmh <= 80.0:
+                    if spd_kmh <= GPS_DRIFT_MAX_SPEED_KMPH:
                         derived_speed_kmh = spd_kmh
-
-            # Strict Silver corridor boundary: only keep on-corridor pings (d_perp <= 35.0m)
-            if d_perp > 35.0:
-                continue
 
             records.append((
                 pid,
@@ -241,7 +302,6 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
                 s_m,
                 d_perp,
                 derived_speed_kmh,
-                0         # is_dwell removed (always 0)
             ))
 
     compute_time = time.time() - t0
@@ -263,7 +323,10 @@ def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] =
     cur.execute("PRAGMA cache_size = -1048576;")  # 1 GB cache
     cur.execute("PRAGMA temp_store = MEMORY;")
 
-    # Ensure table exists
+    # Ensure table exists with clean 13-column Silver schema (no dead is_dwell column)
+    cur.execute("DROP VIEW IF EXISTS v_bus_to_next_station;")
+    cur.execute("DROP VIEW IF EXISTS v_active_fleet_summary;")
+    cur.execute("DROP TABLE IF EXISTS route_projected_telemetry;")
     cur.execute("""
     CREATE TABLE IF NOT EXISTS route_projected_telemetry (
         ping_id INTEGER PRIMARY KEY,
@@ -278,8 +341,7 @@ def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] =
         lon REAL NOT NULL,
         s_bus_m REAL NOT NULL,
         cross_track_m REAL NOT NULL,
-        derived_speed_kmh REAL,
-        is_dwell INTEGER DEFAULT 0
+        derived_speed_kmh REAL
     );
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_code ON route_projected_telemetry (route_code);")
@@ -311,18 +373,18 @@ def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] =
             shapes_by_route[r_id][d].append((pt_order, lat, lon, cum_dist))
     print(f"Loaded shapes for {len(shapes_by_route)} routes.")
 
-    # Find the 48 active cluster routes with persistent telemetry (>= 5 days)
+    # Find the 48 active cluster routes with persistent telemetry (>= MIN_CLUSTER_ROUTE_DAYS days)
     routes_query = """
     SELECT DISTINCT r.route_id, r.route_code, count(t.ping_id) as pings
     FROM canonical_route_master r
     JOIN vehicle_unique_pings t ON r.route_id = t.route_id
     WHERE r.route_id IN (SELECT DISTINCT route_id FROM canonical_shape_master)
-      AND t.device_update_time >= '2026-10-08'
+      AND t.device_update_time >= ?
     GROUP BY r.route_id, r.route_code
-    HAVING count(DISTINCT t.date_tag) >= 5
+    HAVING count(DISTINCT t.date_tag) >= ?
     ORDER BY pings DESC;
     """
-    active_routes = cur.execute(routes_query).fetchall()
+    active_routes = cur.execute(routes_query, (CANONICAL_START_DATE, MIN_CLUSTER_ROUTE_DAYS)).fetchall()
     print(f"[*] Found {len(active_routes)} active routes requiring Frenet projection.")
 
     conn.close()
@@ -367,8 +429,8 @@ def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] =
                     INSERT INTO route_projected_telemetry (
                         ping_id, route_code, route_id, vehicle_id, plate,
                         device_update_time, device_epoch, direction,
-                        lat, lon, s_bus_m, cross_track_m, derived_speed_kmh, is_dwell
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                        lat, lon, s_bus_m, cross_track_m, derived_speed_kmh
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                     """, records)
                     writer_conn.commit()
                     total_written += len(records)
@@ -381,6 +443,13 @@ def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] =
                 print(f"[!] Error projecting route {r_id}: {e}")
 
     writer_conn.close()
+
+    # Recreate clean operational SQL views in SQLite
+    from module_2_big_data_storage_and_lakehouse.step_2_1_sqlite_operational_store.db_manager import (
+        OperationalDatabaseManager,
+    )
+    OperationalDatabaseManager(db_path=db_path)
+
     elapsed_all = time.time() - start_all
     print("=" * 80)
     print(f"ALL {len(active_routes)} ROUTES PROJECTION COMPLETED SUCCESSFULLY!")

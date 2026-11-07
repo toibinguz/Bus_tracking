@@ -38,6 +38,8 @@ class OperationalDatabaseManager:
         """Create or replace global analytical views for ETA and monitoring."""
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
+            cur.execute("DROP VIEW IF EXISTS v_bus_to_next_station;")
+            cur.execute("DROP VIEW IF EXISTS v_active_fleet_summary;")
             # 1. Global View: Bus to Next Station for ALL routes
             cur.execute("""
             CREATE VIEW IF NOT EXISTS v_bus_to_next_station AS
@@ -55,7 +57,6 @@ class OperationalDatabaseManager:
                 t.s_bus_m,
                 t.cross_track_m,
                 t.derived_speed_kmh,
-                t.is_dwell,
                 s.station_order AS next_station_order,
                 s.station_id AS next_station_id,
                 s.station_name AS next_station_name,
@@ -82,8 +83,7 @@ class OperationalDatabaseManager:
                 count(DISTINCT vehicle_id) as active_buses,
                 count(ping_id) as total_projected_pings,
                 round(avg(cross_track_m), 2) as avg_cross_track_m,
-                round(avg(derived_speed_kmh), 2) as avg_speed_kmh,
-                sum(is_dwell) as total_dwell_events
+                round(avg(derived_speed_kmh), 2) as avg_speed_kmh
             FROM route_projected_telemetry
             GROUP BY route_code
             ORDER BY total_projected_pings DESC;

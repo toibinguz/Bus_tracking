@@ -59,7 +59,8 @@ from .step_1_3_telemetry_kinematic_sanitizer.telemetry_sanitizer import (
 )
 
 from .step_1_3_telemetry_kinematic_sanitizer.trip_segmenter import (
-    segment_trajectory_into_trips
+    segment_trajectory_into_trips,
+    trim_terminal_stationary_ends,
 )
 
 try:
@@ -67,11 +68,15 @@ try:
         project_route,
         run_multi_route_projection
     )
+    from .step_1_4_frenet_spatial_projection.tomtom_incident_projector import (
+        main as run_tomtom_incident_projection
+    )
 except ImportError:
     # Optional dependency: numpy is only required for 1D spatial Frenet projection (Step 1.4)
     # The Cloud Crawler (Step 1.1) runs on pure standard library without third-party dependencies.
     project_route = None
     run_multi_route_projection = None
+    run_tomtom_incident_projection = None
 
 __all__ = [
     # Step 1.1: Telemetry & Ingestion

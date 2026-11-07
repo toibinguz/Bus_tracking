@@ -22,10 +22,14 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-DB_PATH = Path("data/hanoi_bus_system.db")
-DATA_DIR = Path("data/ground_truth/busmap_canonical")
+BASE_DIR = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(BASE_DIR))
+from config.system_config import DEFAULT_DB_PATH, METERS_PER_DEG_LON_EQUATOR, METERS_PER_DEG_LAT
+
+DB_PATH = BASE_DIR / DEFAULT_DB_PATH
+DATA_DIR = BASE_DIR / "data" / "ground_truth" / "busmap_canonical"
 if not DATA_DIR.exists():
-    DATA_DIR = Path("hanoi_bus_data")
+    DATA_DIR = BASE_DIR / "hanoi_bus_data"
 
 ROUTES_GEOJSON = DATA_DIR / "hanoi_bus_routes.geojson"
 STATIONS_GEOJSON = DATA_DIR / "hanoi_bus_stations.geojson"
@@ -64,7 +68,13 @@ def project_station_to_shape(
     flight_dist = haversine_m(prev_lat, prev_lon, lat, lon) if (prev_lat is not None and prev_lon is not None) else 1000.0
     upper_s = min_s + max(4000.0, 3.0 * flight_dist)
 
-    # First pass: search within progressive forward corridor [lower_s, upper_s]
+    # First pass: exact orthogonal vector projection within progressive forward corridor [lower_s, upper_s]
+    mean_lat = sum(p[0] for p in poly) / len(poly)
+    kx = METERS_PER_DEG_LON_EQUATOR * math.cos(math.radians(mean_lat))
+    ky = METERS_PER_DEG_LAT
+    px = lon * kx
+    py = lat * ky
+
     for i in range(len(poly) - 1):
         p1 = poly[i]
         p2 = poly[i + 1]
@@ -72,22 +82,21 @@ def project_station_to_shape(
         if max(p1[2], p2[2]) < lower_s or min(p1[2], p2[2]) > upper_s:
             continue
 
-        d1 = haversine_m(lat, lon, p1[0], p1[1])
-        d2 = haversine_m(lat, lon, p2[0], p2[1])
-        seg_len = haversine_m(p1[0], p1[1], p2[0], p2[1])
+        x1_m, y1_m = p1[1] * kx, p1[0] * ky
+        x2_m, y2_m = p2[1] * kx, p2[0] * ky
+        dx = x2_m - x1_m
+        dy = y2_m - y1_m
+        seg_len_sq = dx * dx + dy * dy
 
-        if seg_len < 1e-4:
+        if seg_len_sq < 1e-6:
+            d1 = math.hypot(px - x1_m, py - y1_m)
             if d1 < min_d and p1[2] >= lower_s:
                 min_d = d1
                 best_s = p1[2]
             continue
 
-        t = (d1 ** 2 - d2 ** 2 + seg_len ** 2) / (2.0 * seg_len ** 2)
-        t = max(0.0, min(1.0, t))
-
-        interp_lat = p1[0] + t * (p2[0] - p1[0])
-        interp_lon = p1[1] + t * (p2[1] - p1[1])
-        d_proj = haversine_m(lat, lon, interp_lat, interp_lon)
+        t = max(0.0, min(1.0, ((px - x1_m) * dx + (py - y1_m) * dy) / seg_len_sq))
+        d_proj = math.hypot(px - (x1_m + t * dx), py - (y1_m + t * dy))
         s_proj = p1[2] + t * (p2[2] - p1[2])
 
         if s_proj >= lower_s and d_proj < min_d:
@@ -101,15 +110,15 @@ def project_station_to_shape(
             p2 = poly[i + 1]
             if max(p1[2], p2[2]) < lower_s:
                 continue
-            d1 = haversine_m(lat, lon, p1[0], p1[1])
-            d2 = haversine_m(lat, lon, p2[0], p2[1])
-            seg_len = haversine_m(p1[0], p1[1], p2[0], p2[1])
-            if seg_len < 1e-4:
+            x1_m, y1_m = p1[1] * kx, p1[0] * ky
+            x2_m, y2_m = p2[1] * kx, p2[0] * ky
+            dx = x2_m - x1_m
+            dy = y2_m - y1_m
+            seg_len_sq = dx * dx + dy * dy
+            if seg_len_sq < 1e-6:
                 continue
-            t = max(0.0, min(1.0, (d1 ** 2 - d2 ** 2 + seg_len ** 2) / (2.0 * seg_len ** 2)))
-            interp_lat = p1[0] + t * (p2[0] - p1[0])
-            interp_lon = p1[1] + t * (p2[1] - p1[1])
-            d_proj = haversine_m(lat, lon, interp_lat, interp_lon)
+            t = max(0.0, min(1.0, ((px - x1_m) * dx + (py - y1_m) * dy) / seg_len_sq))
+            d_proj = math.hypot(px - (x1_m + t * dx), py - (y1_m + t * dy))
             s_proj = p1[2] + t * (p2[2] - p1[2])
             if s_proj >= lower_s and d_proj < min_d:
                 min_d = d_proj

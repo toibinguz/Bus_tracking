@@ -20,8 +20,17 @@ if sys.stdout.encoding != 'utf-8':
         pass
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DB_PATH = os.path.join(BASE_DIR, "data", "hanoi_bus_system.db")
-RAW_DATA_DIR = os.path.join(BASE_DIR, "data", "raw")
+sys.path.insert(0, BASE_DIR)
+
+from config.system_config import (
+    DEFAULT_DB_PATH,
+    RAW_DATA_DIR as CFG_RAW_DATA_DIR,
+    CANONICAL_START_DATE,
+    HANOI_BBOX,
+)
+
+DB_PATH = os.path.join(BASE_DIR, DEFAULT_DB_PATH)
+RAW_DATA_DIR = os.path.join(BASE_DIR, CFG_RAW_DATA_DIR)
 
 def main():
     print("=" * 70)
@@ -44,7 +53,10 @@ def main():
         print(f"[ERROR] Source directory not found: {RAW_DATA_DIR}")
         return
 
-    all_dates = sorted([d for d in os.listdir(RAW_DATA_DIR) if os.path.isdir(os.path.join(RAW_DATA_DIR, d))])
+    all_dates = sorted([
+        d for d in os.listdir(RAW_DATA_DIR)
+        if os.path.isdir(os.path.join(RAW_DATA_DIR, d)) and d >= CANONICAL_START_DATE
+    ])
     print(f"📅 Found {len(all_dates)} date directories: {all_dates}")
 
     # Check already ingested dates
@@ -113,7 +125,7 @@ def main():
 
                         lat = float(row.get("lat", 0.0) or 0.0)
                         lon = float(row.get("lon", 0.0) or 0.0)
-                        if lat < 20.0 or lon < 105.0:  # Valid bounds check
+                        if lat < HANOI_BBOX["min_lat"] or lon < HANOI_BBOX["min_lon"]:  # Valid bounds check
                             continue
 
                         crawled_at = row.get("crawled_at", "")

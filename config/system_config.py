@@ -144,10 +144,37 @@ TOMTOM_PEAK_INTERVAL_SEC = 300             # 5 phút (tương thích ngược)
 TOMTOM_OFFPEAK_INTERVAL_SEC = 600          # 10 phút (tương thích ngược)
 
 # -------------------------------------------------------------
-# 5. DATA QUALITY & TRAFFIC THRESHOLDS
+# 5. DATA QUALITY, FRENET PROJECTION & KINEMATIC THRESHOLDS
 # -------------------------------------------------------------
-MAX_CORRIDOR_CROSS_TRACK_M = 35.0         # Ngưỡng lệch tim đường d_perp tối đa để đưa vào ma trận ETA (Doc 54)
-GPS_DRIFT_MAX_SPEED_KMPH = 80.0          # Vận tốc tối đa vật lý xe buýt nội đô Hà Nội
+CANONICAL_START_DATE = "2026-10-08"          # Ngày bắt đầu chiến dịch dữ liệu chuẩn
+MIN_CLUSTER_ROUTE_DAYS = 5                   # Tối thiểu 5 ngày hoạt động để xác định 48 tuyến cụm HUST
+RAW_DATA_DIR = "data/raw"                    # Thư mục chuẩn duy nhất chứa dữ liệu thô JSONL
+
+METERS_PER_DEG_LON_EQUATOR = 111320.0        # Hệ số quy đổi kinh độ sang mét tại xích đạo (WGS84)
+METERS_PER_DEG_LAT = 110540.0                # Hệ số quy đổi vĩ độ sang mét (WGS84)
+
+MAX_CORRIDOR_CROSS_TRACK_M = 35.0            # Ngưỡng lệch tim đường d_perp tối đa (m) cho toàn tầng Silver
+MAX_GPS_BACKWARD_JITTER_M = 20.0             # Dung sai nhiễu GPS giật lùi tại chỗ khi xe dừng đỗ (m)
+FRENET_MIN_FORWARD_WINDOW_M = 1500.0         # Cửa sổ tìm kiếm tiến tối thiểu trên tim đường (m)
+GPS_DRIFT_MAX_SPEED_KMPH = 80.0              # Vận tốc tối đa vật lý xe buýt đô thị Hà Nội (km/h)
+FRENET_MAX_SPEED_MPS = GPS_DRIFT_MAX_SPEED_KMPH / 3.6  # Vận tốc tối đa mở cửa sổ tiến (~22.22 m/s)
+TERMINAL_RESET_ZONE_M = 800.0                # Vùng đầu/cuối bến cho phép quay đầu bắt đầu chuyến mới (m)
+
+MAX_CONTINUOUS_GAP_SEC = 300.0               # Khoảng cách tối đa (5 phút) coi là ping liên tục trực tiếp
+MAX_BRIDGEABLE_DETOUR_GAP_SEC = 1800.0       # Khoảng trống tối đa (30 phút) cho phép nối chuyến qua detour
+MIN_DETOUR_BRIDGE_DISPLACEMENT_M = 100.0     # Quãng đường tiến tối thiểu để nối chuyến qua lỗ thủng detour
+MIN_DETOUR_BRIDGE_SPEED_KMPH = 2.0           # Vận tốc trung bình tối thiểu qua đoạn detour (km/h)
+MAX_DETOUR_BRIDGE_SPEED_KMPH = 60.0          # Vận tốc trung bình tối đa qua đoạn detour (km/h)
+MAX_BACKWARD_RESET_M = 200.0                 # Bước lùi xác nhận xe đã quay đầu chuyến mới (m)
+MIN_PINGS_PER_TRIP = 5                       # Số bản tin tối thiểu của 1 chuyến hợp lệ
+MIN_TRIP_DISTANCE_M = 500.0                  # Quãng đường tối thiểu của 1 chuyến hợp lệ (m)
+TERMINAL_STATIONARY_TOL_M = 15.0             # Ngưỡng dịch chuyển cắt bỏ đuôi xe đỗ nghỉ tại bến (m)
+
+TOMTOM_MAX_BATCH_GAP_SEC = 1200              # Khoảng cách tối đa nối 2 batch sự cố TomTom liên tiếp (20 phút)
+TOMTOM_DEFAULT_TTL_SEC = 900                 # Thời gian hiệu lực mặc định của 1 snapshot sự cố (15 phút)
+TOMTOM_MIN_COS_THETA = 0.50                  # Góc lệch tối đa (<= 60 độ) giữa vector sự cố và hướng tuyến
+TOMTOM_GRID_SCALE = 500.0                    # Độ chia lưới không gian O(1) chiếu sự cố (~220m)
+TOMTOM_BBOX_PAD_DEG = 0.00045                # Đệm khung bao không gian chiếu sự cố (~46m)
 BUS_STOPPED_SPEED_KMPH = 5.0             # Vận tốc xe bò/dừng đón trả khách
 CONGESTION_AVG_SPEED_KMPH = 13.0         # Ngưỡng vận tốc trung bình kích hoạt ùn tắc nút
 CONGESTION_CORE_CRITICAL_SPEED_KMPH = 10.0 # Ngưỡng ùn tắc nghiêm trọng tại nút lõi Bách Khoa

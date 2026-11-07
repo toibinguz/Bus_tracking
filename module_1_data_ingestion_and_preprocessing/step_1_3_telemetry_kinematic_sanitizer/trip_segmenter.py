@@ -7,20 +7,32 @@ Implements Checklist 1, 2, and 3 from docs/03_SILVER_TRAJECTORY_CONTINUITY_AND_E
 - Trims stationary tail pings at destination terminals (where raw_dir stays frozen while parked).
 """
 
+import os
+import sys
 from typing import List, Tuple, Any, Optional
 
-MAX_CONTINUOUS_GAP_SEC = 300.0
-MAX_BRIDGEABLE_DETOUR_GAP_SEC = 1800.0
-MAX_BACKWARD_JITTER_M = 50.0
-MAX_BACKWARD_RESET_M = 200.0
-MIN_PINGS_PER_TRIP = 5
-MIN_TRIP_DISTANCE_M = 500.0
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+from config.system_config import (
+    MAX_CONTINUOUS_GAP_SEC,
+    MAX_BRIDGEABLE_DETOUR_GAP_SEC,
+    MAX_GPS_BACKWARD_JITTER_M,
+    MAX_BACKWARD_RESET_M,
+    MIN_PINGS_PER_TRIP,
+    MIN_TRIP_DISTANCE_M,
+    TERMINAL_STATIONARY_TOL_M,
+    TERMINAL_RESET_ZONE_M,
+    MIN_DETOUR_BRIDGE_DISPLACEMENT_M,
+    MIN_DETOUR_BRIDGE_SPEED_KMPH,
+    MAX_DETOUR_BRIDGE_SPEED_KMPH,
+)
+
+MAX_BACKWARD_JITTER_M = MAX_GPS_BACKWARD_JITTER_M
 
 
 def trim_terminal_stationary_ends(
     trip: List[Tuple[Any, ...]],
     s_idx: int = 10,
-    stationary_tol_m: float = 15.0,
+    stationary_tol_m: float = TERMINAL_STATIONARY_TOL_M,
 ) -> List[Tuple[Any, ...]]:
     """
     Checklist 2 & 3:
@@ -84,14 +96,14 @@ def segment_trajectory_into_trips(
         # Terminal turnaround detection
         is_terminal_reset = False
         if shape_len_m and shape_len_m > 1000.0:
-            if prev_s >= (shape_len_m - 800.0) and s <= 800.0:
+            if prev_s >= (shape_len_m - TERMINAL_RESET_ZONE_M) and s <= TERMINAL_RESET_ZONE_M:
                 is_terminal_reset = True
 
         # Check if a 300s..1800s gap is a valid mid-trip detour/signal dropout bridge
         is_valid_detour_bridge = False
-        if MAX_CONTINUOUS_GAP_SEC < dt <= MAX_BRIDGEABLE_DETOUR_GAP_SEC and ds > 100.0:
+        if MAX_CONTINUOUS_GAP_SEC < dt <= MAX_BRIDGEABLE_DETOUR_GAP_SEC and ds > MIN_DETOUR_BRIDGE_DISPLACEMENT_M:
             avg_spd_kmh = (ds / dt) * 3.6
-            if 2.0 <= avg_spd_kmh <= 60.0:
+            if MIN_DETOUR_BRIDGE_SPEED_KMPH <= avg_spd_kmh <= MAX_DETOUR_BRIDGE_SPEED_KMPH:
                 is_valid_detour_bridge = True
 
         is_break = (

@@ -1,9 +1,9 @@
 """
 Independent Quality & Purity Audit of Silver Parquet Lakehouse
-Scans all 912 partitions in data/lakehouse/silver/route_projected_telemetry.
+Scans all partitions in data/lakehouse/silver/route_projected_telemetry.
 Asserts:
-1. All partitions readable by PyArrow with valid schema
-2. 100% of rows have cross_track_m <= 35.0m
+1. All partitions readable by PyArrow with valid 12-column schema (no is_dwell)
+2. 100% of rows have cross_track_m <= MAX_CORRIDOR_CROSS_TRACK_M (35.0m)
 3. 100% of rows have direction in ('go', 're')
 4. Zero NaN/null in critical coordinates (s_bus_m, cross_track_m, device_epoch)
 """
@@ -20,7 +20,11 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-SILVER_DIR = "data/lakehouse/silver/route_projected_telemetry"
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+sys.path.insert(0, os.path.abspath("."))
+from config.system_config import DEFAULT_LAKEHOUSE_ROOT, MAX_CORRIDOR_CROSS_TRACK_M
+
+SILVER_DIR = os.path.join(DEFAULT_LAKEHOUSE_ROOT, "silver", "route_projected_telemetry")
 
 
 def audit_silver():
@@ -36,7 +40,7 @@ def audit_silver():
     
     total_files = len(dataset.files)
     print(f"[*] Found {total_files} Parquet partition files.")
-    assert total_files >= 900, f"Expected >= 900 partitions, found {total_files}"
+    assert total_files >= 1100, f"Expected >= 1100 partitions, found {total_files}"
 
     # Scan dataset columns using PyArrow scanner
     scanner = dataset.scanner(columns=["direction", "s_bus_m", "cross_track_m", "derived_speed_kmh"])
@@ -64,7 +68,7 @@ def audit_silver():
             max_dperp = batch_max_dperp
         sum_dperp += float(dperp_arr.to_numpy().sum())
 
-        off_corr = int((dperp_arr.to_numpy() > 35.0).sum())
+        off_corr = int((dperp_arr.to_numpy() > MAX_CORRIDOR_CROSS_TRACK_M).sum())
         off_corridor_rows += off_corr
 
         # Check directions
@@ -85,13 +89,13 @@ def audit_silver():
     print(f"[*] Invalid Directions: {invalid_directions}")
     print(f"[*] Average Cross-Track Error (d_perp): {avg_dperp:.2f}m")
     print(f"[*] Maximum Cross-Track Error (d_perp): {max_dperp:.2f}m")
-    print(f"[*] Off-Corridor Rows (> 35m): {off_corridor_rows}")
+    print(f"[*] Off-Corridor Rows (> {MAX_CORRIDOR_CROSS_TRACK_M}m): {off_corridor_rows}")
     print(f"[*] Scan Throughput: {total_rows/elapsed:,.0f} rows/s in {elapsed:.2f}s")
 
     assert invalid_directions == 0, f"Found {invalid_directions} invalid directions!"
     assert off_corridor_rows == 0, f"Found {off_corridor_rows} off-corridor rows!"
-    assert max_dperp <= 35.0, f"Max d_perp {max_dperp} exceeds 35.0m!"
-    assert total_rows >= 4_300_000, f"Total rows {total_rows} below expected 4.3M threshold"
+    assert max_dperp <= MAX_CORRIDOR_CROSS_TRACK_M, f"Max d_perp {max_dperp} exceeds {MAX_CORRIDOR_CROSS_TRACK_M}m!"
+    assert total_rows >= 5_000_000, f"Total rows {total_rows} below expected 5.0M threshold"
 
     print("\n" + "=" * 80)
     print("ALL SILVER LAKEHOUSE PURITY ASSERTIONS PASSED WITH 100% SUCCESS!")

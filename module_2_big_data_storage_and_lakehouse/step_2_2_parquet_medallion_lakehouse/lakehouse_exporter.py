@@ -31,9 +31,15 @@ import pyarrow.parquet as pq
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 sys.path.insert(0, os.path.abspath("."))
 
-from config.system_config import DEFAULT_DB_PATH, DEFAULT_LAKEHOUSE_ROOT, get_database_path
+from config.system_config import (
+    DEFAULT_DB_PATH,
+    DEFAULT_LAKEHOUSE_ROOT,
+    RAW_DATA_DIR,
+    MAX_CORRIDOR_CROSS_TRACK_M,
+    get_database_path,
+)
 
-INCIDENTS_GLOB = "data/raw/*/incidents/*.jsonl"
+INCIDENTS_GLOB = f"{RAW_DATA_DIR}/*/incidents/*.jsonl"
 
 
 def export_bronze_tomtom_incidents(
@@ -208,10 +214,10 @@ def export_to_parquet_lakehouse(
                    lat, lon, s_bus_m, cross_track_m, derived_speed_kmh,
                    substr(device_update_time, 1, 10) AS dt
             FROM route_projected_telemetry
-            WHERE route_code = ? AND cross_track_m <= 35.0
+            WHERE route_code = ? AND cross_track_m <= ?
             """,
             conn,
-            params=[rc],
+            params=[rc, MAX_CORRIDOR_CROSS_TRACK_M],
         )
 
         for d_val, sub_df in df.groupby("dt"):
