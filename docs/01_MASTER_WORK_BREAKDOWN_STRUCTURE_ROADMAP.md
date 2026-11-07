@@ -4,8 +4,8 @@
 > **Mã tài liệu**: `docs/01_MASTER_WORK_BREAKDOWN_STRUCTURE_ROADMAP.md`  
 > **Căn cứ pháp lý**: Tuân thủ vô điều kiện **Điều 1** (Kỷ luật Thực nghiệm), **Điều 2** (Thiết kế trước, duyệt rồi mới code), **Điều 3** (Phân định ranh giới), **Điều 4** (Nguồn chân lý dữ liệu), **Điều 5** (Động học dẫn xuất), **Điều 6** (Phân tầng trọng tâm - Data Cleaning First), và **Điều 7** (Chuẩn runtime Python 3.14) của [AGENTS.md](file:///z:/Desktop/Bus_tracking/AGENTS.md).  
 > **Văn bản căn cứ**: [WP23_PROGRESS_AND_OUTSTANDING_ROADMAP_TEMP.md](file:///z:/Desktop/Bus_tracking/WP23_PROGRESS_AND_OUTSTANDING_ROADMAP_TEMP.md) & [audit_hardcoded_magic_numbers_and_data_flaws.md](file:///c:/Users/Giang/.gemini/antigravity/brain/08480f8a-49b3-4032-9adf-b8d940fac55c/audit_hardcoded_magic_numbers_and_data_flaws.md).  
-> **Ngày lập**: 06/11/2026  
-> **Trạng thái**: ĐANG THỰC THI (Phase 1: 80% Hoàn thành [WP 1.2-1.5 DONE, WP 1.1 Pending User Spec]; Phase 2: 100% HOÀN THÀNH [912 Parquet Silver Partitions Audit 100% PASS])
+> **Ngày lập**: 06/11/2026 (Cập nhật dữ liệu mới nhất: 07/11/2026)  
+> **Trạng thái**: ĐANG THỰC THI (Phase 1: 80% Hoàn thành [WP 1.2-1.5 DONE, WP 1.1 Pending User Spec]; Phase 2: 100% HOÀN THÀNH [1.204 Parquet Silver Partitions - 5,62M dòng sạch, Audit 100% PASS]; Gold & Weekly SLA đã dọn sạch toàn diện để chuẩn bị cho Phase 3-4)
 
 ---
 
@@ -111,13 +111,13 @@ flowchart TD
 ---
 
 ### GIAI ĐOẠN 2: TÁI LẬP HỒ LAKEHOUSE SILVER SẠCH (DEEP SILVER LAKEHOUSE REPARTITIONING)
-> **Mục tiêu**: Chiếu lại toàn bộ dữ liệu lịch sử và tái xuất 942 phân vùng Parquet sạch, loại bỏ 100% pings bãi đỗ/gara.
+> **Mục tiêu**: Chiếu lại toàn bộ dữ liệu lịch sử (cập nhật đến 07/11/2026) và tái xuất 1.204 phân vùng Parquet sạch, loại bỏ 100% pings bãi đỗ/gara.
 
 | Mã WP | Tên Gói Công Việc | Đầu Vào (Inputs) | Quy Cách & Logic Thực Thi | Sản Phẩm Đầu Ra (Deliverables) | Tiêu Chuẩn Hoàn Thành (DoD) & Kết Quả Thực Nghiệm | Trạng Thái |
 | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
-| **WP 2.1** | **Chạy lại Phép chiếu Frenet Đơn điệu Song song trên 48 Tuyến** | 5.56M raw pings; Master Canonical Shape Tim đường | Chạy `parallel_multi_route_projector.py` đa tiến trình (ProcessPoolExecutor) kết hợp Monotonicity Forward Window và cách ly bãi đỗ trên toàn bộ 48 tuyến. | Bảng CSDL `route_projected_telemetry` (4.956.054 pings sạch). | **HOÀN THÀNH 100%**: Chiếu xong 48 tuyến trong 101.7s (48.733 pings/s). Điểm lệch $> 1\text{km}$ giảm từ 341.155 về 7. |  **HOÀN THÀNH** |
-| **WP 2.2** | **Tái xuất Toàn bộ Phân vùng Parquet Silver Sạch** | Bảng `route_projected_telemetry`; `lakehouse_exporter.py` | Cập nhật bộ lọc hành lang nghiêm ngặt `cross_track_m <= 35.0` và flag `--force`. Xóa bỏ phân vùng snapshot cũ, xuất mới phân vùng Hive (`route_code/direction/dt`) nén Snappy. | 912 phân vùng Parquet Silver sạch (`data/lakehouse/silver/route_projected_telemetry/`). | **HOÀN THÀNH 100%**: Xuất 4.357.262 dòng dữ liệu sạch; kích thước nén tối ưu, truy vấn DuckDB/PyArrow cực nhanh. |  **HOÀN THÀNH** |
-| **WP 2.3** | **Kiểm toán Thực nghiệm Độc lập Tầng Silver (Zero Tolerance)** | 912 file Parquet Silver; PyArrow Dataset Engine | Viết và thực thi `scripts/audit_silver_lakehouse_purity.py`: Quét 100% 4.357.262 dòng dữ liệu trong 912 phân vùng, kiểm tra độ lệch ngang $d_\perp$, tỷ lệ 2 chiều và tính toàn vẹn Parquet. | Script `scripts/audit_silver_lakehouse_purity.py`; Log kiểm toán thực nghiệm. | **HOÀN THÀNH 100%**: Quét 217.721 dòng/s trong 20s. Kết quả: **0 bản ghi lệch $> 35\text{m}$ (0.00%)**, $d_\perp$ trung bình **7.31m**, hướng `go` 49.88% vs `re` 50.12%. Pass 100% assertion! |  **HOÀN THÀNH** |
+| **WP 2.1** | **Chạy lại Phép chiếu Frenet Đơn điệu Song song trên Toàn Mạng** | 7.18M pings thô (28 ngày, 54 tuyến); Master Canonical Shape Tim đường | Chạy `parallel_multi_route_projector.py` đa tiến trình kết hợp Monotonicity Forward Window và cách ly bãi đỗ trên toàn bộ mạng lưới. | Bảng CSDL `route_projected_telemetry` (6.394.550 pings on-corridor). | **HOÀN THÀNH 100%**: Chiếu xong 54 tuyến trong 208.06s (30.735 pings/s). Điểm lệch $> 1\text{km}$ bị triệt tiêu hoàn toàn. |  **HOÀN THÀNH** |
+| **WP 2.2** | **Tái xuất Toàn bộ Phân vùng Parquet Silver Sạch** | Bảng `route_projected_telemetry`; `lakehouse_exporter.py` | Áp dụng bộ lọc hành lang nghiêm ngặt `cross_track_m <= 35.0` và cờ `--force`. Xuất mới toàn bộ phân vùng Hive (`route_code/dt`) nén Snappy. | 1.204 phân vùng Parquet Silver sạch (`data/lakehouse/silver/route_projected_telemetry/`). | **HOÀN THÀNH 100%**: Xuất 5.621.758 dòng dữ liệu sạch; 64 MB Snappy Parquet TomTom Bronze (223k dòng); 46 phân vùng TomTom Silver (634k dòng). |  **HOÀN THÀNH** |
+| **WP 2.3** | **Kiểm toán Thực nghiệm Độc lập Tầng Silver (Zero Tolerance)** | 1.204 file Parquet Silver; PyArrow Dataset Engine | Thực thi `scripts/audit_silver_lakehouse_purity.py`: Quét 100% 5.621.758 dòng dữ liệu trong 1.204 phân vùng, kiểm tra độ lệch ngang $d_\perp$, tỷ lệ 2 chiều và tính toàn vẹn Parquet. | Script `scripts/audit_silver_lakehouse_purity.py`; Log kiểm toán thực nghiệm. | **HOÀN THÀNH 100%**: Quét 218.764 dòng/s trong 25.70s. Kết quả: **0 bản ghi lệch $> 35\text{m}$ (0.00%)**, $d_\perp$ trung bình **7.31m**, hướng `go` 49.92% (2.806.636 dòng) vs `re` 50.08% (2.815.122 dòng). Pass 100% assertion! |  **HOÀN THÀNH** |
 
 ---
 

@@ -22,12 +22,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from config.system_config import get_database_path
 
 DB_PATH = get_database_path()
-LAKEHOUSE_PATH = "data/lakehouse/silver/route_telemetry"
+LAKEHOUSE_PATH = "data/lakehouse/silver/route_projected_telemetry"
+BRONZE_INC_PATH = "data/lakehouse/bronze/tomtom_incidents_raw"
+SILVER_INC_PATH = "data/lakehouse/silver/fact_route_tomtom_incidents"
 
 
 def verify():
     print("=" * 80)
-    print("CANONICAL 3-TIER ARCHITECTURE VERIFICATION AUDIT")
+    print("CANONICAL BRONZE & SILVER ARCHITECTURE VERIFICATION AUDIT")
     print("=" * 80)
 
     # 1. Verify SQLite Operational Database
@@ -64,32 +66,37 @@ def verify():
         print(f"  * Sample Bus: Route {row[0]} ({row[1]}) -> Next Station: {s_name[:25]} | Remaining: {row[4]:.1f}m | Speed: {row[5]} km/h")
     assert len(sample_view) == 3, "Failed to query view v_bus_to_next_station"
 
-    # 3. Verify Parquet Lakehouse
-    print("\n[3] AUDITING MODULE 2: MEDALLION PARQUET LAKEHOUSE...")
+    # 3. Verify Parquet Lakehouse (Bronze & Silver)
+    print("\n[3] AUDITING MODULE 2: MEDALLION PARQUET LAKEHOUSE (BRONZE & SILVER)...")
     assert os.path.exists(LAKEHOUSE_PATH), f"Missing lakehouse directory: {LAKEHOUSE_PATH}"
-    parquet_count = 0
-    for root, dirs, files in os.walk(LAKEHOUSE_PATH):
-        for f in files:
-            if f.endswith(".parquet"):
-                parquet_count += 1
-    print(f"  * Parquet Partitions Created    : {parquet_count} files in {LAKEHOUSE_PATH}")
-    assert parquet_count >= 50, "Insufficient Parquet partitions"
+    
+    tel_parquet_count = sum(1 for _, _, files in os.walk(LAKEHOUSE_PATH) for f in files if f.endswith(".parquet"))
+    bronze_inc_count = sum(1 for _, _, files in os.walk(BRONZE_INC_PATH) for f in files if f.endswith(".parquet")) if os.path.exists(BRONZE_INC_PATH) else 0
+    silver_inc_count = sum(1 for _, _, files in os.walk(SILVER_INC_PATH) for f in files if f.endswith(".parquet")) if os.path.exists(SILVER_INC_PATH) else 0
 
-    # 4. Verify Model Artifacts
-    print("\n[4] AUDITING MODULE 3: BUS ETA TRAINED MODELS & ARTIFACTS...")
-    model_file = "models/xgboost_eta_route_02.json"
-    assert os.path.exists(model_file), f"Missing model artifact: {model_file}"
-    model_size_kb = os.path.getsize(model_file) / 1024
-    print(f"  * Model Artifact Found          : {model_file} ({model_size_kb:.1f} KB)")
+    print(f"  * Silver Telemetry Partitions   : {tel_parquet_count} files in {LAKEHOUSE_PATH}")
+    print(f"  * Bronze Incidents Partitions   : {bronze_inc_count} files in {BRONZE_INC_PATH}")
+    print(f"  * Silver Incidents Partitions   : {silver_inc_count} files in {SILVER_INC_PATH}")
 
-    # 5. Check Gold Matrix Schema
-    has_matrix_table = cur.execute("SELECT count(1) FROM sqlite_master WHERE type='table' AND name='agg_segment_travel_times'").fetchone()[0]
-    print(f"  * Gold Travel Time Matrix Table : {'Present' if has_matrix_table else 'Missing'}")
-    assert has_matrix_table == 1, "Missing Gold table agg_segment_travel_times"
+    assert tel_parquet_count >= 50, f"Insufficient Silver telemetry partitions ({tel_parquet_count})"
+
+    # 4. Confirm Zero Gold / Module 3 Tables in SQLite (Pre-Module 3 Silver State)
+    print("\n[4] AUDITING ZERO GOLD INGESTION STATE (PRE-MODULE 3 SILVER SANITY)...")
+    gold_tables = cur.execute("""
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name IN ('agg_segment_travel_times', 'ml_station_pair_evaluation', 'ml_route_evaluation_summary')
+    """).fetchall()
+    print(f"  * Gold Tables in SQLite         : {len(gold_tables)} (Expected 0)")
+    assert len(gold_tables) == 0, f"Unexpected Gold tables found: {[t[0] for t in gold_tables]}"
+
+    gold_dir = "data/lakehouse/gold"
+    gold_files = [os.path.join(r, f) for r, _, fs in os.walk(gold_dir) for f in fs if f.endswith(".parquet")] if os.path.exists(gold_dir) else []
+    print(f"  * Gold Parquet Files on Disk    : {len(gold_files)} (Expected 0)")
+    assert len(gold_files) == 0, f"Unexpected Gold files found: {gold_files}"
 
     conn.close()
     print("\n" + "=" * 80)
-    print("ALL VERIFICATION CHECKS PASSED WITH 100% SUCCESS!")
+    print("ALL BRONZE & SILVER ARCHITECTURE CHECKS PASSED WITH 100% SUCCESS!")
     print("=" * 80)
 
 
