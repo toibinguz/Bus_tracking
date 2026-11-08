@@ -68,7 +68,7 @@ if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
-@app.get("/", include_in_schema=False)
+@app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
 def serve_index():
     """Serves the main single-page web app."""
     index_path = os.path.join(STATIC_DIR, "index.html")

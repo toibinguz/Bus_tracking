@@ -26,12 +26,26 @@ class MapManager {
             zoomControl: false,
         });
 
-        // Add clean CartoDB Positron tiles
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: "abcd",
+        // 1. Base Tile Layers (100% Free, Keyless, Open Source)
+        const osmStandard = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19,
-        }).addTo(this.map);
+        });
+
+        const esriSatellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, AeroGRID, IGN',
+            maxZoom: 18,
+        });
+
+        // Default to OpenStreetMap
+        osmStandard.addTo(this.map);
+
+        // Add Layer Selector at Top-Right
+        const baseMaps = {
+            "🗺️ Đường phố (OSM)": osmStandard,
+            "🛰️ Ảnh Vệ tinh (Esri)": esriSatellite,
+        };
+        L.control.layers(baseMaps, null, { position: "topright", collapsed: false }).addTo(this.map);
 
         // Add Zoom Control at bottom right
         L.control.zoom({ position: "bottomright" }).addTo(this.map);

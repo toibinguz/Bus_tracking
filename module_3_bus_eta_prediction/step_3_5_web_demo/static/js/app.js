@@ -27,6 +27,24 @@ class BusTrackingApp {
     }
 
     async init() {
+        // Defensive check: Guard against opening index.html directly from filesystem (file:///)
+        if (window.location.protocol === "file:") {
+            document.body.innerHTML = `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; text-align: center; max-width: 600px; margin: 60px auto; background: #fff1f2; border: 2px solid #f43f5e; border-radius: 16px; color: #9f1239; box-shadow: 0 10px 25px rgba(0,0,0,0.08);">
+                    <div style="font-size: 40px; margin-bottom: 12px;">⚠️</div>
+                    <h2 style="margin-bottom: 12px; font-size: 20px; font-weight: bold;">Bạn đang mở tệp trực tiếp từ ổ đĩa (file:///)</h2>
+                    <p style="font-size: 14px; line-height: 1.6; margin-bottom: 20px; color: #881337;">
+                        Trình duyệt chặn các kết nối API cục bộ vì chính sách bảo mật CORS của giao thức file://.<br>
+                        Vui lòng khởi động máy chủ bằng cách nhấp đúp vào <b>run_demo.bat</b> hoặc chạy <b>.\\run_demo.ps1</b>, sau đó truy cập vào địa chỉ bên dưới:
+                    </p>
+                    <a href="http://127.0.0.1:8000" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 10px rgba(37,99,235,0.3);">
+                        👉 Mở Web Demo: http://127.0.0.1:8000
+                    </a>
+                </div>
+            `;
+            return;
+        }
+
         // 1. Initialize Map Manager
         this.mapManager = new MapManager(
             "map",
