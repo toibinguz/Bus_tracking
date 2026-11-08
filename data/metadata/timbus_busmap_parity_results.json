@@ -1,0 +1,703 @@
+{
+  "timestamp": "2026-11-08 12:51:16",
+  "route_stats": {
+    "02": {
+      "total_busmap_active": 15,
+      "total_timbus_matched": 6,
+      "match_rate_pct": 40.0,
+      "mean_delta_dist_m": 103.3,
+      "median_delta_dist_m": 124.0,
+      "max_delta_dist_m": 219.7,
+      "mean_busmap_lag_sec": 32.4,
+      "frenet_corridor_pass_rate_pct": 83.3,
+      "lead_s_positive_count": 5,
+      "lead_s_negative_count": 0,
+      "mean_lead_s_m": 102.6,
+      "median_lead_s_m": 122.7
+    },
+    "32": {
+      "total_busmap_active": 19,
+      "total_timbus_matched": 8,
+      "match_rate_pct": 42.1,
+      "mean_delta_dist_m": 138.0,
+      "median_delta_dist_m": 95.2,
+      "max_delta_dist_m": 333.3,
+      "mean_busmap_lag_sec": 30.6,
+      "frenet_corridor_pass_rate_pct": 87.5,
+      "lead_s_positive_count": 5,
+      "lead_s_negative_count": 1,
+      "mean_lead_s_m": 113.4,
+      "median_lead_s_m": 93.6
+    }
+  },
+  "matched_records": [
+    {
+      "route_code": "02",
+      "plate": "29F01612",
+      "busmap_vid": "1408400",
+      "busmap_lag_sec": 41.7,
+      "delta_dist_m": 150.3,
+      "speed_busmap": 33.0,
+      "speed_timbus": 27,
+      "coord_busmap": [
+        20.982538,
+        105.790924
+      ],
+      "coord_timbus": [
+        20.983427,
+        105.792015
+      ],
+      "direction": "go",
+      "timbus_frenet_s_m": 6236.7,
+      "timbus_frenet_d_perp_m": 10.1,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 6086.5,
+      "progress_lead_s_m": 150.2,
+      "timbus_raw_next_id": 27638,
+      "timbus_raw_next_name": "Bến xe Yên Nghĩa",
+      "timbus_raw_dist_m": 6369,
+      "canonical_next_station_order": 15,
+      "canonical_next_station_id": 5772,
+      "canonical_next_station_name": "Ga Phùng Khoang"
+    },
+    {
+      "route_code": "02",
+      "plate": "29B20547",
+      "busmap_vid": "231968",
+      "busmap_lag_sec": 25.7,
+      "delta_dist_m": 42.3,
+      "speed_busmap": 26.0,
+      "speed_timbus": 7,
+      "coord_busmap": [
+        20.982693,
+        105.791145
+      ],
+      "coord_timbus": [
+        20.982887,
+        105.791496
+      ],
+      "direction": "go",
+      "timbus_frenet_s_m": 6157.1,
+      "timbus_frenet_d_perp_m": 1.8,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 6115.1,
+      "progress_lead_s_m": 42.0,
+      "timbus_raw_next_id": 27716,
+      "timbus_raw_next_name": "Bến xe Yên Nghĩa",
+      "timbus_raw_dist_m": 6985,
+      "canonical_next_station_order": 15,
+      "canonical_next_station_id": 5772,
+      "canonical_next_station_name": "Ga Phùng Khoang"
+    },
+    {
+      "route_code": "02",
+      "plate": "29B20596",
+      "busmap_vid": "231982",
+      "busmap_lag_sec": 28.7,
+      "delta_dist_m": 1.6,
+      "speed_busmap": 0.0,
+      "speed_timbus": 10,
+      "coord_busmap": [
+        21.022856,
+        105.860954
+      ],
+      "coord_timbus": [
+        21.022852,
+        105.860939
+      ],
+      "direction": "go",
+      "timbus_frenet_s_m": 16466.5,
+      "timbus_frenet_d_perp_m": 39.8,
+      "timbus_in_corridor_35m": false,
+      "busmap_frenet_s_m": 16466.5,
+      "progress_lead_s_m": 0.0,
+      "timbus_raw_next_id": 17365,
+      "timbus_raw_next_name": "Bến xe Yên Nghĩa",
+      "timbus_raw_dist_m": 4129,
+      "canonical_next_station_order": 35,
+      "canonical_next_station_id": 1667,
+      "canonical_next_station_name": "(A) Bác Cổ"
+    },
+    {
+      "route_code": "02",
+      "plate": "29B20563",
+      "busmap_vid": "231972",
+      "busmap_lag_sec": 31.7,
+      "delta_dist_m": 124.0,
+      "speed_busmap": 9.0,
+      "speed_timbus": 10,
+      "coord_busmap": [
+        21.007114,
+        105.822975
+      ],
+      "coord_timbus": [
+        21.00605,
+        105.822617
+      ],
+      "direction": "re",
+      "timbus_frenet_s_m": 7351.0,
+      "timbus_frenet_d_perp_m": 7.2,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 7228.2,
+      "progress_lead_s_m": 122.7,
+      "timbus_raw_next_id": 26477,
+      "timbus_raw_next_name": "Bác Cổ",
+      "timbus_raw_dist_m": 7796,
+      "canonical_next_station_order": 17,
+      "canonical_next_station_id": 533,
+      "canonical_next_station_name": "Số 108 Nguyễn Trãi"
+    },
+    {
+      "route_code": "02",
+      "plate": "29B20551",
+      "busmap_vid": "231969",
+      "busmap_lag_sec": 33.7,
+      "delta_dist_m": 82.1,
+      "speed_busmap": 35.0,
+      "speed_timbus": 10,
+      "coord_busmap": [
+        20.967783,
+        105.771667
+      ],
+      "coord_timbus": [
+        20.96743,
+        105.770973
+      ],
+      "direction": "re",
+      "timbus_frenet_s_m": 14249.5,
+      "timbus_frenet_d_perp_m": 22.2,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 14168.4,
+      "progress_lead_s_m": 81.1,
+      "timbus_raw_next_id": 19579,
+      "timbus_raw_next_name": "Bác Cổ",
+      "timbus_raw_dist_m": 3171,
+      "canonical_next_station_order": 31,
+      "canonical_next_station_id": 5762,
+      "canonical_next_station_name": "Ga La Khê - 350 - 352 Quang Trung"
+    },
+    {
+      "route_code": "02",
+      "plate": "29B20546",
+      "busmap_vid": "231967",
+      "busmap_lag_sec": 32.7,
+      "delta_dist_m": 219.7,
+      "speed_busmap": 24.0,
+      "speed_timbus": 24,
+      "coord_busmap": [
+        20.965727,
+        105.768944
+      ],
+      "coord_timbus": [
+        20.964396,
+        105.76738
+      ],
+      "direction": "re",
+      "timbus_frenet_s_m": 14751.6,
+      "timbus_frenet_d_perp_m": 2.3,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 14532.0,
+      "progress_lead_s_m": 219.6,
+      "timbus_raw_next_id": 19078,
+      "timbus_raw_next_name": "Bác Cổ",
+      "timbus_raw_dist_m": 4880,
+      "canonical_next_station_order": 31,
+      "canonical_next_station_id": 5762,
+      "canonical_next_station_name": "Ga La Khê - 350 - 352 Quang Trung"
+    },
+    {
+      "route_code": "32",
+      "plate": "29F05167",
+      "busmap_vid": "1408517",
+      "busmap_lag_sec": 11.7,
+      "delta_dist_m": 0.0,
+      "speed_busmap": 0.0,
+      "speed_timbus": 10,
+      "coord_busmap": [
+        21.007885,
+        105.841331
+      ],
+      "coord_timbus": [
+        21.007885,
+        105.841331
+      ],
+      "direction": "go",
+      "timbus_frenet_s_m": 14131.3,
+      "timbus_frenet_d_perp_m": 3.9,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 14131.3,
+      "progress_lead_s_m": 0.0,
+      "timbus_raw_next_id": 22975,
+      "timbus_raw_next_name": "Nhổn",
+      "timbus_raw_dist_m": 7475,
+      "canonical_next_station_order": 25,
+      "canonical_next_station_id": 157,
+      "canonical_next_station_name": "ĐD Đại học Bách Khoa HN - Giải phóng"
+    },
+    {
+      "route_code": "32",
+      "plate": "29F05275",
+      "busmap_vid": "1408518",
+      "busmap_lag_sec": 12.7,
+      "delta_dist_m": 95.2,
+      "speed_busmap": 32.0,
+      "speed_timbus": 33,
+      "coord_busmap": [
+        20.979057,
+        105.84095
+      ],
+      "coord_timbus": [
+        20.978201,
+        105.840942
+      ],
+      "direction": "go",
+      "timbus_frenet_s_m": 17718.1,
+      "timbus_frenet_d_perp_m": 4.1,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 17812.7,
+      "progress_lead_s_m": -94.6,
+      "timbus_raw_next_id": 19389,
+      "timbus_raw_next_name": "Nhổn",
+      "timbus_raw_dist_m": 3627,
+      "canonical_next_station_order": 30,
+      "canonical_next_station_id": 1676,
+      "canonical_next_station_name": "(A) BX Giáp Bát"
+    },
+    {
+      "route_code": "32",
+      "plate": "29F05137",
+      "busmap_vid": "1408507",
+      "busmap_lag_sec": 38.7,
+      "delta_dist_m": 0.0,
+      "speed_busmap": 0.0,
+      "speed_timbus": 10,
+      "coord_busmap": [
+        20.980236,
+        105.841553
+      ],
+      "coord_timbus": [
+        20.980236,
+        105.841553
+      ],
+      "direction": "go",
+      "timbus_frenet_s_m": 17948.0,
+      "timbus_frenet_d_perp_m": 43.9,
+      "timbus_in_corridor_35m": false,
+      "busmap_frenet_s_m": 17948.0,
+      "progress_lead_s_m": 0.0,
+      "timbus_raw_next_id": 19094,
+      "timbus_raw_next_name": "Nhổn",
+      "timbus_raw_dist_m": 7575,
+      "canonical_next_station_order": 30,
+      "canonical_next_station_id": 1676,
+      "canonical_next_station_name": "(A) BX Giáp Bát"
+    },
+    {
+      "route_code": "32",
+      "plate": "29F05223",
+      "busmap_vid": "1408528",
+      "busmap_lag_sec": 30.7,
+      "delta_dist_m": 276.3,
+      "speed_busmap": 21.0,
+      "speed_timbus": 39,
+      "coord_busmap": [
+        21.034601,
+        105.805099
+      ],
+      "coord_timbus": [
+        21.032499,
+        105.80368
+      ],
+      "direction": "re",
+      "timbus_frenet_s_m": 10672.1,
+      "timbus_frenet_d_perp_m": 7.3,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 10398.4,
+      "progress_lead_s_m": 273.6,
+      "timbus_raw_next_id": 26691,
+      "timbus_raw_next_name": "Bến xe Giáp Bát",
+      "timbus_raw_dist_m": 5313,
+      "canonical_next_station_order": 17,
+      "canonical_next_station_id": 49,
+      "canonical_next_station_name": "Đối diện Công viên Thủ Lệ - Đường Bưởi dưới"
+    },
+    {
+      "route_code": "32",
+      "plate": "29F05183",
+      "busmap_vid": "1408509",
+      "busmap_lag_sec": 33.7,
+      "delta_dist_m": 4.9,
+      "speed_busmap": 0.0,
+      "speed_timbus": 10,
+      "coord_busmap": [
+        21.028961,
+        105.803276
+      ],
+      "coord_timbus": [
+        21.028919,
+        105.803261
+      ],
+      "direction": "re",
+      "timbus_frenet_s_m": 11261.9,
+      "timbus_frenet_d_perp_m": 1.5,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 11261.1,
+      "progress_lead_s_m": 0.9,
+      "timbus_raw_next_id": 10391,
+      "timbus_raw_next_name": "Bến xe Giáp Bát",
+      "timbus_raw_dist_m": 3740,
+      "canonical_next_station_order": 18,
+      "canonical_next_station_id": 62,
+      "canonical_next_station_name": "Điểm trung chuyển Cầu Giấy - Thủ Lệ (cột sau)"
+    },
+    {
+      "route_code": "32",
+      "plate": "29F05192",
+      "busmap_vid": "1408522",
+      "busmap_lag_sec": 35.7,
+      "delta_dist_m": 333.3,
+      "speed_busmap": 29.0,
+      "speed_timbus": 14,
+      "coord_busmap": [
+        21.046934,
+        105.747696
+      ],
+      "coord_timbus": [
+        21.048162,
+        105.744766
+      ],
+      "direction": "re",
+      "timbus_frenet_s_m": 18326.9,
+      "timbus_frenet_d_perp_m": 3.0,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 17993.7,
+      "progress_lead_s_m": 333.3,
+      "timbus_raw_next_id": 19040,
+      "timbus_raw_next_name": "Bến xe Giáp Bát",
+      "timbus_raw_dist_m": 4108,
+      "canonical_next_station_order": 31,
+      "canonical_next_station_id": 1053,
+      "canonical_next_station_name": "Đình và Miếu Đồng Cổ (Thôn Nguyên Xá)"
+    },
+    {
+      "route_code": "32",
+      "plate": "29F05241",
+      "busmap_vid": "1408513",
+      "busmap_lag_sec": 36.7,
+      "delta_dist_m": 93.8,
+      "speed_busmap": 12.0,
+      "speed_timbus": 3,
+      "coord_busmap": [
+        21.030993,
+        105.817963
+      ],
+      "coord_timbus": [
+        21.030823,
+        105.817078
+      ],
+      "direction": "re",
+      "timbus_frenet_s_m": 9057.6,
+      "timbus_frenet_d_perp_m": 0.7,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 8964.0,
+      "progress_lead_s_m": 93.6,
+      "timbus_raw_next_id": 28304,
+      "timbus_raw_next_name": "Bến xe Giáp Bát",
+      "timbus_raw_dist_m": 7220,
+      "canonical_next_station_order": 15,
+      "canonical_next_station_id": 4974,
+      "canonical_next_station_name": "2/2C khu Ngoại Giao Đoàn, phố Kim Mã đường dưới"
+    },
+    {
+      "route_code": "32",
+      "plate": "29F05140",
+      "busmap_vid": "1408534",
+      "busmap_lag_sec": 44.7,
+      "delta_dist_m": 300.3,
+      "speed_busmap": 23.0,
+      "speed_timbus": 34,
+      "coord_busmap": [
+        21.041391,
+        105.76281
+      ],
+      "coord_timbus": [
+        21.042322,
+        105.760094
+      ],
+      "direction": "re",
+      "timbus_frenet_s_m": 16608.4,
+      "timbus_frenet_d_perp_m": 4.8,
+      "timbus_in_corridor_35m": true,
+      "busmap_frenet_s_m": 16308.0,
+      "progress_lead_s_m": 300.3,
+      "timbus_raw_next_id": 20759,
+      "timbus_raw_next_name": "Bến xe Giáp Bát",
+      "timbus_raw_dist_m": 3828,
+      "canonical_next_station_order": 28,
+      "canonical_next_station_id": 1049,
+      "canonical_next_station_name": "Trung tâm kiểm định xe máy quân sự (Cầu Diễn)"
+    }
+  ],
+  "unmatched_records": [
+    {
+      "route_code": "02",
+      "direction": "go",
+      "plate": "29B20592",
+      "busmap_vid": "231981",
+      "busmap_speed": 0.0,
+      "busmap_ts": "2026-11-08T12:50:48+07:00",
+      "busmap_coord": [
+        21.026476,
+        105.845238
+      ],
+      "busmap_lag_sec": 28.7
+    },
+    {
+      "route_code": "02",
+      "direction": "go",
+      "plate": "29B20554",
+      "busmap_vid": "231970",
+      "busmap_speed": 11.0,
+      "busmap_ts": "2026-11-08T12:50:52+07:00",
+      "busmap_coord": [
+        20.987061,
+        105.797073
+      ],
+      "busmap_lag_sec": 24.7
+    },
+    {
+      "route_code": "02",
+      "direction": "go",
+      "plate": "29F01520",
+      "busmap_vid": "1408401",
+      "busmap_speed": 0.0,
+      "busmap_ts": "2026-11-08T12:50:48+07:00",
+      "busmap_coord": [
+        20.950823,
+        105.746803
+      ],
+      "busmap_lag_sec": 28.7
+    },
+    {
+      "route_code": "02",
+      "direction": "go",
+      "plate": "29B20580",
+      "busmap_vid": "231977",
+      "busmap_speed": 11.0,
+      "busmap_ts": "2026-11-08T12:50:42+07:00",
+      "busmap_coord": [
+        20.977278,
+        105.784454
+      ],
+      "busmap_lag_sec": 34.7
+    },
+    {
+      "route_code": "02",
+      "direction": "re",
+      "plate": "29B20540",
+      "busmap_vid": "231966",
+      "busmap_speed": 16.0,
+      "busmap_ts": "2026-11-08T12:51:01+07:00",
+      "busmap_coord": [
+        21.006495,
+        105.822701
+      ],
+      "busmap_lag_sec": 15.7
+    },
+    {
+      "route_code": "02",
+      "direction": "re",
+      "plate": "29B20519",
+      "busmap_vid": "231963",
+      "busmap_speed": 27.0,
+      "busmap_ts": "2026-11-08T12:51:02+07:00",
+      "busmap_coord": [
+        20.960968,
+        105.762825
+      ],
+      "busmap_lag_sec": 14.7
+    },
+    {
+      "route_code": "02",
+      "direction": "re",
+      "plate": "29B20954",
+      "busmap_vid": "231987",
+      "busmap_speed": 13.0,
+      "busmap_ts": "2026-11-08T12:51:02+07:00",
+      "busmap_coord": [
+        20.96026,
+        105.762054
+      ],
+      "busmap_lag_sec": 14.7
+    },
+    {
+      "route_code": "02",
+      "direction": "re",
+      "plate": "29B20558",
+      "busmap_vid": "231971",
+      "busmap_speed": 25.0,
+      "busmap_ts": "2026-11-08T12:50:49+07:00",
+      "busmap_coord": [
+        21.031818,
+        105.835197
+      ],
+      "busmap_lag_sec": 27.7
+    },
+    {
+      "route_code": "02",
+      "direction": "re",
+      "plate": "29B20841",
+      "busmap_vid": "231984",
+      "busmap_speed": 0.0,
+      "busmap_ts": "2026-11-08T12:50:44+07:00",
+      "busmap_coord": [
+        21.031242,
+        105.833954
+      ],
+      "busmap_lag_sec": 32.7
+    },
+    {
+      "route_code": "32",
+      "direction": "go",
+      "plate": "29F05106",
+      "busmap_vid": "1408524",
+      "busmap_speed": 15.0,
+      "busmap_ts": "2026-11-08T12:50:50+07:00",
+      "busmap_coord": [
+        21.034418,
+        105.794945
+      ],
+      "busmap_lag_sec": 26.7
+    },
+    {
+      "route_code": "32",
+      "direction": "go",
+      "plate": "29F05242",
+      "busmap_vid": "1408508",
+      "busmap_speed": 0.0,
+      "busmap_ts": "2026-11-08T12:51:03+07:00",
+      "busmap_coord": [
+        21.028788,
+        105.803322
+      ],
+      "busmap_lag_sec": 13.7
+    },
+    {
+      "route_code": "32",
+      "direction": "go",
+      "plate": "29F05206",
+      "busmap_vid": "1408520",
+      "busmap_speed": 35.0,
+      "busmap_ts": "2026-11-08T12:50:38+07:00",
+      "busmap_coord": [
+        21.029694,
+        105.809906
+      ],
+      "busmap_lag_sec": 38.7
+    },
+    {
+      "route_code": "32",
+      "direction": "go",
+      "plate": "29F05117",
+      "busmap_vid": "1408523",
+      "busmap_speed": 0.0,
+      "busmap_ts": "2026-11-08T12:50:44+07:00",
+      "busmap_coord": [
+        21.028873,
+        105.841446
+      ],
+      "busmap_lag_sec": 32.7
+    },
+    {
+      "route_code": "32",
+      "direction": "re",
+      "plate": "29F05281",
+      "busmap_vid": "1408521",
+      "busmap_speed": 9.0,
+      "busmap_ts": "2026-11-08T12:50:38+07:00",
+      "busmap_coord": [
+        21.03158,
+        105.812637
+      ],
+      "busmap_lag_sec": 38.7
+    },
+    {
+      "route_code": "32",
+      "direction": "re",
+      "plate": "29F05208",
+      "busmap_vid": "1408526",
+      "busmap_speed": 14.0,
+      "busmap_ts": "2026-11-08T12:50:43+07:00",
+      "busmap_coord": [
+        21.026102,
+        105.84549
+      ],
+      "busmap_lag_sec": 33.7
+    },
+    {
+      "route_code": "32",
+      "direction": "re",
+      "plate": "29F05130",
+      "busmap_vid": "1408516",
+      "busmap_speed": 25.0,
+      "busmap_ts": "2026-11-08T12:50:15+07:00",
+      "busmap_coord": [
+        20.993143,
+        105.841286
+      ],
+      "busmap_lag_sec": 61.7
+    },
+    {
+      "route_code": "32",
+      "direction": "re",
+      "plate": "29F05268",
+      "busmap_vid": "1408530",
+      "busmap_speed": 30.0,
+      "busmap_ts": "2026-11-08T12:50:44+07:00",
+      "busmap_coord": [
+        21.008993,
+        105.841331
+      ],
+      "busmap_lag_sec": 32.7
+    },
+    {
+      "route_code": "32",
+      "direction": "re",
+      "plate": "29F05198",
+      "busmap_vid": "1408527",
+      "busmap_speed": 0.0,
+      "busmap_ts": "2026-11-08T12:50:28+07:00",
+      "busmap_coord": [
+        21.019451,
+        105.844231
+      ],
+      "busmap_lag_sec": 48.7
+    },
+    {
+      "route_code": "32",
+      "direction": "re",
+      "plate": "29F05245",
+      "busmap_vid": "1408515",
+      "busmap_speed": 28.0,
+      "busmap_ts": "2026-11-08T12:50:40+07:00",
+      "busmap_coord": [
+        21.046614,
+        105.748734
+      ],
+      "busmap_lag_sec": 36.7
+    },
+    {
+      "route_code": "32",
+      "direction": "re",
+      "plate": "29F05200",
+      "busmap_vid": "1408525",
+      "busmap_speed": 36.0,
+      "busmap_ts": "2026-11-08T12:50:20+07:00",
+      "busmap_coord": [
+        21.048445,
+        105.743889
+      ],
+      "busmap_lag_sec": 56.7
+    }
+  ]
+}

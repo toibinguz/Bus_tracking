@@ -3,6 +3,79 @@
  * Manages route selection, direction toggles, live polling, and Station/Bus ETA cards.
  */
 
+const CORRIDOR_OPERATIONAL_STATE = {
+    NIGHT_OFF_SERVICE: "NIGHT_OFF_SERVICE",
+    STAGING_AT_TERMINAL: "STAGING_AT_TERMINAL",
+    ACTIVE_TRANSIT: "ACTIVE_TRANSIT",
+};
+
+function resolveCorridorOperationalState(liveEta) {
+    if (!liveEta) return CORRIDOR_OPERATIONAL_STATE.ACTIVE_TRANSIT;
+    const condition = liveEta.traffic_condition || "";
+    if (condition.includes("Ca đêm")) {
+        return CORRIDOR_OPERATIONAL_STATE.NIGHT_OFF_SERVICE;
+    }
+    if (liveEta.active_in_transit_count === 0) {
+        return CORRIDOR_OPERATIONAL_STATE.STAGING_AT_TERMINAL;
+    }
+    return CORRIDOR_OPERATIONAL_STATE.ACTIVE_TRANSIT;
+}
+
+const CORRIDOR_UI_THEME = {
+    [CORRIDOR_OPERATIONAL_STATE.NIGHT_OFF_SERVICE]: {
+        bannerClass: "px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs text-white",
+        textClass: "font-medium text-slate-200",
+        formatTrafficText: (condition) => `🌙 ${condition}`,
+        countText: "Hết ca chạy",
+        countClass: "font-semibold text-amber-400 text-[11px]",
+        badgeText: () => "🌙 Ca đêm (22:30 – 05:00)",
+        badgeClass: "px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-200 border border-slate-700",
+        emptyNoticeHtml: `
+            <div class="p-3.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-center space-y-1.5 shadow-xs">
+                <div class="text-xl">🌙</div>
+                <div class="font-bold text-white text-xs">Mạng lưới đã kết thúc ca chạy trong ngày</div>
+                <div class="text-[11px] text-slate-400 leading-relaxed">
+                    Toàn bộ xe buýt trên tuyến đã rút về bến đỗ an toàn sau 22:30.<br>
+                    Chuyến xe đầu tiên của ngày mai sẽ bắt đầu phục vụ từ <b class="text-amber-300">05:00 sáng</b>.
+                </div>
+            </div>
+        `,
+    },
+    [CORRIDOR_OPERATIONAL_STATE.STAGING_AT_TERMINAL]: {
+        bannerClass: "px-4 py-2 bg-amber-50/70 border-b border-amber-200/80 flex items-center justify-between text-xs",
+        textClass: "font-medium text-amber-900",
+        formatTrafficText: (condition) => `⏳ ${condition}`,
+        countText: "0 xe trên tuyến",
+        countClass: "font-semibold text-amber-700 text-[11px]",
+        badgeText: () => "Chờ xuất bến",
+        badgeClass: "px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200",
+        emptyNoticeHtml: `
+            <div class="p-3.5 bg-amber-50/60 border border-amber-200/80 rounded-xl text-slate-600 text-center space-y-1 shadow-xs">
+                <div class="text-lg">⏳</div>
+                <div class="font-bold text-slate-800 text-xs">Chưa có xe buýt lăn bánh tới trạm này</div>
+                <div class="text-[11px] text-slate-500 leading-relaxed">
+                    Các phương tiện hiện đang chuẩn bị nốt điều độ và chờ tài tại đầu bến xuất phát.
+                </div>
+            </div>
+        `,
+    },
+    [CORRIDOR_OPERATIONAL_STATE.ACTIVE_TRANSIT]: {
+        bannerClass: "px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs",
+        textClass: "font-medium text-slate-600",
+        formatTrafficText: (condition) => condition,
+        countText: (count) => `${count} xe đang chạy`,
+        countClass: "font-semibold text-blue-600 text-[11px]",
+        badgeText: (cached) => `Live GPS ${cached ? "(Cache)" : "(Live)"}`,
+        badgeClass: "px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700",
+        emptyNoticeHtml: `
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 text-center space-y-0.5">
+                <div class="font-semibold text-xs text-slate-700">Chưa có xe buýt đang tiến về trạm này</div>
+                <div class="text-[11px] text-slate-500">Các xe trên tuyến hiện đã đi qua trạm này hoặc đang ở chặng xa.</div>
+            </div>
+        `,
+    },
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     const app = new BusTrackingApp();
     app.init();
@@ -20,7 +93,7 @@ class BusTrackingApp {
 
         this.pollingTimer = null;
         this.countdownTimer = null;
-        this.countdownVal = 15;
+        this.countdownVal = 5;
         this.isPollingActive = true;
 
         this.mapManager = null;
@@ -94,6 +167,18 @@ class BusTrackingApp {
                 this.selectedBus = null;
             });
         }
+
+        // Page Visibility API: Stop polling when tab is hidden to save battery & bandwidth,
+        // and avoid interval drift; immediately resume polling when user returns to tab
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                this.stopPolling();
+            } else {
+                if (this.currentRouteCode) {
+                    this.startPolling();
+                }
+            }
+        });
     }
 
     async loadRoutes() {
@@ -214,15 +299,23 @@ class BusTrackingApp {
             // 1. Update Map Buses
             this.mapManager.updateBuses(this.currentLiveEta.buses);
 
-            // 2. Update Traffic Banner
+            // 2. Update Traffic Banner & Status Badge via FSM Theme
             this.trafficBanner.classList.remove("hidden");
-            this.trafficText.textContent = this.currentLiveEta.traffic_condition;
-            this.activeBusesCount.textContent = `${this.currentLiveEta.active_in_transit_count} xe đang chạy`;
+            const opState = resolveCorridorOperationalState(this.currentLiveEta);
+            const theme = CORRIDOR_UI_THEME[opState];
+
+            this.trafficBanner.className = theme.bannerClass;
+            this.trafficText.className = theme.textClass;
+            this.trafficText.textContent = theme.formatTrafficText(this.currentLiveEta.traffic_condition);
+
+            this.activeBusesCount.className = theme.countClass;
+            this.activeBusesCount.textContent = typeof theme.countText === "function"
+                ? theme.countText(this.currentLiveEta.active_in_transit_count)
+                : theme.countText;
 
             // 3. Update Status Badge
-            const cacheLabel = this.currentLiveEta.cached ? "(Cache)" : "(Live)";
-            this.statusBadge.textContent = `Live GPS ${cacheLabel}`;
-            this.statusBadge.className = "px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700";
+            this.statusBadge.className = theme.badgeClass;
+            this.statusBadge.textContent = theme.badgeText(this.currentLiveEta.cached);
 
             // 4. Refresh selected station card if open
             if (this.selectedStation) {
@@ -247,17 +340,17 @@ class BusTrackingApp {
 
     startPolling() {
         this.stopPolling();
-        this.countdownVal = 15;
+        this.countdownVal = 5;
         this.updateCountdownBadge();
 
         // Immediate first fetch
         this.fetchLiveEta(true);
 
-        // Polling interval 15s
+        // Sub-second kinematic polling interval: 5.0s (TimBus realtime stream)
         this.pollingTimer = setInterval(() => {
-            this.countdownVal = 15;
+            this.countdownVal = 5;
             this.fetchLiveEta();
-        }, 15000);
+        }, 5000);
 
         // 1s countdown ticker
         this.countdownTimer = setInterval(() => {
@@ -324,6 +417,8 @@ class BusTrackingApp {
         if (approachingBuses.length === 0) {
             etaContent.classList.add("hidden");
             noBusNotice.classList.remove("hidden");
+            const opState = resolveCorridorOperationalState(this.currentLiveEta);
+            noBusNotice.innerHTML = CORRIDOR_UI_THEME[opState].emptyNoticeHtml;
             return;
         }
 
@@ -393,8 +488,11 @@ class BusTrackingApp {
 
         const statusEl = document.getElementById("busCardStatus");
         if (bus.status === "ACTIVE_IN_TRANSIT") {
-            statusEl.textContent = "Đang chạy trên tuyến";
-            statusEl.className = "px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700";
+            const isTb = bus.telemetry_source === "timbus_5s";
+            statusEl.textContent = isTb ? "⚡ Live 5s (TimBus)" : "Đang chạy trên tuyến";
+            statusEl.className = isTb
+                ? "px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-600 text-white shadow-xs"
+                : "px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700";
         } else if (bus.status === "AT_ORIGIN_TERMINAL") {
             statusEl.textContent = "Đang chờ xuất bến";
             statusEl.className = "px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700";

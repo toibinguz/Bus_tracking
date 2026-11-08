@@ -38,6 +38,7 @@ from config.system_config import (
     CATALOG_STALE_HOURS,
     CATALOG_PRUNE_STALE_HOURS,
     CATALOG_MIN_ACTIVE_PER_ROUTE,
+    get_busmap_device_id,
 )
 from module_1_data_ingestion_and_preprocessing import (
     fetch_single_bus_raw, load_cluster_config, save_cluster_config
@@ -45,7 +46,6 @@ from module_1_data_ingestion_and_preprocessing import (
 
 VEHICLES_CATALOG_FILE = "data/metadata/vehicles_catalog.json"
 BUSMAP_SALT = ":Bus2019M@p_"
-BUSMAP_DEVICE_ID = "3f8b1c4a9d2e5f70"
 SSL_UNVERIFIED_CTX = ssl._create_unverified_context()
 
 def _get_live_route_headers():
@@ -53,10 +53,11 @@ def _get_live_route_headers():
     epoch_ms = str(int(time.time() * 1000))
     raw_token = f"{epoch_ms}{BUSMAP_SALT}"
     proof_hash = hashlib.md5(raw_token.encode('utf-8')).hexdigest()
+    dev_id = get_busmap_device_id()
     return {
         "package-name": "com.t7.busmaphn",
         "client-version": "android|20600",
-        "device-id": BUSMAP_DEVICE_ID,
+        "device-id": dev_id,
         "language": "vi",
         "User-Agent": "okhttp/4.9.2",
         "epoch": epoch_ms,

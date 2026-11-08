@@ -15,7 +15,7 @@ class InMemoryTtlCache:
     Stores key-value pairs with individual epoch expiration timestamps.
     """
 
-    def __init__(self, default_ttl_seconds: float = 15.0) -> None:
+    def __init__(self, default_ttl_seconds: float = 4.0) -> None:
         self.default_ttl = default_ttl_seconds
         self._lock = threading.Lock()
         # Key -> (value, expire_epoch)
@@ -63,5 +63,5 @@ class InMemoryTtlCache:
         return evicted
 
 
-# Global singleton instance for the web service
-route_eta_cache = InMemoryTtlCache(default_ttl_seconds=15.0)
+# Global singleton instance for the web service (4.0s TTL for sub-second smooth 5s telemetry)
+route_eta_cache = InMemoryTtlCache(default_ttl_seconds=4.0)

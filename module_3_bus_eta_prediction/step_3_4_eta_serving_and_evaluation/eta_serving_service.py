@@ -29,7 +29,11 @@ if sys.stdout.encoding != "utf-8":
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, BASE_DIR)
 
-from config.system_config import DEFAULT_DB_PATH
+from config.system_config import (
+    DEFAULT_DB_PATH,
+    normalize_direction,
+    normalize_direction_int,
+)
 from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.catalog_refresher import (
     fetch_route_buses_live,
 )
@@ -86,7 +90,7 @@ class EtaServingService:
         """
         t0 = time.time()
         r_code = str(route_code)
-        d_str = "go" if str(direction) in ("0", "go", "Chiều đi") else "re"
+        d_str = normalize_direction(direction)
         vid = str(vehicle_id)
 
         if device_epoch is None:
@@ -186,13 +190,17 @@ class EtaServingService:
 
         ord_map = {st[0]: (st[1], st[2], st[3]) for st in st_list}
         st_orders = df_feat["target_station_order"].to_numpy(dtype=int)
+        p10_baselines = df_feat["baseline_eta_p10_sec"].to_numpy(dtype=float)
         p50_baselines = df_feat["baseline_eta_p50_sec"].to_numpy(dtype=float)
+        p90_baselines = df_feat["baseline_eta_p90_sec"].to_numpy(dtype=float)
 
         predictions: List[Dict[str, Any]] = []
         for i in range(len(st_orders)):
             t_ord = int(st_orders[i])
             eta_s = float(predicted_etas[i])
             base_s = float(p50_baselines[i])
+            base_p10 = float(p10_baselines[i])
+            base_p90 = float(p90_baselines[i])
             delta_s = eta_s - base_s
             s_id, s_name, s_dist = ord_map.get(t_ord, (-1, "Unknown", 0.0))
 
@@ -204,7 +212,9 @@ class EtaServingService:
                     "target_distance_m": round(s_dist, 1),
                     "eta_seconds": round(eta_s, 1),
                     "eta_minutes": round(eta_s / 60.0, 1),
+                    "baseline_p10_sec": round(base_p10, 1),
                     "baseline_p50_sec": round(base_s, 1),
+                    "baseline_p90_sec": round(base_p90, 1),
                     "residual_delta_sec": round(delta_s, 1),
                 }
             )
@@ -244,8 +254,8 @@ class EtaServingService:
             raise KeyError(f"Tuyến route_code '{r_code}' không tồn tại trong canonical_route_master")
 
         route_id = self.extractor.route_meta[r_code]["route_id"]
-        dir_int = 1 if str(direction) in ("1", "re", "Chiều về") else 0
-        d_str = "re" if dir_int == 1 else "go"
+        dir_int = normalize_direction_int(direction)
+        d_str = normalize_direction(direction)
 
         # Query live route buses from BusMap API
         live_buses = fetch_route_buses_live(route_id=route_id, direction=dir_int)

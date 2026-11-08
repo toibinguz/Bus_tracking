@@ -54,9 +54,18 @@ class EtaInferenceEngine:
             raise ValueError("n_stations_ahead phải >= 1")
 
     def predict(self, df: pd.DataFrame, calibrate: bool = True) -> np.ndarray:
-        """Returns ETA seconds (float64) for each row."""
+        """
+        Returns ETA seconds (float64) for each row.
+        Falls back safely to Baseline P50 if XGBoost encounters unseen categorical values (TD-31).
+        """
         self.validate(df)
-        raw = predict_eta_with_residual_model(self.model, df, self.features)
-        if not calibrate:
-            return raw
-        return np.maximum(MIN_ETA_SEC, apply_per_route_calibrator(df, raw, self.calibrator))
+        try:
+            raw = predict_eta_with_residual_model(self.model, df, self.features)
+            if not calibrate:
+                return raw
+            return np.maximum(MIN_ETA_SEC, apply_per_route_calibrator(df, raw, self.calibrator))
+        except Exception:
+            # Fallback to Baseline P50 if XGBoost categorical container rejects unseen route/station ID
+            if "baseline_eta_p50_sec" in df.columns:
+                return np.maximum(MIN_ETA_SEC, df["baseline_eta_p50_sec"].to_numpy(dtype=np.float64))
+            raise

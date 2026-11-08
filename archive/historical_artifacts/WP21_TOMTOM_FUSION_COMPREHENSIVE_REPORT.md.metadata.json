@@ -1,5 +1,0 @@
-{
-  "summary":  "Báo cáo tổng hợp WP 2.1 (Hotfixed & Empirically Verified): Phân tích 5 lỗi kỹ thuật của bản chạy đầu tiên (đặc biệt lỗi s_min=0 làm hỏng 76.07% dữ liệu), chi tiết bản vá Contiguous Frenet Projection & Segment-by-Segment Accumulation, và kết quả thực nghiệm đối chuẩn Residual XGB-CQR trên 3 lát cắt (Overall, Active Congestion, Leader Blind-Spot).",
-  "updatedAt":  "2026-11-02T07:03:19.053540100Z",
-  "userFacing":  true
-}

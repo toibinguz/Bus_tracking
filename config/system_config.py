@@ -8,6 +8,7 @@ import sys
 import hashlib
 import random
 from datetime import datetime, timezone, timedelta, time as dtime
+from typing import Any
 
 # -------------------------------------------------------------
 # 1. FILE SYSTEM PATHS & CLOUD IDS
@@ -330,3 +331,20 @@ def get_hf_token():
         except Exception:
             pass
     return token
+
+
+def normalize_direction(direction: Any) -> str:
+    """
+    Chuẩn hóa hướng di chuyển thành 'go' hoặc 're' bất biến với chữ hoa/thường, khoảng trắng và tiếng Việt.
+    Single Source of Truth cho toàn bộ các Router, Extractor và Service.
+    """
+    d_raw = str(direction).strip().lower()
+    if d_raw in ("1", "re", "chiều về", "chieu ve", "chieure", "return", "back"):
+        return "re"
+    return "go"
+
+
+def normalize_direction_int(direction: Any) -> int:
+    """Trả về 0 cho 'go' và 1 cho 're'."""
+    return 1 if normalize_direction(direction) == "re" else 0
+

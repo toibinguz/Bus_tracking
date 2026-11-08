@@ -60,12 +60,13 @@ flowchart TD
         T4_1 --> T4_2 --> T4_3
     end
 
-    subgraph Phase5["GIAI ĐOẠN 5: CỤM HADOOP HDFS & PYSPARK PHÂN TÁN (DISTRIBUTED BIG DATA)"]
+    subgraph Phase5["GIAI ĐOẠN 5: KHUNG LƯU TRỮ PHÂN TÁN HDFS & TÍNH TOÁN SPARK (HDFS STORAGE & SPARK)"]
         direction TB
-        T5_1["WP 5.1: Kiểm tra & Khởi động Cụm HDFS 3.3.6 (Namenode/Datanode)"]
-        T5_2["WP 5.2: Ingestion Đẩy Dữ liệu Silver/Gold lên HDFS (/lakehouse)"]
-        T5_3["WP 5.3: Hiện thực hóa & Benchmark 4 PySpark Distributed Jobs"]
-        T5_1 --> T5_2 --> T5_3
+        T5_1["WP 5.1: Cụm HDFS Portable Siêu Gọn Nhẹ (Hadoop 3.3.6 + Winutils + WebHDFS)"]
+        T5_2["WP 5.2: Ingestion & Di trú Lakehouse lên HDFS kèm Compaction 1.191 files"]
+        T5_3["WP 5.3: Python-HDFS Connector & Cơ chế Fallback Hai Chiều (Dual-Path Client)"]
+        T5_4["WP 5.4: Thực thi Tác vụ Tính toán Phân tán & Benchmark Khả năng Mở rộng"]
+        T5_1 --> T5_2 --> T5_3 --> T5_4
     end
 
     subgraph Phase6["GIAI ĐOẠN 6: HUẤN LUYỆN MÔ HÌNH HỢP NHẤT TOÀN MẠNG (UNIFIED ML ETA)"]
@@ -143,14 +144,15 @@ flowchart TD
 
 ---
 
-### GIAI ĐOẠN 5: CỤM HADOOP HDFS & PYSPARK PHÂN TÁN (DISTRIBUTED BIG DATA INFRASTRUCTURE)
-> **Mục tiêu**: Triển khai cụm Hadoop HDFS 3.3.6 và 4 PySpark jobs phân tán đáp ứng trọn vẹn yêu cầu bảo vệ môn học.
+### GIAI ĐOẠN 5: KHUNG LƯU TRỮ PHÂN TÁN HDFS & TÍNH TOÁN SPARK (HDFS STORAGE & DISTRIBUTED SPARK)
+> **Mục tiêu**: Xây dựng kho lưu trữ phân tán HDFS Single-Node Portable siêu gọn nhẹ, giải quyết dứt điểm bài toán tệp nhỏ (Compaction 1.191 Parquet Silver thành 48 blocks chuẩn 128MB), kết nối Python-HDFS hai chiều và thực thi các tác vụ tính toán phân tán. Chi tiết xem tại [`docs/10_SPEC_DISTRIBUTED_BIG_DATA_LAKEHOUSE_HDFS_STORAGE_PLAN.md`](file:///z:/Desktop/Bus_tracking/docs/10_SPEC_DISTRIBUTED_BIG_DATA_LAKEHOUSE_HDFS_STORAGE_PLAN.md).
 
 | Mã WP | Tên Gói Công Việc | Đầu Vào (Inputs) | Quy Cách & Logic Thực Thi | Sản Phẩm Đầu Ra (Deliverables) | Tiêu Chuẩn Hoàn Thành (DoD) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **WP 5.1** | **Kiểm tra & Khởi động Cụm HDFS 3.3.6 Cục bộ** | Cấu hình Hadoop HDFS 3.3.6 hiện hữu trong dự án | Kiểm tra biến môi trường `HADOOP_HOME`, Java 8/11; khởi động NameNode & DataNode; kiểm tra Web UI tại `http://localhost:9870`. | Cụm HDFS ở trạng thái LIVE, dung lượng sẵn sàng. | Lệnh `hdfs dfsadmin -report` trả về 0 Dead DataNodes; Web UI 9870 truy cập bình thường. |
-| **WP 5.2** | **Ingestion Đẩy Dữ liệu Silver/Gold lên HDFS** | Kho Parquet Silver & Gold cục bộ | Viết script đồng bộ phân tán đẩy dữ liệu vào HDFS: `hdfs dfs -put data/lakehouse/silver /lakehouse/silver` và `/lakehouse/gold`. | Cây thư mục Lakehouse phân tán trên HDFS. | Lệnh `hdfs dfs -ls /lakehouse/silver` hiển thị đầy đủ 942 phân vùng; dữ liệu toàn vẹn checksum. |
-| **WP 5.3** | **Hiện thực hóa & Benchmark 4 PySpark Distributed Jobs** | Dữ liệu trên HDFS; SparkSession | Viết và chạy 4 Spark jobs bằng PySpark: (1) Distributed Aggregation & Spatio-temporal Metrics; (2) Distributed Feature Engineering; (3) Distributed Baseline Matrix Calculation; (4) Distributed Evaluation & Anomaly Detection. | Thư mục `scripts/spark/` chứa 4 scripts; Báo cáo benchmark Spark UI. | 4 Jobs chạy thành công trên Spark (Exit code 0); có log đo thời gian thực thi (Speedup / Scalability). |
+| **WP 5.1** | **Cụm HDFS Portable Siêu Gọn Nhẹ** | Hadoop 3.3.6 + Winutils; JDK 17 Portable | Cấu hình Hadoop Portable trong `tools/hadoop-3.3.6/` và OpenJDK 17 trong `tools/jdk-17/`; sinh `core-site.xml`, `hdfs-site.xml` (`dfs.permissions.enabled = false`); định dạng NameNode và viết script khởi động PowerShell. | Thư mục `tools/`, các file XML, và `scripts/start_hdfs_cluster.ps1`. | NameNode & DataNode chạy ổn định (RAM $< 400\text{MB}$); Web UI `http://localhost:9870` trả về HTTP 200 OK, `Live DataNodes = 1`. |
+| **WP 5.2** | **Ingestion & Di Trú Lakehouse Lên HDFS Kèm Compaction** | 1.191 Parquet Silver; Bảng Gold | Script `sync_lakehouse_to_hdfs.py` đọc 1.191 file Silver nhỏ, gom nhóm (Compaction) theo tuyến thành 48 file Parquet khối $128\text{MB}$ nén Snappy; đẩy Metadata và Gold lên HDFS; đối soát Checksum. | Dữ liệu Lakehouse phân tán trên HDFS; `scripts/verify_hdfs_integrity.py`. | 100% dữ liệu Silver (5,56M dòng) và Gold có mặt trên HDFS; số file Silver giảm 96% (từ 1.191 xuống 48); Checksum SHA-256 khớp 1:1 (0% sai lệch). |
+| **WP 5.3** | **Python-HDFS Connector & Cơ Chế Fallback Hai Chiều** | Cụm HDFS; PyArrow & WebHDFS REST API | Viết module `hdfs_lakehouse_client.py` hỗ trợ cả PyArrow C++ và WebHDFS REST API; tự động phát hiện trạng thái HDFS: nếu alive thì đọc HDFS, nếu offline tự động fallback về `data/lakehouse/` cục bộ. | `hdfs_lakehouse_client.py`, cấu hình trong `system_config.py`, test script `test_hdfs_lakehouse_client.py`. | Đọc ghi Parquet từ Python qua HDFS thành công; mô phỏng tắt HDFS: hệ thống tự động fallback về đĩa cục bộ mà không dừng luồng (100% PASS). |
+| **WP 5.4** | **Thực Thi Tác Vụ Phân Tán & Benchmark Khả Năng Mở Rộng** | Dữ liệu HDFS Parquet | Chạy 3 script PySpark đọc trực tiếp từ HDFS: (1) Kinematics Window Function; (2) Broadcast Hash Join; (3) OLAP Batch Matrix; chạy benchmark đo kiểm Scale-Out (1, 2, 4 cores) và Scale-Up (25%, 50%, 100% data). | 3 scripts PySpark; `run_wp23_hdfs_scalability_benchmark.py`; Báo cáo khoa học `reports/wp23_hdfs_distributed_storage_benchmark_report.md`. | Cả 3 script chạy thành công (exit code 0); tốc độ scan sau Compaction nhanh gấp $\ge 2$ lần; Báo cáo đầy đủ đồ thị Speedup và Efficiency. |
 
 ---
 

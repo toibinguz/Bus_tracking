@@ -40,6 +40,7 @@ from config.system_config import (
     METERS_PER_DEG_LAT,
     METERS_PER_DEG_LON_EQUATOR,
     TZ_HANOI,
+    normalize_direction,
 )
 from module_3_bus_eta_prediction.step_3_3_machine_learning_models.eta_model_trainer import (
     ALL_54_FEATURES,
@@ -92,6 +93,10 @@ class OnlineFeatureExtractor:
 
         # Vehicle traces: vid -> deque of (epoch, s_bus_m, speed_kmh)
         self.vehicle_traces: Dict[str, deque] = defaultdict(lambda: deque(maxlen=MAX_TRACE_HISTORY))
+
+        # Vehicle trip origin tracking: vid -> (trip_start_epoch, trip_start_s, trip_start_k, route_code, dir_str, last_epoch, last_s)
+        # Guarantees full-trip continuity and eliminates Train/Serve Skew for ego_trip_elapsed_sec & ego_cum_delay_vs_baseline_sec
+        self.vehicle_trip_origin: Dict[str, Tuple[float, float, int, str, str, float, float]] = {}
 
     def _preload_static_ground_truth(self) -> None:
         """Preloads canonical routes, shapes, and stations into fast memory structures."""
@@ -268,7 +273,7 @@ class OnlineFeatureExtractor:
         Projects (lat, lon) onto the route shape polyline using local tangent plane coordinates.
         Returns: (s_bus_m, cross_track_m, is_on_corridor) where is_on_corridor is True if d_perp <= 35.0m.
         """
-        d_str = "go" if str(direction) in ("0", "go", "Chiều đi") else "re"
+        d_str = normalize_direction(direction)
         shape = self.route_shape_pts.get((str(route_code), d_str), [])
         if len(shape) < 2:
             return (0.0, 999.0, False)
@@ -316,15 +321,15 @@ class OnlineFeatureExtractor:
         """
         TD-19 Terminal Gate classifier:
           - 'AT_ORIGIN_TERMINAL'      : s_bus_m < s_station[1] (waiting for dispatch / staging)
-          - 'AT_DESTINATION_TERMINAL' : s_bus_m >= s_station[N-1] (entered destination gate)
-          - 'ACTIVE_IN_TRANSIT'       : s_station[1] <= s_bus_m < s_station[N-1] (eligible for kinematic ETA)
+          - 'AT_DESTINATION_TERMINAL' : s_bus_m >= s_station[N-1] - 50m (entered destination depot)
+          - 'ACTIVE_IN_TRANSIT'       : s_station[1] <= s_bus_m < s_station[N-1] - 50m (eligible for kinematic ETA)
         """
-        d_str = "go" if str(direction) in ("0", "go", "Chiều đi") else "re"
+        d_str = normalize_direction(direction)
         st_list = self.stations_by_dir.get((str(route_code), d_str), [])
         if len(st_list) >= 4:
-            if s_bus_m < st_list[1][3]:
+            if s_bus_m < st_list[1][3] - 10.0:
                 return "AT_ORIGIN_TERMINAL"
-            if s_bus_m >= st_list[-2][3]:
+            if s_bus_m >= st_list[-1][3] - 50.0:
                 return "AT_DESTINATION_TERMINAL"
         return "ACTIVE_IN_TRANSIT"
 
@@ -341,8 +346,21 @@ class OnlineFeatureExtractor:
         Updates rolling kinematic buffer for a vehicle.
         Returns: (v_roll3, v_roll5, ego_accel, ego_spd_ratio).
         """
-        d_str = "go" if str(direction) in ("0", "go", "Chiều đi") else "re"
-        trace = self.vehicle_traces[str(vehicle_id)]
+        d_str = normalize_direction(direction)
+        vid_str = str(vehicle_id)
+
+        # Anti-Ghost Fleet: Immediately remove vehicle from the opposite direction fleet
+        opp_dir = "re" if d_str == "go" else "go"
+        if (str(route_code), opp_dir) in self.active_fleet:
+            self.active_fleet[(str(route_code), opp_dir)].pop(vid_str, None)
+
+        # If vehicle switched direction or route, clear trace buffer to avoid corrupted backward velocity
+        if vid_str in self.vehicle_trip_origin:
+            _, _, _, orig_rc, orig_ds, _, _ = self.vehicle_trip_origin[vid_str]
+            if orig_rc != str(route_code) or orig_ds != d_str:
+                self.vehicle_traces[vid_str].clear()
+
+        trace = self.vehicle_traces[vid_str]
         trace.append((device_epoch, s_bus_m, speed_kmh))
 
         v_inst = max(0.0, speed_kmh)
@@ -384,7 +402,7 @@ class OnlineFeatureExtractor:
         completion_epoch: float,
     ) -> None:
         """Updates recent segment completion buffer for preceding bus probe features (Family c)."""
-        d_str = "go" if str(direction) in ("0", "go", "Chiều đi") else "re"
+        d_str = normalize_direction(direction)
         key = (str(route_code), d_str)
         if key not in self.ord_to_k:
             return
@@ -413,7 +431,7 @@ class OnlineFeatureExtractor:
         Returns pd.DataFrame with columns matching ALL_54_FEATURES.
         """
         r_code = str(route_code)
-        d_str = "go" if str(direction) in ("0", "go", "Chiều đi") else "re"
+        d_str = normalize_direction(direction)
         dir_id = 0 if d_str == "go" else 1
 
         if r_code not in self.route_meta:
@@ -516,10 +534,31 @@ class OnlineFeatureExtractor:
         dist_to_next_st = max(0.0, float(st_s_vals[k_curr + 1] - s_bus_m))
         alpha_curr = min(1.0, max(0.0, dist_to_next_st / a_len[k_curr]))
 
-        trace_pts = self.vehicle_traces[str(vehicle_id)]
-        trip_elapsed = max(0.0, device_epoch - trace_pts[0][0]) if trace_pts else 0.0
-        first_s = trace_pts[0][1] if trace_pts else s_bus_m
-        first_k = min(n_seg - 1, max(0, int(np.searchsorted(st_s_vals, first_s, side="right")) - 1))
+        # Trip Origin State: maintains full-trip continuity across infinite pings (Zero Train/Serve Skew)
+        vid_str = str(vehicle_id)
+        is_new_trip = False
+        if vid_str not in self.vehicle_trip_origin:
+            is_new_trip = True
+        else:
+            t_orig, s_orig, k_orig, r_orig, d_orig, last_ep, last_s = self.vehicle_trip_origin[vid_str]
+            if (r_orig != r_code or d_orig != d_str or 
+                (device_epoch - last_ep > 1800.0) or (s_bus_m < last_s - 1500.0)):
+                is_new_trip = True
+
+        if is_new_trip:
+            self.vehicle_trip_origin[vid_str] = (
+                device_epoch, s_bus_m, k_curr, r_code, d_str, device_epoch, s_bus_m
+            )
+            trip_elapsed = 0.0
+            first_k = k_curr
+        else:
+            t_orig, s_orig, k_orig, r_orig, d_orig, _, _ = self.vehicle_trip_origin[vid_str]
+            self.vehicle_trip_origin[vid_str] = (
+                t_orig, s_orig, k_orig, r_orig, d_orig, device_epoch, s_bus_m
+            )
+            trip_elapsed = max(0.0, device_epoch - t_orig)
+            first_k = k_orig
+
         if k_curr > first_k:
             ego_cum_delay = max(-600.0, min(1800.0, trip_elapsed - float(pref_p50[k_curr] - pref_p50[first_k])))
         else:

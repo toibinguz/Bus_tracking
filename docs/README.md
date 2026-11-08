@@ -1,19 +1,23 @@
 # THƯ MỤC TÀI LIỆU DỰ ÁN HANOI BUS (DOCS)
 
-> **Trạng thái**: Toàn bộ tài liệu lịch sử giai đoạn trước (Docs 00 đến 65) đã được lưu trữ vĩnh viễn trong `archive/historical_docs/` nhằm triệt tiêu hoàn toàn quán tính nhận thức và các giả định lỗi thời.
->
-> **Nguồn chân lý thực nghiệm duy nhất**: Dữ liệu và trạng thái hệ thống được xác thực trực tiếp thông qua bộ kiểm toán `scripts/verify_canonical_architecture.py` và `scripts/audit_silver_lakehouse_purity.py`.
+> **Nguyên tắc Quản trị Tài liệu (Điều IV Hiến pháp AGENTS.md)**:
+> 1. **Single Responsibility (Mỗi tài liệu chịu đúng 1 trách nhiệm duy nhất)**: Không chồng chéo nội dung, không duy trì tài liệu nháp tạm thời hoặc kế hoạch cũ đã lỗi thời.
+> 2. **Đánh số liên tục không ngắt quãng**: Toàn bộ tài liệu chính thức được sắp xếp thứ tự từ `01` đến `10`.
+> 3. **Nguồn chân lý thực nghiệm duy nhất**: Mọi số liệu trong tài liệu đều được bảo chứng bằng mã nguồn thực thi và kiểm thử tự động.
+
+---
 
 ## Danh Mục Tài Liệu Quy Chuẩn Hiện Hành
 
-1. [`docs/01_MASTER_WORK_BREAKDOWN_STRUCTURE_ROADMAP.md`](file:///z:/Desktop/Bus_tracking/docs/01_MASTER_WORK_BREAKDOWN_STRUCTURE_ROADMAP.md): Đặc tả phân rã công việc tổng thể (WBS) 7 giai đoạn.
-2. [`docs/02_CANONICAL_DATA_DIRECTORY_SPECIFICATION.md`](file:///z:/Desktop/Bus_tracking/docs/02_CANONICAL_DATA_DIRECTORY_SPECIFICATION.md): Đặc tả kiến trúc thư mục dữ liệu chuẩn Medallion (Raw $\to$ Bronze $\to$ Silver $\to$ Gold).
-3. [`docs/03_SILVER_TRAJECTORY_CONTINUITY_AND_ETA_CHECKLIST.md`](file:///z:/Desktop/Bus_tracking/docs/03_SILVER_TRAJECTORY_CONTINUITY_AND_ETA_CHECKLIST.md): Đặc tả kiểm toán dòng GPS tầng Silver & 5 quy tắc bắt buộc khi xây dựng pipeline ETA.
-4. [`docs/04_TECHNICAL_DEBT_AND_OPEN_ISSUES_LEDGER.md`](file:///z:/Desktop/Bus_tracking/docs/04_TECHNICAL_DEBT_AND_OPEN_ISSUES_LEDGER.md): Sổ cái nợ kỹ thuật & Checklist quản trị rủi ro toàn hệ thống (Tuân thủ Điều 8 Hiến pháp).
-5. [`docs/05_SESSION_HANDOVER_STEP_3_4_AND_CRAWLER_AUDIT.md`](file:///z:/Desktop/Bus_tracking/docs/05_SESSION_HANDOVER_STEP_3_4_AND_CRAWLER_AUDIT.md): Văn bản bàn giao công việc: Kiểm toán Crawler Tuyến 40 & Huấn luyện mô hình ML ETA Đa tuyến (Bước 3.3 – 3.4).
-6. [`docs/06_ETA_INFERENCE_ENGINE_SPEC.md`](file:///z:/Desktop/Bus_tracking/docs/06_ETA_INFERENCE_ENGINE_SPEC.md): Đặc tả luồng suy luận thời gian thực và mô hình phục vụ ETA.
-7. [`docs/07_ONLINE_FEATURE_EXTRACTOR_AND_SERVING_SPEC.md`](file:///z:/Desktop/Bus_tracking/docs/07_ONLINE_FEATURE_EXTRACTOR_AND_SERVING_SPEC.md): Đặc tả trích xuất đặc trưng trực tuyến thời gian thực (Online Feature Extractor) và Serving Service (Bước 3.5).
-8. [`docs/08_WEB_APP_DEMO_SPECIFICATION_AND_PLAN.md`](file:///z:/Desktop/Bus_tracking/docs/08_WEB_APP_DEMO_SPECIFICATION_AND_PLAN.md): Đặc tả kiến trúc & kế hoạch triển khai Web App Demo (Bước 3.5 / Giai đoạn 7) theo Contract-First.
-9. [`docs/09_SESSION_HANDOVER_PHASE_7_WEB_DEMO_AND_HARDWARE_GPS_AUDIT.md`](file:///z:/Desktop/Bus_tracking/docs/09_SESSION_HANDOVER_PHASE_7_WEB_DEMO_AND_HARDWARE_GPS_AUDIT.md): Văn bản bàn giao công việc: Hoàn thành Web App Demo (Giai đoạn 7), Tối ưu bản đồ Offline & Kiểm toán thực nghiệm tần suất GPS phần cứng.
-
-
+| STT | Tệp Tài Liệu | Trách Nhiệm Duy Nhất (Single Responsibility) | Trạng Thái |
+| :---: | :--- | :--- | :---: |
+| **01** | [`01_MASTER_WORK_BREAKDOWN_STRUCTURE_ROADMAP.md`](file:///z:/Desktop/Bus_tracking/docs/01_MASTER_WORK_BREAKDOWN_STRUCTURE_ROADMAP.md) | **Lộ trình Tổng thể Dự án**: Phân rã công việc (WBS) từ Phase 1 đến Phase 7. | Sống (Living) |
+| **02** | [`02_CANONICAL_DATA_DIRECTORY_SPECIFICATION.md`](file:///z:/Desktop/Bus_tracking/docs/02_CANONICAL_DATA_DIRECTORY_SPECIFICATION.md) | **Cấu trúc Thư mục Dữ liệu**: Hợp đồng phân tầng Medallion Lakehouse (Raw $\to$ Bronze $\to$ Silver $\to$ Gold). | Chuẩn hóa |
+| **03** | [`03_SILVER_TRAJECTORY_CONTINUITY_AND_ETA_CHECKLIST.md`](file:///z:/Desktop/Bus_tracking/docs/03_SILVER_TRAJECTORY_CONTINUITY_AND_ETA_CHECKLIST.md) | **Chất lượng Dữ liệu Silver**: Kiểm toán tính liên tục quỹ đạo GPS & 5 quy tắc bất biến. | Chuẩn hóa |
+| **04** | [`04_TECHNICAL_DEBT_AND_OPEN_ISSUES_LEDGER.md`](file:///z:/Desktop/Bus_tracking/docs/04_TECHNICAL_DEBT_AND_OPEN_ISSUES_LEDGER.md) | **Sổ cái Nợ Kỹ thuật Toàn diện**: Quản trị và theo dõi mọi nợ kỹ thuật từ TD-01 đến TD-52 (Điều 8). | Sống (Living) |
+| **05** | [`05_ONLINE_FEATURE_EXTRACTOR_AND_SERVING_SPEC.md`](file:///z:/Desktop/Bus_tracking/docs/05_ONLINE_FEATURE_EXTRACTOR_AND_SERVING_SPEC.md) | **Đặc tả Serving & Trích xuất Đặc trưng**: Chi tiết 54 features và giải thuật trực tuyến $O(1)$. | Chuẩn hóa |
+| **06** | [`06_TIMBUS_BUSMAP_REALTIME_PARITY_AND_FRENET_BRIDGE_REPORT.md`](file:///z:/Desktop/Bus_tracking/docs/06_TIMBUS_BUSMAP_REALTIME_PARITY_AND_FRENET_BRIDGE_REPORT.md) | **Báo cáo Thực nghiệm Đối soát Viễn trắc**: Thẩm định độ lệch TimBus vs BusMap & Cầu nối Frenet. | Nghiệm thu |
+| **07** | [`07_SESSION_HANDOVER_PHASE_7_WEB_DEMO_AND_HARDWARE_GPS_AUDIT.md`](file:///z:/Desktop/Bus_tracking/docs/07_SESSION_HANDOVER_PHASE_7_WEB_DEMO_AND_HARDWARE_GPS_AUDIT.md) | **Báo cáo Nghiệm thu Web Demo & GPS Phần cứng**: Nghiệm thu Phase 7 và tần suất phát sóng 30s. | Nghiệm thu |
+| **08** | [`08_GROUND_TRUTH_TEST_SPEC_AND_ANTI_PATCHING_STANDARD.md`](file:///z:/Desktop/Bus_tracking/docs/08_GROUND_TRUTH_TEST_SPEC_AND_ANTI_PATCHING_STANDARD.md) | **Chuẩn mực Kiểm thử Chân lý & Bài trừ Vá lỗi**: 4 Ground Truth Oracles & Tiêu chuẩn FSM hướng thuộc tính. | Chuẩn hóa |
+| **09** | [`09_SPEC_REALTIME_TIMBUS_SERVING_INTEGRATION_AND_SMOOTH_TWEENING.md`](file:///z:/Desktop/Bus_tracking/docs/09_SPEC_REALTIME_TIMBUS_SERVING_INTEGRATION_AND_SMOOTH_TWEENING.md) | **Đặc tả Tích hợp TimBus & Làm mượt Động học**: Luồng phục vụ 5s & Easing tuyến tính xóa bỏ hiện tượng xe bay nhanh. | Nghiệm thu |
+| **10** | [`10_SPEC_DISTRIBUTED_BIG_DATA_LAKEHOUSE_HDFS_STORAGE_PLAN.md`](file:///z:/Desktop/Bus_tracking/docs/10_SPEC_DISTRIBUTED_BIG_DATA_LAKEHOUSE_HDFS_STORAGE_PLAN.md) | **Đặc tả Lưu trữ Dữ liệu Lớn Phân tán HDFS**: Cụm HDFS Portable, Compaction 1.191 Parquet Silver, Dual-path Client & Benchmark. | Trình duyệt |

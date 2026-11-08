@@ -50,6 +50,9 @@ class PredictionItem(BaseModel):
     target_distance_m: float = Field(0.0, description="Khoảng cách trạm đích tính từ bến xuất phát (mét)")
     eta_seconds: float = Field(..., description="Thời gian dự báo xe đến trạm (giây)")
     eta_minutes: float = Field(..., description="Thời gian dự báo xe đến trạm (phút)")
+    baseline_p10_sec: Optional[float] = Field(None, description="Thời gian chạy theo phân vị an toàn P10 (giây)")
+    baseline_p50_sec: Optional[float] = Field(None, description="Thời gian chạy trung vị Baseline P50 (giây)")
+    baseline_p90_sec: Optional[float] = Field(None, description="Thời gian chạy theo phân vị trễ P90 (giây)")
     safe_arrival_time: str = Field(..., description="Mốc giờ khuyến nghị có mặt tại trạm (HH:MM) theo phân vị an toàn P10")
     expected_arrival_time: str = Field(..., description="Mốc giờ đến trạm dự kiến (HH:MM)")
     safe_window: str = Field(..., description="Cửa sổ thời gian an toàn [P10, P90] dạng chuỗi 'HH:MM – HH:MM'")
@@ -72,6 +75,7 @@ class LiveBusItem(BaseModel):
     current_station_order: Optional[int] = Field(None, description="Thứ tự trạm dừng gần nhất vừa đi qua")
     current_station_name: Optional[str] = Field(None, description="Tên trạm dừng gần nhất vừa đi qua")
     message: Optional[str] = Field(None, description="Thông báo trạng thái (dành cho detour hoặc bến chờ)")
+    telemetry_source: Optional[str] = Field("busmap_relay", description="Nguồn viễn trắc GPS: 'timbus_5s' hoặc 'busmap_relay'")
     predictions: List[PredictionItem] = Field(default_factory=list, description="Danh sách dự báo ETA đến các trạm kế tiếp")
 
 

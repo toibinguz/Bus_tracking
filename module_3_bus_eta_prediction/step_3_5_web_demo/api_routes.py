@@ -20,10 +20,12 @@ from fastapi import APIRouter, HTTPException, Query
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, BASE_DIR)
 
+from config.system_config import normalize_direction
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.eta_serving_service import (
     EtaServingService,
 )
 from module_3_bus_eta_prediction.step_3_5_web_demo.cache_manager import route_eta_cache
+from module_3_bus_eta_prediction.step_3_5_web_demo.timbus_bridge import TimBusRealtimeBridge
 from module_3_bus_eta_prediction.step_3_5_web_demo.contract import (
     GeoJsonLineString,
     HealthResponse,
@@ -37,6 +39,35 @@ from module_3_bus_eta_prediction.step_3_5_web_demo.contract import (
 
 router = APIRouter(prefix="/api/v1", tags=["ETA Prediction"])
 SERVER_START_TIME = time.time()
+
+
+def evaluate_corridor_traffic_condition(
+    active_speeds: List[float],
+    hour: Optional[int] = None,
+    minute: Optional[int] = None,
+) -> str:
+    """
+    Đánh giá trạng thái lưu thông hành lang trung thực, minh bạch.
+    Phân biệt rõ ràng ca đêm đóng tuyến, xe đang chờ tại bến, kẹt xe, ùn ứ và thông thoáng.
+    """
+    if hour is None or minute is None:
+        now = datetime.now()
+        hour = now.hour
+        minute = now.minute
+
+    if not active_speeds:
+        # Nhận diện ca đêm sau 22:30 hoặc trước 05:00 sáng
+        if hour >= 23 or (hour == 22 and minute >= 30) or hour < 5:
+            return "Ca đêm (Mạng lưới kết thúc ca chạy, xe đã về bến đỗ)"
+        return "Chưa có xe xuất bến trên hành lang (Xe đang chờ tài tại bến)"
+
+    avg_v = sum(active_speeds) / len(active_speeds)
+    if avg_v >= 22.0:
+        return f"Thông thoáng (Vận tốc trung bình ~{avg_v:.0f} km/h)"
+    elif avg_v >= 12.0:
+        return f"Ùn ứ chậm (Vận tốc trung bình ~{avg_v:.0f} km/h)"
+    else:
+        return f"Kẹt xe / Ùn tắc cục bộ (Vận tốc trung bình ~{avg_v:.0f} km/h)"
 
 
 def _natural_route_sort_key(route_code: str):
@@ -85,7 +116,7 @@ def get_route_geometry(
     """Trả về GeoJSON LineString tim đường và danh sách trạm dừng có tọa độ dọc hành lang."""
     service = EtaServingService.get_instance()
     r_code = str(route_code)
-    d_str = "re" if str(direction).lower() in ("1", "re", "chiều về") else "go"
+    d_str = normalize_direction(direction)
 
     if r_code not in service.extractor.route_meta:
         raise HTTPException(
@@ -142,11 +173,11 @@ def get_live_eta(
     """
     Truy vấn snapshot xe buýt thời gian thực ngoài đường phố Hà Nội,
     tính toán dự báo ETA và cửa sổ an toàn [P10, P90] phòng ngừa rủi ro lỡ chuyến.
-    Phục vụ qua bộ đệm TTL Cache 15s.
+    Phục vụ qua bộ đệm TTL Cache 4s.
     """
     service = EtaServingService.get_instance()
     r_code = str(route_code)
-    d_str = "re" if str(direction).lower() in ("1", "re", "chiều về") else "go"
+    d_str = normalize_direction(direction)
 
     if r_code not in service.extractor.route_meta:
         raise HTTPException(
@@ -166,6 +197,14 @@ def get_live_eta(
     raw_snapshot = service.predict_route_snapshot_live(
         route_code=r_code,
         direction=d_str,
+    )
+
+    # Enrich with TimBus 5.0s sub-second telemetry (TD-52 & TD-38)
+    bridge = TimBusRealtimeBridge.get_instance(service)
+    raw_snapshot = bridge.enrich_snapshot_with_timbus(
+        route_code=r_code,
+        direction=d_str,
+        raw_snapshot=raw_snapshot,
     )
 
     now_dt = datetime.now()
@@ -188,12 +227,14 @@ def get_live_eta(
 
             eta_s = float(p["eta_seconds"])
             eta_min = float(p["eta_minutes"])
+            base_s = float(p.get("baseline_p50_sec", eta_s))
+            base_p10 = float(p["baseline_p10_sec"]) if p.get("baseline_p10_sec") is not None else base_s
+            base_p90 = float(p["baseline_p90_sec"]) if p.get("baseline_p90_sec") is not None else base_s
+            delta_s = eta_s - base_s
 
-            # Asymmetric Arrival Risk Calculation:
-            # P10 arrival (conservative / safe): bus arrives up to 15% faster minus 60s buffer
-            p10_sec = max(0.0, eta_s * 0.85 - 60.0)
-            # P90 arrival: bus encounters heavy delay (25% slower plus 90s)
-            p90_sec = eta_s * 1.25 + 90.0
+            # Safe arrival window based on empirical quantiles + ML residual offset:
+            p10_sec = max(0.0, base_p10 + delta_s)
+            p90_sec = max(p10_sec + 15.0, base_p90 + delta_s)
 
             t_safe = now_dt + timedelta(seconds=p10_sec)
             t_exp = now_dt + timedelta(seconds=eta_s)
@@ -211,6 +252,9 @@ def get_live_eta(
                     target_distance_m=float(p.get("target_distance_m", 0.0)),
                     eta_seconds=round(eta_s, 1),
                     eta_minutes=round(eta_min, 1),
+                    baseline_p10_sec=round(base_p10, 1),
+                    baseline_p50_sec=round(base_s, 1),
+                    baseline_p90_sec=round(base_p90, 1),
                     safe_arrival_time=safe_str,
                     expected_arrival_time=exp_str,
                     safe_window=win_str,
@@ -231,21 +275,17 @@ def get_live_eta(
                 current_station_order=b.get("current_station_order"),
                 current_station_name=b.get("current_station_name"),
                 message=b.get("message"),
+                telemetry_source=b.get("telemetry_source", "busmap_relay"),
                 predictions=preds,
             )
         )
 
-    # Determine corridor traffic condition
-    if not active_speeds:
-        traffic_cond = "Thông thoáng (Chưa có xe xuất bến)"
-    else:
-        avg_v = sum(active_speeds) / len(active_speeds)
-        if avg_v >= 22.0:
-            traffic_cond = f"Thông thoáng (Vận tốc trung bình ~{avg_v:.0f} km/h)"
-        elif avg_v >= 12.0:
-            traffic_cond = f"Ùn ứ chậm (Vận tốc trung bình ~{avg_v:.0f} km/h)"
-        else:
-            traffic_cond = f"Kẹt xe cục bộ (Vận tốc trung bình ~{avg_v:.0f} km/h)"
+    # Determine corridor traffic condition via truth evaluation matrix
+    traffic_cond = evaluate_corridor_traffic_condition(
+        active_speeds=active_speeds,
+        hour=now_dt.hour,
+        minute=now_dt.minute,
+    )
 
     response_obj = LiveEtaResponse(
         route_code=r_code,
@@ -258,8 +298,8 @@ def get_live_eta(
         buses=bus_items,
     )
 
-    # Save to TTL Cache
-    route_eta_cache.set(cache_key, response_obj.model_dump(), ttl_seconds=15.0)
+    # Save to TTL Cache (4.0s TTL for sub-second smooth 5s telemetry)
+    route_eta_cache.set(cache_key, response_obj.model_dump(), ttl_seconds=4.0)
 
     return response_obj
 

@@ -124,7 +124,17 @@ def test_04_live_eta_and_cache():
         if b.status == "ACTIVE_IN_TRANSIT" and b.predictions:
             p = b.predictions[0]
             print(f"    [*] Kiểm tra xe {b.plate}: Đến '{p.target_station_name}' | Dự kiến={p.expected_arrival_time} | Cửa sổ an toàn={p.safe_window} | Khuyến nghị={p.safe_arrival_time}")
-            assert p.safe_arrival_time <= p.expected_arrival_time, "safe_arrival_time (P10) phải <= expected_arrival_time"
+            # So sánh an toàn không bị lỗi chuỗi wrap-around khi qua nửa đêm (Midnight Wrap-around)
+            t_safe_m = int(p.safe_arrival_time.split(":")[0]) * 60 + int(p.safe_arrival_time.split(":")[1])
+            t_exp_m = int(p.expected_arrival_time.split(":")[0]) * 60 + int(p.expected_arrival_time.split(":")[1])
+            time_delta_min = (t_exp_m - t_safe_m) % (24 * 60)
+            assert time_delta_min < 12 * 60, (
+                f"safe_arrival_time ({p.safe_arrival_time}) không được muộn hơn expected_arrival_time ({p.expected_arrival_time})"
+            )
+            if p.baseline_p10_sec is not None and p.baseline_p50_sec is not None:
+                assert p.baseline_p10_sec <= p.baseline_p50_sec, (
+                    f"baseline_p10_sec ({p.baseline_p10_sec}s) phải <= baseline_p50_sec ({p.baseline_p50_sec}s)"
+                )
             break
             
     print("[PASS] Endpoint Live ETA & TTL Cache hoạt động hoàn hảo!")
