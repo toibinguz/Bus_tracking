@@ -26,24 +26,33 @@ class MapManager {
             zoomControl: false,
         });
 
-        // 1. Base Tile Layers (100% Free, Keyless, Open Source)
-        const osmStandard = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19,
+        // 1. Base Tile Layers (100% Free, Keyless, High Speed in Vietnam)
+        // Layer A: Google Maps Đường phố (Tải tức thì tại Việt Nam, địa danh chuẩn Tiếng Việt)
+        const googleRoad = L.tileLayer("https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+            attribution: '&copy; Google Maps',
+            maxZoom: 20,
         });
 
+        // Layer B: Ảnh Vệ tinh Esri World Imagery (Độ nét cao, hoạt động ổn định)
         const esriSatellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
             attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, AeroGRID, IGN',
             maxZoom: 18,
         });
 
-        // Default to OpenStreetMap
-        osmStandard.addTo(this.map);
+        // Layer C: Esri World Street Map (Bản đồ đường phố quốc tế)
+        const esriStreet = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+            attribution: 'Tiles &copy; Esri &mdash; Street Map',
+            maxZoom: 19,
+        });
+
+        // Default to Google Maps Road
+        googleRoad.addTo(this.map);
 
         // Add Layer Selector at Top-Right
         const baseMaps = {
-            "🗺️ Đường phố (OSM)": osmStandard,
+            "🗺️ Google Đường phố": googleRoad,
             "🛰️ Ảnh Vệ tinh (Esri)": esriSatellite,
+            "🏙️ Esri Street Map": esriStreet,
         };
         L.control.layers(baseMaps, null, { position: "topright", collapsed: false }).addTo(this.map);
 
