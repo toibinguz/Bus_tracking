@@ -44,3 +44,8 @@ __pycache__/
 .obsidian/
 Bus_tracking/
 .venv/
+
+# Test & Scratch Caches
+.pytest_cache/
+scratch/
+experiments/**/*.json
