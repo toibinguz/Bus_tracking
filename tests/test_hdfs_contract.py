@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pytest
 
+from scripts.hdfs_ingest_runner import closed_spool_files, upload_closed_spool
+
 from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.hdfs_bronze_adapter import (
     adapt_sanitized_batch,
 )
@@ -89,3 +91,23 @@ def test_receipt_is_written_only_as_explicit_upload_acknowledgement(tmp_path):
     assert load_receipt(spool_file) is None
     write_receipt(spool_file, "/bus-eta/v1/bronze/telemetry/x", "a" * 64)
     assert load_receipt(spool_file)["sha256"] == "a" * 64
+
+
+def test_private_runner_selects_only_closed_spool_files(tmp_path):
+    closed = tmp_path / "dt=2026-11-01" / "hr=07" / "ingest-closed.jsonl"
+    closed.parent.mkdir(parents=True)
+    closed.write_text("{}\n", encoding="utf-8")
+    (closed.parent / "ingest-open.jsonl.tmp").write_text("{}\n", encoding="utf-8")
+
+    uploaded: list[Path] = []
+
+    class Uploader:
+        def upload(self, spool_file):
+            uploaded.append(Path(spool_file))
+            return "/bus-eta/v1/bronze/telemetry/dt=2026-11-01/hr=07/ingest-closed.jsonl"
+
+    assert closed_spool_files(tmp_path) == [closed]
+    assert upload_closed_spool(tmp_path, Uploader()) == [
+        "/bus-eta/v1/bronze/telemetry/dt=2026-11-01/hr=07/ingest-closed.jsonl"
+    ]
+    assert uploaded == [closed]

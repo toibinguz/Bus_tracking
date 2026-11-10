@@ -12,15 +12,30 @@ With Docker Desktop running in Linux-container mode:
 .\scripts\hdfs_demo.ps1 health
 ```
 
-`health` passes only when HDFS reports two live DataNodes. The NameNode UI and
-WebHDFS are exposed only on `127.0.0.1:9870`; DataNode ports are private.
+`health` passes only when HDFS reports two live DataNodes. The NameNode UI is
+loopback-bound only; DataNode and WebHDFS paths are private.
 
 ## Required P1 evidence
 
 1. Capture or replay one real crawler-shaped source window.
 2. Use `hdfs_bronze_adapter` to create envelopes and `spool.write_closed_window`.
-3. Upload its closed JSONL via `WebHdfsUploader` to `/bus-eta/v1/bronze/telemetry`.
-4. Record the source-window ID, row count, local SHA-256, and `hdfs fsck` output.
+3. Run the bounded private-network uploader:
+
+```powershell
+docker compose -f .\docker-compose.hdfs.yml run --rm ingest-runner
+```
+
+4. Verify the receipt and HDFS object without a host WebHDFS connection:
+
+```powershell
+docker compose -f .\docker-compose.hdfs.yml exec namenode hdfs dfs -cat /bus-eta/v1/bronze/telemetry/dt=YYYY-MM-DD/hr=HH/ingest-UUID.jsonl
+docker compose -f .\docker-compose.hdfs.yml exec namenode hdfs dfs -checksum /bus-eta/v1/bronze/telemetry/dt=YYYY-MM-DD/hr=HH/ingest-UUID.jsonl
+Get-FileHash .\runtime\hdfs_spool\dt=YYYY-MM-DD\hr=HH\ingest-UUID.jsonl -Algorithm SHA256
+```
+
+The runner ignores `*.tmp`, preserves an unacknowledged spool artifact when
+the NameNode is unavailable, and records a receipt only after WebHDFS accepts
+the immutable object. Re-run the same Compose command to verify idempotency.
 
 Do not mark P1 complete until the HDFS runtime commands have succeeded. Docker
 volumes are retained by `down`; remove them only for an intentional fresh demo.

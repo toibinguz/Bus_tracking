@@ -48,6 +48,8 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
       - "127.0.0.1:7077:7077"
+    volumes:
+      - .:/workspace:ro
     networks: [hdfs-private]
 
   spark-worker-1:
@@ -57,6 +59,8 @@ services:
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
     depends_on: [spark-master]
     networks: [hdfs-private]
+    volumes:
+      - .:/workspace:ro
 
   spark-worker-2:
     build:
@@ -64,6 +68,25 @@ services:
       dockerfile: spark/Dockerfile
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
     depends_on: [spark-master]
+    networks: [hdfs-private]
+    volumes:
+      - .:/workspace:ro
+
+  ingest-runner:
+    profiles: ["ingest"]
+    build:
+      context: infra
+      dockerfile: spark/Dockerfile
+    command: ["python3", "/workspace/scripts/hdfs_ingest_runner.py", "/spool"]
+    depends_on:
+      namenode:
+        condition: service_healthy
+    environment:
+      HDFS_WEBHDFS_URL: http://namenode:9870
+      HDFS_WEBHDFS_USER: root
+    volumes:
+      - .:/workspace:ro
+      - ./runtime/hdfs_spool:/spool
     networks: [hdfs-private]
 
 networks:

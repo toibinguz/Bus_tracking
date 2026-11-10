@@ -22,9 +22,13 @@ class _NoRedirect(HTTPRedirectHandler):
 class WebHdfsUploader:
     base_url: str
     bronze_root: str = "/bus-eta/v1/bronze/telemetry"
+    user_name: str = "root"
 
     def _url(self, hdfs_path: str, operation: str) -> str:
-        return f"{self.base_url.rstrip('/')}/webhdfs/v1/{quote(hdfs_path.lstrip('/'))}?op={operation}"
+        return (
+            f"{self.base_url.rstrip('/')}/webhdfs/v1/{quote(hdfs_path.lstrip('/'))}"
+            f"?op={operation}&user.name={quote(self.user_name)}"
+        )
 
     def _remote_status(self, hdfs_path: str) -> dict[str, Any] | None:
         request = Request(self._url(hdfs_path, "GETFILESTATUS"), method="GET")
