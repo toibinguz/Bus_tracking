@@ -1,0 +1,19 @@
+[
+  {
+    "vehicle_id": 1101,
+    "plate": "29B-12345",
+    "route_id": 1,
+    "lat": 21.028511,
+    "lon": 105.804817,
+    "speed": 18.2,
+    "raw_speed": 18.0,
+    "calculated_speed": 18.2,
+    "direction": 0,
+    "heading_deg": 90,
+    "current_station_id": 10,
+    "next_station_id": 11,
+    "device_update_time": "2026-11-01T00:05:00+00:00",
+    "crawled_at": "2026-11-01T00:05:02+00:00",
+    "quality_status": "ACTIVE_VALID"
+  }
+]
