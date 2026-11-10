@@ -10,7 +10,7 @@ from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
-from .spool import file_sha256, load_receipt, write_receipt
+from .receipt import file_sha256, load_receipt, write_receipt
 
 
 class _NoRedirect(HTTPRedirectHandler):

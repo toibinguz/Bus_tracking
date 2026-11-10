@@ -18,7 +18,12 @@ import json
 import sys
 import module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.webhdfs
 legacy = [name for name in sys.modules if name in %r]
-print(json.dumps({"legacy": legacy, "pandas": "pandas" in sys.modules}))
+print(json.dumps({
+    "legacy": legacy,
+    "pandas": "pandas" in sys.modules,
+    "spool": "module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.spool" in sys.modules,
+    "zoneinfo": "zoneinfo" in sys.modules,
+}))
 """ % sorted(LEGACY_MODULES)
     result = subprocess.run(
         [sys.executable, "-c", probe],
@@ -27,7 +32,12 @@ print(json.dumps({"legacy": legacy, "pandas": "pandas" in sys.modules}))
         text=True,
     )
 
-    assert json.loads(result.stdout) == {"legacy": [], "pandas": False}
+    assert json.loads(result.stdout) == {
+        "legacy": [],
+        "pandas": False,
+        "spool": False,
+        "zoneinfo": False,
+    }
 
 
 def test_existing_top_level_exports_resolve_from_their_legacy_owners():

@@ -1,6 +1,10 @@
 """Verify the HDFS runtime import boundary inside the Spark container."""
 
 import sys
+from pathlib import Path
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.webhdfs  # noqa: F401
 
@@ -12,7 +16,12 @@ LEGACY_MODULES = {
 }
 
 
-if "pandas" in sys.modules or LEGACY_MODULES.intersection(sys.modules):
+if (
+    "pandas" in sys.modules
+    or "zoneinfo" in sys.modules
+    or "module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.spool" in sys.modules
+    or LEGACY_MODULES.intersection(sys.modules)
+):
     raise SystemExit("HDFS import boundary violated")
 
 print("IM-03 pass")
