@@ -7,6 +7,10 @@ import sys
 if len(sys.argv) != 3:
     raise SystemExit("usage: verify_frenet_fixture.py INPUT.json EXPECTED.json")
 output = Path(__file__).resolve().parent / ".frenet-fixture-output.json"
+mapping_path = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "frenet" / "p0_raw_direction_mapping.json"
+mapping = json.loads(mapping_path.read_text(encoding="utf-8"))["raw_busmap_direction_to_hint"]
+if mapping != {"0": "go", "1": "re", "-1": "unknown"}:
+    raise AssertionError("P0 raw direction mapping fixture changed")
 subprocess.run([sys.executable, str(Path(__file__).with_name("project_frenet_fixture.py")), sys.argv[1], str(output)], check=True)
 if json.loads(output.read_text(encoding="utf-8")) != json.loads(Path(sys.argv[2]).read_text(encoding="utf-8")):
     raise AssertionError("fixture output differs")
