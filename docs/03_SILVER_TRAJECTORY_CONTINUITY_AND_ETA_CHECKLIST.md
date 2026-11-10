@@ -1,15 +1,15 @@
 # ĐẶC TẢ KIỂM TOÁN DÒNG GPS TẦNG SILVER & CHECKLIST BẮT BUỘC KHI XÂY DỰNG PIPELINE ETA
-> **Mã tài liệu**: `docs/03_SILVER_TRAJECTORY_CONTINUITY_AND_ETA_CHECKLIST.md`  
-> **Căn cứ pháp lý**: Tuân thủ **Điều 1** (Kỷ luật Thực nghiệm), **Điều 4** (Master Ground Truth), **Điều 5** (Động học dẫn xuất), và **Điều 8** (Minh bạch Nợ kỹ thuật) của [AGENTS.md](file:///z:/Desktop/Bus_tracking/AGENTS.md).  
-> **Script kiểm chứng thực nghiệm**: [`experiments/eda_silver_tier_comprehensive.py`](file:///z:/Desktop/Bus_tracking/experiments/eda_silver_tier_comprehensive.py) & [`experiments/audit_vehicle_gps_stream_continuity.py`](file:///z:/Desktop/Bus_tracking/experiments/audit_vehicle_gps_stream_continuity.py).  
-> **Ngày ban hành**: 07/11/2026  
+> **Mã tài liệu**: `docs/03_SILVER_TRAJECTORY_CONTINUITY_AND_ETA_CHECKLIST.md`
+> **Căn cứ pháp lý**: Tuân thủ **Điều 1** (Kỷ luật Thực nghiệm), **Điều 4** (Master Ground Truth), **Điều 5** (Động học dẫn xuất), và **Điều 8** (Minh bạch Nợ kỹ thuật) của [AGENTS.md](../AGENTS.md).
+> **Script kiểm chứng thực nghiệm**: [`experiments/eda/eda_silver_tier_comprehensive.py`](../experiments/eda/eda_silver_tier_comprehensive.py) & [`experiments/eda/audit_vehicle_gps_stream_continuity.py`](../experiments/eda/audit_vehicle_gps_stream_continuity.py).
+> **Ngày ban hành**: 07/11/2026
 
 ---
 
 ## I. TỔNG HỢP SỐ LIỆU THỰC NGHIỆM TẦNG SILVER (SAU KHI KHÓA 48 TUYẾN CHUẨN)
 
 1. **Quy mô dữ liệu chuẩn hóa (`2026-10-08` $\to$ `2026-11-07`)**:
-   * **Tổng bản ghi Silver sạch ($d_\perp \le 35,0\text{m}$)**: **5.336.214 dòng** trên **48 tuyến chuẩn cụm HUST** (481 xe buýt), đồng bộ 1:1 giữa SQLite `route_projected_telemetry` (13 cột) và `data/lakehouse/silver/route_projected_telemetry/` (1.191 phân vùng Parquet).
+   * **Tổng bản ghi Silver sạch ($d_\perp \le 35,0\text{m}$)**: (số liệu thay đổi theo thời điểm — xem docs/specs/16) trên **48 tuyến chuẩn cụm HUST** (481 xe buýt), đồng bộ 1:1 giữa SQLite `route_projected_telemetry` (13 cột) và `data/lakehouse/silver/route_projected_telemetry/` (các phân vùng Parquet).
    * **Tổng bản ghi sự cố TomTom khớp tuyến**: **836.761 dòng** trên **46/48 tuyến** có giao cắt sự cố đô thị (`fact_route_tomtom_incidents`).
    * **Đã loại bỏ vĩnh viễn**: 6 tuyến thử nghiệm 2 ngày đầu (`E07TC`, `35B`, `31`, `41`, `25`, `03A`), 5 bản ghi trôi thời gian ngày `2026-10-07`, và 100% các bước nhảy lùi giữa tuyến do nhiễu GPS/giao cắt vòng lặp.
 2. **Đặc trưng chu kỳ phát tin ($\Delta t$) & bước nhảy không gian ($\Delta s$)**:
@@ -55,7 +55,7 @@ Mọi thuật toán ở các giai đoạn tiếp theo (tách chuyến, tính ma 
     * **Đối với nhãn mục tiêu dự báo ETA đa trạm ($s_{\text{bus}} \to s_{\text{target}}$)**: Chỉ cần tại điểm đích $s_{\text{target}}$ có cặp bản tin kẹp chặt ($\Delta t_{\text{target}} \le 150\text{s}$), còn ở giữa hành trình dù xe có đi qua đoạn detour bị khuyết vài bản tin thì **tổng thời gian thực tế $\text{ETA}_{\text{actual}} = \hat{t}(s_{\text{target}}) - t_{\text{current}}$ vẫn hoàn toàn chính xác 100%** (vì đồng hồ thời gian thực ở điểm đầu $t_{\text{current}}$ và điểm đích $\hat{t}(s_{\text{target}})$ là bất biến!).
 
 ### [ ] Checklist 5: Phân Tách Vai Trò Dữ Liệu Huấn Luyện Lịch Sử vs. Dữ Liệu Live Serving
-* **Dữ liệu lịch sử hiện tại (5,60 triệu pings, $\Delta t \approx 80\text{s}$)**: Đóng vai trò học phân phối thời gian di chuyển trên mạng lưới và quy luật tắc nghẽn theo không gian - thời gian.
+* **Dữ liệu lịch sử hiện tại (số liệu thay đổi theo thời điểm — xem docs/specs/16, $\Delta t \approx 80\text{s}$)**: Đóng vai trò học phân phối thời gian di chuyển trên mạng lưới và quy luật tắc nghẽn theo không gian - thời gian.
 * **Dữ liệu Live Service (giai đoạn triển khai thực tế)**: Khi áp dụng kỹ thuật truy vấn toàn tuyến trong 1 request để tăng tần suất lấy mẫu (ví dụ $\Delta t \approx 10\text{–}15\text{s}$), vị trí hiện tại $s_{\text{bus}}$ và vận tốc tức thời gần nhất $\bar{v}_{\text{recent}}$ lúc serving sẽ còn chính xác hơn nữa mà **hoàn toàn tương thích 100% với mô hình đã huấn luyện trên dữ liệu hiện tại**.
 
 ---
@@ -71,4 +71,4 @@ Mọi thay đổi đối với phép chiếu Frenet và tầng lưu trữ Silver
 | **Bước 3** | **Sửa lỗi `abs(ds)/dt` biến nhiễu giật lùi GPS ($-20\text{m} \le \Delta s < 0\text{m}$) thành vận tốc tiến dương** | **89.435 dòng** có $\Delta s < 0$ nhưng `derived_speed_kmh > 0` (`4.718` trên tuyến 01/02/05). | Thay `abs(ds)/dt` bằng `max(0.0, ds)/dt`. Kiểm định toàn mạng 48 tuyến: **0 dòng** (`[Defect 2] = 0`). | ✅ **PASSED** |
 | **Bước 4** | **Sửa lỗi tính `derived_speed_kmh` trước khi lọc hành lang $d_\perp \le 35,0\text{m}$** | **44.349 dòng** hợp lệ bị mất vận tốc (`NULL`) do có 1 điểm nhiễu $d_\perp > 35\text{m}$ xen giữa (`1.190` trên tuyến 01/02/05). | Lọc giữ các điểm $d_\perp \le 35,0\text{m}$ trước rồi mới tính vận tốc dẫn xuất trên chuỗi điểm hợp lệ. Kiểm định toàn mạng 48 tuyến: **0 dòng** (`[Defect 3] = 0`). | ✅ **PASSED** |
 | **Bước 5** | **Khóa chặt `Global Search Fallback` & Duyệt tuần tự thời gian có Gộp Chùm Chiều (`Direction Run Coalescing`)** | **11.219 bước** nhảy lùi giữa tuyến ($\Delta s < -20\text{m}$ trong $\Delta t \le 300\text{s}$) do `Global Search` không chặn lùi và cập nhật `prev_s` cả trên điểm ngoài hành lang. | (1) Chỉ cập nhật `prev_s` khi $d_\perp \le 35\text{m}$; (2) Gộp chùm nhiễu lật chiều ngắn hạn trong $\Delta t \le 300\text{s}$ và reset cửa sổ khi đổi chiều thật; (3) Trong $\Delta t \le 300\text{s}$ cùng chiều, chỉ cho phép nhảy lùi về đầu bến ($s_{\text{new}} \le 800\text{m}$) khi điểm trước ở cuối bến ($s_{\text{prev}} \ge L - 800\text{m}$). Kiểm định 48 tuyến: **0 bước nhảy lùi giữa tuyến** (`[Defect 4] = 0`). | ✅ **PASSED** |
-| **Bước 6** | **Chạy lại toàn mạng 48 tuyến, Tái xuất Silver Parquet & Nghiệm thu Đóng băng Module 2** | `route_projected_telemetry` và Silver Parquet chứa 4 lỗi trên. | Đã chạy lại toàn mạng 48 tuyến (**5.336.214 dòng**, cân bằng `go = 49,78%` / `re = 50,22%`) $\to$ Xuất lại **1.191 phân vùng Silver Parquet** $\to$ Pass 100% cả 5 kiểm định Zero-Regression trên toàn bảng SQLite và Parquet. | ✅ **FROZEN** |
+| **Bước 6** | **Chạy lại toàn mạng 48 tuyến, Tái xuất Silver Parquet & Nghiệm thu Đóng băng Module 2** | `route_projected_telemetry` và Silver Parquet chứa 4 lỗi trên. | Đã chạy lại toàn mạng 48 tuyến (số liệu thay đổi theo thời điểm — xem docs/specs/16; cân bằng `go = 49,78%` / `re = 50,22%`) $\to$ Xuất lại toàn bộ phân vùng Silver Parquet $\to$ Pass 100% cả 5 kiểm định Zero-Regression trên toàn bảng SQLite và Parquet. | ✅ **FROZEN** |

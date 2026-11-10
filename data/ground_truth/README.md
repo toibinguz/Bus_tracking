@@ -1,4 +1,5 @@
 # BỘ DỮ LIỆU CHUẨN ĐỊA LÝ & DANH BẠ TRẠM DỪNG (CANONICAL MASTER GROUND TRUTH)
+> **Snapshot note (2026-11-10):** Numerical counts are dataset snapshots. The ingestion script is the schema authority.
 > **Nguồn dữ liệu**: BusMap Canonical Ground Truth (`hanoi_bus_data`)  
 > **Tuân thủ quy tắc**: [AGENTS.md](../../AGENTS.md) (Điều 4: Master Ground Truth Duy Nhất)
 

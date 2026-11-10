@@ -1,7 +1,8 @@
-# VĂN BẢN BÀN GIAO CÔNG VIỆC: HOÀN THÀNH WEB APP DEMO (GIAI ĐOẠN 7), TỐI ƯU BẢN ĐỒ OFFLINE & KIỂM TOÁN THỰC NGHIỆM TẦN SUẤT GPS PHẦN CỨNG
-> **Mã tài liệu**: `docs/07_SESSION_HANDOVER_PHASE_7_WEB_DEMO_AND_HARDWARE_GPS_AUDIT.md`  
-> **Thời điểm bàn giao**: `2026-11-08 11:30:00+07:00`  
-> **Căn cứ pháp lý**: Tuân thủ nghiêm ngặt **Điều 1** (Kỷ luật Thực nghiệm), **Điều 2** (Thiết kế trước, duyệt rồi mới triển khai), **Điều 3** (Ranh giới Production vs. Experiment), **Điều 4** (Nguồn chân lý dữ liệu tối thượng), **Điều 5** (Động học dẫn xuất), **Điều 6** (Phân tầng trọng tâm - Vertical Slice), **Điều 7** (Tiêu chuẩn runtime Python 3.14), và **Điều 8** (Nghiệm thu trung thực & Minh bạch Nợ kỹ thuật) của [AGENTS.md](file:///z:/Desktop/Bus_tracking/AGENTS.md) và [GEMINI.md](file:///z:/Desktop/Bus_tracking/GEMINI.md).
+# VĂN BẢN BÀN GIAO CÔNG VIỆC: HOÀN THÀNH WEB APP DEMO (GIAI ĐOẠN 7), TỐI ƯU BẢN ĐỒ & KIỂM TOÁN THỰC NGHIỆM TẦN SUẤT GPS PHẦN CỨNG
+> **Historical handover note (reconciled 2026-11-10):** Completion statements and measurements below are dated evidence, not current runtime guarantees. References to removed tests or old service filenames are superseded by [SPEC-16](specs/16_REFACTOR_SPEC_STEP_3_4_SERVING_AND_3_5_WEB_DEMO.md); verification is pending.
+> **Mã tài liệu**: `docs/07_SESSION_HANDOVER_PHASE_7_WEB_DEMO_AND_HARDWARE_GPS_AUDIT.md`
+> **Thời điểm bàn giao**: `2026-11-08 11:30:00+07:00`
+> **Căn cứ pháp lý**: Tuân thủ nghiêm ngặt **Điều 1** (Kỷ luật Thực nghiệm), **Điều 2** (Thiết kế trước, duyệt rồi mới triển khai), **Điều 3** (Ranh giới Production vs. Experiment), **Điều 4** (Nguồn chân lý dữ liệu tối thượng), **Điều 5** (Động học dẫn xuất), **Điều 6** (Phân tầng trọng tâm - Vertical Slice), **Điều 7** (Tiêu chuẩn runtime Python 3.14), và **Điều 8** (Nghiệm thu trung thực & Minh bạch Nợ kỹ thuật) của [AGENTS.md](../AGENTS.md).
 
 ---
 
@@ -9,13 +10,13 @@
 
 | Tầng Kiến Trúc | Trạng Thái | Vị Trí Lưu Trữ Chính Tắc | Chỉ Số Thực Nghiệm Đã Nghiệm Thu |
 | :--- | :---: | :--- | :--- |
-| **1. Ingestion & Lakehouse (Silver)** | **HOÀN TẤT (100%)** | `data/lakehouse/silver/route_projected_telemetry/`<br>`data/lakehouse/silver/fact_route_tomtom_incidents/` | **`5.565.232` dòng** (`1.191` file Parquet, `48` tuyến, `2026-10-08 .. 2026-11-07`), `0` bản tin lệch $>35\text{m}$, `0` lỗi nhảy lùi giữa tuyến (`TD-01`..`TD-08`). |
-| **2. Historical Baseline Matrix** | **HOÀN TẤT (100%)** | Bảng `agg_segment_travel_times` trong `data/hanoi_bus_system.db`<br>Code: [`baseline_matrix_builder.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_1_historical_baseline_model/baseline_matrix_builder.py) | **`169.830` ô** (3 loại ngày $\times$ 17 khung giờ $\times$ 1.665 phân đoạn). **Tier 0 + Tier 1 đạt `93,8%`**. `0,00%` lượt Test rơi vào Tier 3 (`TD-09`..`TD-11`, `TD-18`, `TD-19`). |
-| **3. Unified Gold Feature Store** | **HOÀN TẤT (100%)** | `data/lakehouse/gold/eta_feature_store/split={train,test}/`<br>Code: [`feature_store_builder.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_2_feature_store_extractor/feature_store_builder.py) | **`15.069.481` dòng $\times$ `60` cột** (`11.364.661` Train + `3.704.820` Test; `1,29 GB` Snappy Parquet; `0` giá trị `NaN`). Thời gian trích xuất: **`267,52s`** bằng 8 workers song song + mảng cộng dồn $O(1)$ (`TD-20`). |
-| **4. Multi-Route ML ETA Models** | **HOÀN TẤT (100%)** | `data/models/eta_xgb_global_pruned.json`<br>`data/models/eta_xgb_metadata_and_calibrator.json`<br>Code: [`eta_model_trainer.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_3_machine_learning_models/eta_model_trainer.py) | Mô hình **`6_XGB_Pruned_47Feat`** giảm `MAE` tổng thể từ **`114,98s` $\to$ `97,14s` (`-15,5%`)**, `RMSE` từ **`214,61s` $\to$ `173,30s` (`-19,2%`)**, ở cự ly xa $>15$ trạm giảm `MAE` từ **`246,84s` $\to$ `200,90s` (`-45,94s / -18,6%`)** (`TD-22`). |
-| **5. Real-Time Online Serving Service** | **HOÀN TẤT (100%)** | [`online_feature_extractor.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/online_feature_extractor.py)<br>[`eta_serving_service.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/eta_serving_service.py) | **Zero Train/Serve Skew (0/200 mẫu sai lệch so với Gold Feature Store)**; Độ trễ suy luận trung vị P50: **`18,23 ms`** cho toàn bộ 13 trạm phía trước của 1 xe (`~1,4 ms/trạm`); P95: `25,26 ms` (`TD-26`). |
-| **6. Web App Demo (Giai đoạn 7)** | **HOÀN TẤT (100%)** | Thư mục: [`module_3_bus_eta_prediction/step_3_5_web_demo/`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/)<br>Launcher: [`run_demo.ps1`](file:///z:/Desktop/Bus_tracking/run_demo.ps1), [`run_demo.bat`](file:///z:/Desktop/Bus_tracking/run_demo.bat)<br>Test: [`scripts/verify_web_app_demo.py`](file:///z:/Desktop/Bus_tracking/scripts/verify_web_app_demo.py) | Kiến trúc **Contract-First** (Pydantic v2 + FastAPI + Schemathesis). Đã giải quyết triệt để vấn đề mạng bản đồ, đóng gói 100% offline vendor libraries (Leaflet, Tailwind). 5/5 bài kiểm thử tích hợp đạt exit code 0 (`TD-28`). |
-| **7. Kiểm toán phần cứng GPS xe buýt** | **HOÀN TẤT THỰC NGHIỆM** | Script: [`experiments/test_consecutive_polls.py`](file:///z:/Desktop/Bus_tracking/experiments/test_consecutive_polls.py)<br>Ledger: `docs/04_TECHNICAL_DEBT_AND_OPEN_ISSUES_LEDGER.md` | Thăm dò trực tiếp 18 xe trên Tuyến 02 & 32 qua 54 bước nhảy: Cận dưới tần suất phát phần cứng là **`30.0s`** (Mode `30s`, trung vị `45s`, lag máy chủ `37.9s`). Xác lập căn cứ nâng nhịp Crawler lên `35–40s` (`TD-32`). |
+| **1. Ingestion & Lakehouse (Silver)** | **HOÀN TẤT (100%)** | `data/lakehouse/silver/route_projected_telemetry/`<br>`data/lakehouse/silver/fact_route_tomtom_incidents/` | (số liệu thay đổi theo thời điểm — xem docs/specs/16) (`48` tuyến, `2026-10-08 .. 2026-11-07`), `0` bản tin lệch $>35\text{m}$, `0` lỗi nhảy lùi giữa tuyến (`TD-01`..`TD-08`). |
+| **2. Historical Baseline Matrix** | **HOÀN TẤT (100%)** | Bảng `agg_segment_travel_times` trong `data/hanoi_bus_system.db`<br>Code: [`baseline_matrix_builder.py`](../module_3_bus_eta_prediction/step_3_1_historical_baseline_model/baseline_matrix_builder.py) | **`169.830` ô** (3 loại ngày $\times$ 17 khung giờ $\times$ 1.665 phân đoạn). **Tier 0 + Tier 1 đạt `93,8%`**. `0,00%` lượt Test rơi vào Tier 3 (`TD-09`..`TD-11`, `TD-18`, `TD-19`). |
+| **3. Unified Gold Feature Store** | **HOÀN TẤT (100%)** | `data/lakehouse/gold/eta_feature_store/split={train,test}/`<br>Code: [`feature_store_builder.py`](../module_3_bus_eta_prediction/step_3_2_feature_store_extractor/feature_store_builder.py) | **`15.069.481` dòng $\times$ `60` cột** (`11.364.661` Train + `3.704.820` Test; `1,29 GB` Snappy Parquet; `0` giá trị `NaN`). Thời gian trích xuất: **`267,52s`** bằng 8 workers song song + mảng cộng dồn $O(1)$ (`TD-20`). |
+| **4. Multi-Route ML ETA Models** | **HOÀN TẤT (100%)** | `data/models/eta_xgb_global_pruned.json`<br>`data/models/eta_xgb_metadata_and_calibrator.json`<br>Code: [`eta_model_trainer.py`](../module_3_bus_eta_prediction/step_3_3_machine_learning_models/eta_model_trainer.py) | Mô hình **`6_XGB_Pruned_47Feat`** giảm `MAE`/`RMSE` tổng thể đáng kể so với Baseline, ở cự ly xa $>15$ trạm giảm `MAE` rõ rệt (số liệu thay đổi theo thời điểm — xem docs/specs/16) (`TD-22`). |
+| **5. Real-Time Online Serving Service** | **HOÀN TẤT (100%)** | [`online_features.py`](../module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/online_features.py)<br>[`serving_service.py`](../module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/serving_service.py) | **Zero Train/Serve Skew (0/200 mẫu sai lệch so với Gold Feature Store)**; Độ trễ suy luận trung vị P50: **`18,23 ms`** cho toàn bộ 13 trạm phía trước của 1 xe (`~1,4 ms/trạm`); P95: `25,26 ms` (`TD-26`). |
+| **6. Web App Demo (Giai đoạn 7)** | **HOÀN TẤT (100%)** | Thư mục: [`module_3_bus_eta_prediction/step_3_5_web_demo/`](../module_3_bus_eta_prediction/step_3_5_web_demo/)<br>Launcher: [`run_demo.ps1`](../run_demo.ps1), [`run_demo.bat`](../run_demo.bat) | Kiến trúc **Contract-First** (Pydantic v2 + FastAPI). Đã giải quyết triệt để vấn đề mạng bản đồ; tài nguyên bản đồ/giao diện nạp qua CDN (Leaflet unpkg, Google Fonts, Esri tiles) — KHÔNG vendor offline (`TD-28`). |
+| **7. Kiểm toán phần cứng GPS xe buýt** | **HOÀN TẤT THỰC NGHIỆM** | Script: [`experiments/hardware_gps/test_consecutive_polls.py`](../experiments/hardware_gps/test_consecutive_polls.py)<br>Ledger: `docs/04_TECHNICAL_DEBT_AND_OPEN_ISSUES_LEDGER.md` | Thăm dò trực tiếp 18 xe trên Tuyến 02 & 32 qua 54 bước nhảy: Cận dưới tần suất phát phần cứng là **`30.0s`** (Mode `30s`, trung vị `45s`, lag máy chủ `37.9s`). Ghi nhận căn cứ định lượng cho `TD-32`. |
 
 ---
 
@@ -23,18 +24,18 @@
 
 ### 2.1. Kiến Trúc Backend "Contract-First"
 Hệ thống backend tuân thủ chuẩn mực kỹ thuật Contract-First, tự động sinh đặc tả OpenAPI 3.1 và bảo đảm độ tin cậy tuyệt đối:
-1. **Hợp đồng dữ liệu nghiêm ngặt ([`contract.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/contract.py))**:
+1. **Hợp đồng dữ liệu nghiêm ngặt ([`dto.py`](../module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/dto.py))**:
    - Sử dụng **Pydantic v2** định nghĩa chính xác kiểu dữ liệu và trường hợp biên cho tất cả các đối tượng: `RouteItem`, `RouteGeometryResponse`, `PredictionItem`, `LiveBusItem`, `LiveEtaResponse`, `HealthResponse`.
    - Cung cấp Schema rõ ràng cho Cửa sổ Giờ an toàn: `safe_window_start_time`, `safe_window_end_time`, `recommended_arrival_time`.
-2. **Bộ đệm TTL Cache chống quá tải Gateway ([`cache_manager.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/cache_manager.py))**:
+2. **Bộ đệm TTL Cache chống quá tải Gateway ([`app.py`](../module_3_bus_eta_prediction/step_3_5_web_demo/app.py))**:
    - Cài đặt `InMemoryTtlCache` với cơ chế khóa luồng `threading.Lock()` bảo vệ an toàn đa luồng.
    - TTL chuẩn hóa **`15.0 giây`**. Ngăn chặn hoàn toàn hiện tượng client spam request làm nghẽn gateway viễn trắc BusMap hoặc suy kiệt tài nguyên CPU/GPU suy luận.
-3. **Bộ định tuyến RESTful Endpoints ([`api_routes.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/api_routes.py))**:
+3. **Bộ định tuyến RESTful Endpoints ([`app.py`](../module_3_bus_eta_prediction/step_3_5_web_demo/app.py))**:
    - `GET /api/v1/routes`: Trả về danh sách 48 tuyến buýt hỗ trợ trong hệ thống kèm tên tuyến và số trạm dừng.
    - `GET /api/v1/routes/{route_id}/geometry?direction={0|1}`: Trả về tọa độ tim đường chính tắc (canonical shape polyline) và danh sách toàn bộ trạm dừng theo chiều di chuyển.
    - `GET /api/v1/routes/{route_id}/live-eta?direction={0|1}`: Trả về trạng thái các xe đang lăn bánh thời gian thực, bảng dự báo ETA đến từng trạm, phân loại lưu thông hành lang (`THONG_THUANG`, `UN_U_CHAM`, `KET_XE`), và khuyến nghị giờ ra bến chống lỡ chuyến.
    - `GET /api/v1/health`: Kiểm tra sức khỏe hệ thống (RAM, trạng thái nạp CSDL, số tuyến sẵn sàng).
-4. **Vòng đời ứng dụng & Tối ưu hóa Bộ nhớ ([`app.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/app.py))**:
+4. **Vòng đời ứng dụng & Tối ưu hóa Bộ nhớ ([`app.py`](../module_3_bus_eta_prediction/step_3_5_web_demo/app.py))**:
    - Sử dụng FastAPI `lifespan context manager`: nạp sẵn toàn bộ danh bạ trạm dừng WGS84, tim đường, bảng Baseline Matrix và mô hình ML XGBoost vào RAM khi server khởi động.
    - Toàn bộ thời gian xử lý request phục vụ trong RAM không đọc đĩa: Tổng dung lượng RAM chiếm dụng chỉ **`197 MB`**.
    - Cấu hình CORS mở (`allow_origins=["*"]`) và mount thư mục tài nguyên tĩnh `static/`.
@@ -43,7 +44,7 @@ Hệ thống backend tuân thủ chuẩn mực kỹ thuật Contract-First, tự
 
 ### 2.2. Giao Diện Người Dùng Single Page Application (Frontend SPA)
 Giao diện được thiết kế theo tư duy lấy hành khách làm trung tâm (Station-Centric):
-1. **Thiết kế Blank-Canvas thanh lịch ([`static/index.html`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/static/index.html))**:
+1. **Thiết kế Blank-Canvas thanh lịch ([`static/index.html`](../module_3_bus_eta_prediction/step_3_5_web_demo/static/index.html))**:
    - Trạng thái ban đầu trung lập: bản đồ toàn cảnh Hà Nội, thanh điều khiển nổi cho phép chọn tuyến (Dropdown 48 tuyến) và chuyển đổi Chiều đi / Chiều về.
    - Khi chọn tuyến: Bản đồ tự động vẽ tim đường màu xanh dương đậm (`#2563EB`) và tự động căn chỉnh khung nhìn bao trọn tuyến đường (`fitBounds`).
 2. **Cửa sổ giờ an toàn $[P_{10}, P_{90}]$ & Khuyến nghị Chống lỡ chuyến**:
@@ -52,35 +53,34 @@ Giao diện được thiết kế theo tư duy lấy hành khách làm trung tâ
      * **Thời gian dự kiến (ETA trung vị)**: ví dụ `12 phút (đến lúc 11:42)`.
      * **Cửa sổ giờ an toàn $[P_{10}, P_{90}]$**: ví dụ `11:40 – 11:45`.
      * **Khuyến nghị hành động**: `👉 Có mặt tại trạm trước 11:40 để không lỡ xe!`.
-3. **Quản lý Bản đồ Trực quan & Động học Xe ([`static/js/map_manager.js`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/static/js/map_manager.js))**:
+3. **Quản lý Bản đồ Trực quan & Động học Xe ([`static/app.js`](../module_3_bus_eta_prediction/step_3_5_web_demo/static/app.js))**:
    - Icon xe buýt hiển thị biển số, hướng quay đầu (`heading_deg`), và hiệu ứng sóng radar xung điện (`radar pulse animation`) báo hiệu tín hiệu viễn trắc đang sống.
    - Tối ưu hóa cập nhật tại chỗ (`in-place marker update` qua `setLatLng` và `setIcon`), triệt tiêu hoàn toàn hiện tượng nhấp nháy giật hình (flickering).
    - Tự động gắn nhãn trực quan các xe đi chệch hành lang (Detour $> 35\text{m}$) hoặc xe đang chờ tài tại bến xuất phát.
 
 ---
 
-### 2.3. Khắc Phục Triệt Để Bản Đồ & Đóng Gói 100% Offline Assets
+### 2.3. Khắc Phục Triệt Để Bản Đồ (Tài nguyên qua CDN)
 1. **Xử lý sự cố máy chủ gạch OpenStreetMap (OSM)**:
    - *Phát hiện thực nghiệm*: Máy chủ `tile.openstreetmap.org:443` bị chặn/không phản hồi trên các nhà mạng Việt Nam (Viettel, VNPT, FPT), dẫn đến hiện tượng bản đồ trắng xóa.
-   - *Giải pháp triệt để*: Thay thế lớp bản đồ nền mặc định bằng **Google Maps Road Tiles** (`https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}`): tốc độ tải cực nhanh tại Việt Nam, hiển thị 100% tên đường tiếng Việt có dấu. Bổ sung thêm lớp ảnh vệ tinh **Esri World Imagery** và **Esri World Street Map** qua bộ điều khiển lớp (Layer Control).
-2. **Tự chủ hoàn toàn thư viện giao diện (Zero CDN Dependency)**:
-   - Toàn bộ thư viện Leaflet 1.9.4 (JS, CSS, marker images) và Tailwind CSS 3.4.17 đã được tải và lưu trữ trực tiếp trong thư mục `module_3_bus_eta_prediction/step_3_5_web_demo/static/vendor/`.
-   - Ứng dụng chạy mượt mà ngay cả khi ngắt kết nối Internet quốc tế hoặc mạng nội bộ cô lập.
+   - *Giải pháp*: Thay thế lớp bản đồ nền mặc định bằng **Google Maps Road Tiles** (`https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}`): tốc độ tải cực nhanh tại Việt Nam, hiển thị 100% tên đường tiếng Việt có dấu. Bổ sung thêm lớp ảnh vệ tinh **Esri World Imagery** và **Esri World Street Map** qua bộ điều khiển lớp (Layer Control).
+2. **Tài nguyên giao diện qua CDN (GIỮ CDN — KHÔNG vendor offline)**:
+   - Thư viện Leaflet 1.9.4 (JS, CSS, marker images) nạp từ CDN unpkg; Google Fonts (Inter) nạp từ CDN Google; gạch bản đồ Esri nạp trực tuyến. Dự án KHÔNG dùng thư mục `static/vendor/`.
 
 ---
 
 ### 2.4. Kịch Bản Khởi Chạy Tự Động & Xử Lý Mã Hóa
-1. **PowerShell Launcher ([`run_demo.ps1`](file:///z:/Desktop/Bus_tracking/run_demo.ps1))**:
+1. **PowerShell Launcher ([`run_demo.ps1`](../run_demo.ps1))**:
    - Lưu chuẩn UTF-8 kèm BOM (`EF BB BF`) và ép kiểu console `chcp 65001`, xóa bỏ hoàn toàn lỗi hiển thị ký tự tiếng Việt (mojibake).
    - Neo thư mục gốc `$PSScriptRoot`, tự động phát hiện xung đột cổng 8000 (nếu có tiến trình cũ chiếm cổng, kiểm tra health check để tự mở trình duyệt hoặc giải phóng socket treo an toàn).
    - Tự động kích hoạt trình duyệt mặc định mở `http://localhost:8000`.
-2. **Batch Launcher 1-Click ([`run_demo.bat`](file:///z:/Desktop/Bus_tracking/run_demo.bat))**:
+2. **Batch Launcher 1-Click ([`run_demo.bat`](../run_demo.bat))**:
    - Cung cấp tệp batch khởi chạy nhanh bằng cú pháp `powershell -NoProfile -ExecutionPolicy Bypass -File run_demo.ps1`, bảo đảm người dùng khởi động thành công ngay cả khi máy bị thắt chặt PowerShell ExecutionPolicy.
 
 ---
 
 ### 2.5. Kết Quả Kiểm Định Tích Hợp Độc Lập
-Script kiểm chứng [`scripts/verify_web_app_demo.py`](file:///z:/Desktop/Bus_tracking/scripts/verify_web_app_demo.py) chạy độc lập qua 5 bài kiểm thử khắt khe:
+Bộ kiểm thử tích hợp độc lập (bản ghi nghiệm thu lịch sử) chạy qua 5 bài kiểm thử khắt khe:
 ```
 ================================================================================
 KẾT QUẢ KIỂM TOÁN TÍCH HỢP TỰ ĐỘNG WEB APP DEMO
@@ -131,7 +131,7 @@ Cho tập kiểm thử độc lập gồm $N$ mẫu dự báo, với $y_i$ là t
 
 ### 4.1. Bối Cảnh & Phương Pháp Kiểm Thử
 Nhằm trả lời câu hỏi cốt lõi: *"Tần suất phát tín hiệu thực tế của phần cứng GPS trên xe buýt Hà Nội là bao nhiêu? Có nên tăng nhịp tim của Crawler và Web Demo hay không?"*, nhóm kỹ thuật đã thực hiện kiểm toán pháp y trực tiếp:
-- **Script thực thi**: [`experiments/test_consecutive_polls.py`](file:///z:/Desktop/Bus_tracking/experiments/test_consecutive_polls.py)
+- **Script thực thi**: [`experiments/hardware_gps/test_consecutive_polls.py`](../experiments/hardware_gps/test_consecutive_polls.py)
 - **Phương pháp**: Thăm dò liên tục 5 giây/lần trong cửa sổ 150 giây đối với các xe đang lăn bánh thực tế trên Tuyến 02 và Tuyến 32.
 - **Quy tắc ghi nhận**: Chỉ ghi nhận một sự kiện khi trường thời gian viễn trắc `lastUpdateTime` của xe tiến lên mốc mới ($t_{\text{new}} > t_{\text{old}}$), loại bỏ hoàn toàn các bản tin đọc lặp.
 
@@ -178,36 +178,33 @@ Từ phát hiện thực nghiệm trên, nhóm kỹ thuật đưa ra hai định
 
 | Mã Nợ | Mô Tả & Vị Trí | Trạng Thái | Mức Độ Rủi Ro & Kế Hoạch Khắc Phục |
 | :--- | :--- | :---: | :--- |
-| **`TD-28`** | Web App Demo Dự báo ETA Thời Gian Thực (FastAPI + SPA Leaflet). | **ĐÃ GIẢI QUYẾT [x]** | Hoàn tất 100% hợp đồng API, kiểm thử Schemathesis và đóng gói offline vendor assets. |
-| **`TD-29`** | Bộ đệm TTL Cache In-Memory đơn tiến trình vs. Distributed Cache (Redis).<br>*Vị trí*: [`cache_manager.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/cache_manager.py) | **ĐANG MỞ [ ]** | *Rủi ro*: Khi mở rộng nhiều worker (`--workers 4`) hoặc container, các tiến trình có thể lặp request lên Gateway. *Kế hoạch*: Tích hợp Redis backend khi triển khai production quy mô lớn. |
-| **`TD-30`** | UX thông báo khi xe buýt ngừng hoạt động ban đêm (sau 22:30).<br>*Vị trí*: [`app.js`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/static/js/app.js) | **ĐANG MỞ [ ]** | *Rủi ro*: Sau 22:30 xe về bến, màn hình trống có thể khiến người dùng hiểu nhầm app lỗi. *Kế hoạch*: Bổ sung banner thông báo ca đêm kết thúc và giờ mở luồng sáng hôm sau. |
-| **`TD-31`** | Mở rộng độ phủ mô hình ML Residual cho các tuyến ngoài Tuyến 02.<br>*Vị trí*: [`eta_serving_service.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/eta_serving_service.py) | **ĐANG MỞ [ ]** | *Rủi ro*: Các tuyến ngoài cụm HUST đang fallback về Baseline P50 an toàn. *Kế hoạch*: Tiếp tục huấn luyện theo từng nhóm tuyến tương đương ở giai đoạn kế tiếp. |
-| **`TD-32`** | Khoảng tin phát thực tế của phần cứng GPS xe buýt (30–45s) và kế hoạch nâng nhịp Crawler lên 35–40s.<br>*Vị trí*: [`cloud_crawler_runner.py`](file:///z:/Desktop/Bus_tracking/module_1_data_ingestion_and_preprocessing/step_1_1_busmap_crawler_and_relay/cloud_crawler_runner.py) | **KẾ HOẠCH [ ]** | *Rủi ro*: Nhịp 75s bỏ lỡ 1 bản tin ở giữa. *Kế hoạch*: Chuyển đổi nhịp cào lên 35–40s sau khi hoàn tất kiểm thử tải an toàn trên môi trường Cloud Actions. |
+| **`TD-28`** | Web App Demo Dự báo ETA Thời Gian Thực (FastAPI + SPA Leaflet). | **ĐÃ GIẢI QUYẾT [x]** | Hoàn tất 100% hợp đồng API; tài nguyên bản đồ/giao diện nạp qua CDN (không vendor offline). |
+| **`TD-29`** | Bộ đệm TTL Cache In-Memory đơn tiến trình vs. Distributed Cache (Redis).<br>*Vị trí*: [`app.py`](../module_3_bus_eta_prediction/step_3_5_web_demo/app.py) | **ĐANG MỞ [ ]** | *Rủi ro*: Khi mở rộng nhiều worker (`--workers 4`) hoặc container, các tiến trình có thể lặp request lên Gateway. *Kế hoạch*: Tích hợp Redis backend khi triển khai production quy mô lớn. |
+| **`TD-30`** | UX thông báo khi xe buýt ngừng hoạt động ban đêm (sau 22:30).<br>*Vị trí*: [`static/app.js`](../module_3_bus_eta_prediction/step_3_5_web_demo/static/app.js) | **ĐÃ GIẢI QUYẾT [x]** | Đã bổ sung cơ chế hiển thị ca đêm (banner thông báo ca đêm kết thúc và giờ mở luồng sáng hôm sau). |
+| **`TD-31`** | Mở rộng độ phủ mô hình ML Residual cho các tuyến ngoài Tuyến 02.<br>*Vị trí*: [`serving_service.py`](../module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/serving_service.py) | **ĐÃ GIẢI QUYẾT [x]** | Đã huấn luyện mô hình XGBoost Global đa tuyến phủ toàn bộ 48 tuyến (`TD-22`). |
+| **`TD-32`** | Khoảng tin phát thực tế của phần cứng GPS xe buýt (30–45s) và kế hoạch nâng nhịp Crawler lên 35–40s.<br>*Vị trí*: [`cloud_crawler_runner.py`](../module_1_data_ingestion_and_preprocessing/step_1_1_busmap_crawler_and_relay/cloud_crawler_runner.py) | **HỦY BỎ (WONTFIX) [x]** | Bảo lưu nhịp cào ổn định 75s; kế hoạch nâng lên 35–40s đã bị hủy bỏ do rủi ro rate-limit. |
 
 ---
 
 ## 6. DANH MỤC MÃ NGUỒN VÀ VỊ TRÍ BÀN GIAO CHÍNH TẮC
 
-1. **Thư mục Web Demo**: [`module_3_bus_eta_prediction/step_3_5_web_demo/`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/)
-   - [`contract.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/contract.py): Mô hình dữ liệu Pydantic v2 chuẩn hóa.
-   - [`cache_manager.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/cache_manager.py): Bộ đệm TTL Cache 15s thread-safe.
-   - [`api_routes.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/api_routes.py): 4 endpoints RESTful sinh OpenAPI 3.1.
-   - [`app.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/app.py): Khởi động server nạp RAM 197 MB và phục vụ static.
-   - [`static/`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_5_web_demo/static/): Frontend SPA, bản đồ Google Maps, Tailwind CSS và Leaflet offline.
+1. **Thư mục Web Demo**: [`module_3_bus_eta_prediction/step_3_5_web_demo/`](../module_3_bus_eta_prediction/step_3_5_web_demo/)
+   - [`dto.py`](../module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/dto.py): Mô hình dữ liệu Pydantic v2 chuẩn hóa.
+   - [`app.py`](../module_3_bus_eta_prediction/step_3_5_web_demo/app.py): Bộ đệm TTL Cache 15s thread-safe, 4 endpoints RESTful sinh OpenAPI 3.1, khởi động server nạp RAM 197 MB và phục vụ static.
+   - [`static/`](../module_3_bus_eta_prediction/step_3_5_web_demo/static/): Frontend SPA, bản đồ Google Maps/Esri và Leaflet nạp qua CDN.
 2. **Kịch bản Khởi chạy 1-Click**:
-   - [`run_demo.ps1`](file:///z:/Desktop/Bus_tracking/run_demo.ps1): Khởi chạy PowerShell UTF-8 BOM kèm tự động giải phóng cổng 8000.
-   - [`run_demo.bat`](file:///z:/Desktop/Bus_tracking/run_demo.bat): Khởi chạy Batch cho Windows bỏ qua ExecutionPolicy.
+   - [`run_demo.ps1`](../run_demo.ps1): Khởi chạy PowerShell UTF-8 BOM kèm tự động giải phóng cổng 8000.
+   - [`run_demo.bat`](../run_demo.bat): Khởi chạy Batch cho Windows bỏ qua ExecutionPolicy.
 3. **Kịch bản Kiểm thử & Thực nghiệm**:
-   - [`scripts/verify_web_app_demo.py`](file:///z:/Desktop/Bus_tracking/scripts/verify_web_app_demo.py): Bộ kiểm định 5 bước đạt Exit code 0.
-   - [`experiments/test_consecutive_polls.py`](file:///z:/Desktop/Bus_tracking/experiments/test_consecutive_polls.py): Script thực nghiệm đo tần suất phần cứng GPS xe buýt.
+   - [`experiments/hardware_gps/test_consecutive_polls.py`](../experiments/hardware_gps/test_consecutive_polls.py): Script thực nghiệm đo tần suất phần cứng GPS xe buýt.
 
 ---
 
 ## 7. KẾT LUẬN & HƯỚNG ĐI TIẾP THEO
 
 Giai đoạn 7 đã hoàn thành xuất sắc 100% mục tiêu:
-1. Đưa toàn bộ thành quả của chuỗi pipeline Big Data và Machine Learning vào một sản phẩm ứng dụng Web App Demo trực quan, chạy mượt mà, phản hồi mili-giây, độc lập không phụ thuộc CDN bên ngoài.
+1. Đưa toàn bộ thành quả của chuỗi pipeline Big Data và Machine Learning vào một sản phẩm ứng dụng Web App Demo trực quan, chạy mượt mà, phản hồi mili-giây; tài nguyên bản đồ/giao diện nạp qua CDN.
 2. Làm rõ căn cơ lý thuyết giữa MAE, MedAE và hàm Loss huấn luyện.
-3. Kiểm chứng thực nghiệm thành công đặc tính vật lý của thiết bị GPS xe buýt Hà Nội, vạch ra chiến lược nâng cấp nhịp cào dữ liệu lên tầm cao mới (35–40s).
+3. Kiểm chứng thực nghiệm thành công đặc tính vật lý của thiết bị GPS xe buýt Hà Nội, vạch ra căn cứ định lượng cho nhịp cào dữ liệu (kế hoạch 35–40s sau đó được bảo lưu ở mức 75s).
 
 Hệ thống đã sẵn sàng cho giai đoạn phát triển và mở rộng tiếp theo.

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <linearGradient id="busGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E88E5"/>
+      <stop offset="100%" stop-color="#1565C0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Direction Arrow Top (Facing North) -->
+  <polygon points="24,2 18,12 30,12" fill="#E53935" stroke="#FFFFFF" stroke-width="1.5" stroke-linejoin="round"/>
+
+  <!-- Bus Outer Body -->
+  <rect x="12" y="10" width="24" height="34" rx="6" ry="6" fill="url(#busGrad)" stroke="#FFFFFF" stroke-width="2" filter="url(#shadow)"/>
+
+  <!-- Windshield / Front Window -->
+  <rect x="15" y="14" width="18" height="7" rx="2" ry="2" fill="#E3F2FD"/>
+
+  <!-- Side Windows -->
+  <rect x="15" y="24" width="7" height="6" rx="1.5" fill="#BBDEFB"/>
+  <rect x="26" y="24" width="7" height="6" rx="1.5" fill="#BBDEFB"/>
+
+  <rect x="15" y="32" width="7" height="6" rx="1.5" fill="#BBDEFB"/>
+  <rect x="26" y="32" width="7" height="6" rx="1.5" fill="#BBDEFB"/>
+
+  <!-- Headlights -->
+  <circle cx="16" cy="11.5" r="1.5" fill="#FFF59D"/>
+  <circle cx="32" cy="11.5" r="1.5" fill="#FFF59D"/>
+</svg>

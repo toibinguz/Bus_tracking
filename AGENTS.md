@@ -2,9 +2,12 @@
 
 ## 1. Multi-Tier Hierarchy (Anti-Context Poisoning)
 - **Parent (Orchestrator)**: Coordinates only. Reads file tree, interfaces, and specs. FORBIDDEN from reading function implementation bodies and FORBIDDEN from writing code. Delegates deep code analysis to @architect. Reports to user in <= 10 lines (facts and logs only).
-- **@architect**: Reads existing code, analyzes requirements, and outputs interface specs/math models into `docs/specs/`. No implementation code.
+- **@architect**: Reads existing code, analyzes requirements, and creates verifiable interface specs/math models in `docs/specs/`. No implementation code.
 - **@leaf_coder**: The ONLY agent that writes code. Works in an isolated workspace/branch. FORBIDDEN from ad-hoc if-else patches or magic numbers.
+- **@whitebox_auditor**: Read-only after implementation. Reads the code and diff; checks them against the spec, interfaces, and math. Audits magic numbers/hard-coded policy, units/formulas, ad-hoc patches, dependencies, and architecture. FORBIDDEN from writing code or tests.
 - **@blind_tester**: Writes black-box tests from specs in an isolated context. STRICTLY FORBIDDEN from reading Coder's code. Runs tests in sandbox and reports raw logs.
+
+Required acceptance sequence: `@architect` creates a verifiable spec → `@leaf_coder` implements → `@whitebox_auditor` completes the white-box audit → `@blind_tester` completes independent black-box testing. Acceptance requires both audit reports; a failed or missing audit blocks completion.
 
 ## 2. Think Before Coding
 

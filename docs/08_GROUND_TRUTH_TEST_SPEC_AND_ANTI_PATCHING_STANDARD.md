@@ -1,6 +1,7 @@
 # ĐẶC TẢ KIỂM TOÁN NỢ KỸ THUẬT, THỨ TỰ ƯU TIÊN & THIẾT KẾ BỘ KIỂM THỬ CHÂN LÝ CHUẨN (GROUND TRUTH TEST SPEC)
-> **Mã tài liệu**: `docs/08_GROUND_TRUTH_TEST_SPEC_AND_ANTI_PATCHING_STANDARD.md`  
-> **Căn cứ pháp lý**: Tuân thủ vô điều kiện **Điều 1** (Kỷ luật Thực nghiệm), **Điều 2** (Thiết kế trước, duyệt rồi mới triển khai), **Điều 4** (Nguồn chân lý dữ liệu tối thượng), **Điều 5** (Động học dẫn xuất), **Điều 7** (Runtime chuẩn Python 3.14), và **Điều 8** (Nghiệm thu trung thực & Minh bạch nợ kỹ thuật) theo [AGENTS.md](file:///z:/Desktop/Bus_tracking/AGENTS.md).  
+> **Reconciliation note (2026-11-10):** The oracle principles remain normative. The prescribed deleted script and obsolete `/api/v1/routes/{route_code}/live-eta` contract are superseded; future black-box tests belong under `tests/` and are currently pending.
+> **Mã tài liệu**: `docs/08_GROUND_TRUTH_TEST_SPEC_AND_ANTI_PATCHING_STANDARD.md`
+> **Căn cứ pháp lý**: Tuân thủ vô điều kiện **Điều 1** (Kỷ luật Thực nghiệm), **Điều 2** (Thiết kế trước, duyệt rồi mới triển khai), **Điều 4** (Nguồn chân lý dữ liệu tối thượng), **Điều 5** (Động học dẫn xuất), **Điều 7** (Runtime chuẩn Python 3.14), và **Điều 8** (Nghiệm thu trung thực & Minh bạch nợ kỹ thuật) theo [AGENTS.md](../AGENTS.md).
 > **Mục tiêu**: (1) Ghi lại thiết kế giải thuật Nội suy ETA vi mô giữa 2 trạm (TD-52); (2) Phân cấp ưu tiên toàn bộ các Tech Debt còn tồn đọng; (3) Xây dựng bộ test case dựa trên Nguồn Chân Lý Chuẩn (Ground Truth Oracle) trước khi viết mã nguồn can thiệp hệ thống.
 
 ---
@@ -143,7 +144,7 @@ Trước khi sửa đổi bất kỳ dòng code nào của Frontend/Backend liê
 * **Mục tiêu**: Đảm bảo không có bất kỳ ô dữ liệu nào trong 169.830 ô bị vi phạm bất biến phân vị.
 * **Nguồn chân lý**: Truy vấn SQL trực tiếp trên bảng `agg_segment_travel_times`:
   ```sql
-  SELECT count(*) FROM agg_segment_travel_times 
+  SELECT count(*) FROM agg_segment_travel_times
   WHERE tt_p10_sec > tt_p50_sec OR tt_p50_sec > tt_p90_sec;
   ```
 * **Tiêu chí kiểm định**: Số lượng bản ghi vi phạm phải bằng chính xác **`0`**.
@@ -155,12 +156,11 @@ Trước khi sửa đổi bất kỳ dòng code nào của Frontend/Backend liê
 
 ## VI. KẾ HOẠCH HÀNH ĐỘNG TUẦN TỰ (DoD)
 
-1. [x] **Bước 1**: Xây dựng văn bản đặc tả kiểm toán & thiết kế bộ test chân lý chuẩn `docs/13_TECH_DEBT_AUDIT_AND_GROUND_TRUTH_TEST_SPEC.md` (Tài liệu này).
+1. [x] **Bước 1**: Xây dựng văn bản đặc tả kiểm toán & thiết kế bộ test chân lý chuẩn `docs/08_GROUND_TRUTH_TEST_SPEC_AND_ANTI_PATCHING_STANDARD.md` (Tài liệu này).
 2. [ ] **Bước 2**: Viết script test độc lập `scripts/test_ground_truth_and_night_mode.py` dựa trên 4 nguồn chân lý chuẩn. Chạy thử nghiệm để quan sát kết quả kiểm toán hiện trạng.
 3. [ ] **Bước 3**: Triển khai giải pháp khắc phục triệt để cho `TD-30` trên Frontend SPA (`app.js`, `index.html`) theo đúng thiết kế đã phê duyệt.
 4. [ ] **Bước 4**: Tái thực thi toàn bộ test suite:
    - `scripts/test_ground_truth_and_night_mode.py`
    - `scripts/test_anti_cheat_remediation.py`
-   - `scripts/verify_web_app_demo.py`
    Đảm bảo 100% test case PASS (exit code 0), Zero Regression.
 5. [ ] **Bước 5**: Cập nhật Sổ cái Nợ kỹ thuật `docs/04_TECHNICAL_DEBT_AND_OPEN_ISSUES_LEDGER.md`, đánh dấu `[x] TD-30` và bổ sung `[ ] TD-52`.

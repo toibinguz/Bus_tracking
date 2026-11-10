@@ -1,6 +1,7 @@
 # ĐẶC TẢ KIẾN TRÚC BỘ TRÍCH XUẤT ĐẶC TRƯNG TRỰC TUYẾN & SERVING PIPELINE (BƯỚC 3.5)
-> **Mã tài liệu**: `docs/05_ONLINE_FEATURE_EXTRACTOR_AND_SERVING_SPEC.md`  
-> **Căn cứ pháp lý**: Tuân thủ vô điều kiện **Điều 1** (Kỷ luật Thực nghiệm), **Điều 2** (Thiết kế trước, duyệt rồi mới code), **Điều 3** (Ranh giới Production), **Điều 4** (Nguồn chân lý dữ liệu), **Điều 5** (Động học dẫn xuất), và **Điều 8** (Minh bạch Nợ kỹ thuật) của [AGENTS.md](file:///z:/Desktop/Bus_tracking/AGENTS.md).  
+> **Status: superseded design history (2026-11-10).** The historical `online_feature_extractor.py` and `eta_serving_service.py` names map to `online_features.py` and `serving_service.py`; implementation authority is [SPEC-16](specs/16_REFACTOR_SPEC_STEP_3_4_SERVING_AND_3_5_WEB_DEMO.md). Their presence does not mean the public app has wired the split facade.
+> **Mã tài liệu**: `docs/05_ONLINE_FEATURE_EXTRACTOR_AND_SERVING_SPEC.md`
+> **Căn cứ pháp lý**: Tuân thủ vô điều kiện **Điều 1** (Kỷ luật Thực nghiệm), **Điều 2** (Thiết kế trước, duyệt rồi mới code), **Điều 3** (Ranh giới Production), **Điều 4** (Nguồn chân lý dữ liệu), **Điều 5** (Động học dẫn xuất), và **Điều 8** (Minh bạch Nợ kỹ thuật) của [AGENTS.md](../AGENTS.md).
 > **Nhiệm vụ giải quyết**: `TD-26` (Triệt tiêu độ lệch Train/Serve Skew, đóng gói Online Feature Extractor từ telemetry trực tiếp và tích hợp Terminal Gate `TD-19`).
 
 ---
@@ -8,7 +9,7 @@
 ## 1. MỤC TIÊU VÀ NGUYÊN TẮC THIẾT KẾ (DESIGN PRINCIPLES)
 
 1. **Triệt tiêu 100% Độ lệch Train/Serve Skew (Zero Skew Guarantee)**:
-   - Bộ trích xuất trực tuyến (`OnlineFeatureExtractor`) kế thừa và sao chép chính xác 100% các công thức toán học, ngưỡng cắt (`clip`), mảng cộng dồn $O(1)$ (`Prefix Sum`) và cấu trúc họ đặc trưng từ [`feature_store_builder.py`](file:///z:/Desktop/Bus_tracking/module_3_bus_eta_prediction/step_3_2_feature_store_extractor/feature_store_builder.py).
+   - Bộ trích xuất trực tuyến (`OnlineFeatureExtractor`) kế thừa và sao chép chính xác 100% các công thức toán học, ngưỡng cắt (`clip`), mảng cộng dồn $O(1)$ (`Prefix Sum`) và cấu trúc họ đặc trưng từ [`feature_store_builder.py`](../module_3_bus_eta_prediction/step_3_2_feature_store_extractor/feature_store_builder.py).
    - Đảm bảo đầu ra là vector 54 đặc trưng chuẩn xác $\mathbf{x} \in \mathbb{R}^{54}$ khớp hoàn toàn với mô hình sản xuất `5_XGB_Global_Calibrated` (`_r3_big`).
 
 2. **Tối ưu hóa Thời gian Thực Cực hạn (Ultra-low Latency & Memory Efficiency)**:
@@ -144,7 +145,7 @@ class EtaServingService:
 ## 4. TIÊU CHUẨN KIỂM CHỨNG & NGHIỆM THU (DEFINITION OF DONE)
 
 1. **Kiểm tra Sai lệch Train/Serve (Zero Skew Assertion)**:
-   - Chạy script kiểm chứng [`scripts/verify_online_serving_pipeline.py`](file:///z:/Desktop/Bus_tracking/scripts/verify_online_serving_pipeline.py) đối chiếu giữa các dòng của Feature Store Gold và các dòng được tái tạo bởi `OnlineFeatureExtractor`.
+   - Chạy script kiểm chứng [`scripts/verify_online_serving_pipeline.py`](../scripts/verify_online_serving_pipeline.py) đối chiếu giữa các dòng của Feature Store Gold và các dòng được tái tạo bởi `OnlineFeatureExtractor`.
    - Sai số tương đối giữa các đặc trưng cốt lõi (`baseline_eta_p50_sec`, `baseline_skew_sec`, `remaining_distance_m`, `physics_probe_corrected_eta_sec`) bắt buộc phải **$< 0.01$**.
 2. **Kiểm chứng Độ trễ (Serving Latency SLA)**:
    - Độ trễ trích xuất đặc trưng + suy luận 1 xe trung vị **$< 10\text{ ms}$**.

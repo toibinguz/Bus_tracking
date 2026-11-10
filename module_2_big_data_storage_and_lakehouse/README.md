@@ -1,4 +1,5 @@
 # MODULE 2: LƯU TRỮ VÀ XỬ LÝ DỮ LIỆU LỚN (BIG DATA STORAGE & MEDALLION LAKEHOUSE)
+> **Status note (2026-11-10):** Step 2.3 currently contains only its package marker; it is not a PyArrow/DuckDB query engine. Lakehouse row counts below are dated data snapshots.
 > **Phần 2 - Dự án**: Hanoi Bus Big Data & Real-time ETA Prediction System  
 > **Đặc tả cấu trúc**: [docs/02_CANONICAL_DATA_DIRECTORY_SPECIFICATION.md](../docs/02_CANONICAL_DATA_DIRECTORY_SPECIFICATION.md)
 
@@ -12,7 +13,7 @@ module_2_big_data_storage_and_lakehouse/
 │   └── db_manager.py                         # Khởi tạo schema, B-Tree index và Analytical Views
 ├── step_2_2_parquet_medallion_lakehouse/     # Hồ dữ liệu phân vùng chuẩn Medallion (Bronze & Silver)
 │   ├── lakehouse_exporter.py                 # Xuất Parquet Snappy phân vùng Hive (route_code=XX/dt=YYYY-MM-DD)
-│   └── silver_lakehouse_auditor.py           # Kiểm toán độc lập độ tinh khiết 1.204 phân vùng Silver Parquet
+│   └── silver_lakehouse_auditor.py           # Kiểm toán độc lập độ tinh khiết các phân vùng Silver Parquet
 └── step_2_3_columnar_query_engine/           # Động cơ truy vấn cột tốc độ cao (PyArrow / DuckDB)
     └── __init__.py
 ```
@@ -28,8 +29,8 @@ module_2_big_data_storage_and_lakehouse/
    - `fact_route_tomtom_incidents` (836.761 bản ghi sự cố TomTom khớp 46/48 tuyến trên 28 ngày).
    - `agg_segment_travel_times` (169.830 ô ma trận thời gian di chuyển Baseline thống kê không rò rỉ dữ liệu từ tập Train `2026-10-08..31`, đạt `85,6% Tier 0` và `93,8% Tier 0+1`).
 2. **Medallion Parquet Lakehouse (`data/lakehouse/`)**:
-   - `bronze/tomtom_incidents_raw/dt=YYYY-MM-DD/` (28 phân vùng, 293.842 dòng, 84,1 MB).
-   - `silver/route_projected_telemetry/route_code=XX/dt=YYYY-MM-DD/` (1.191 phân vùng, 5.565.232 dòng).
+   - `bronze/tomtom_incidents_raw/dt=YYYY-MM-DD/` (28 phân vùng; số liệu dòng thay đổi theo thời điểm — xem docs/specs/16; 84,1 MB).
+   - `silver/route_projected_telemetry/route_code=XX/dt=YYYY-MM-DD/` (các phân vùng Silver; số liệu thay đổi theo thời điểm — xem docs/specs/16).
    - `silver/fact_route_tomtom_incidents/route_code=XX/` (46 phân vùng, 836.761 dòng).
    - `gold/agg_segment_travel_times/part-00000.snappy.parquet` (169.830 dòng, 48 tuyến × 2 chiều × 17 khung giờ `05..21` × 3 loại ngày `Thứ 2..6 / Thứ 7 / Chủ Nhật` trên hành lang nội tuyến `[1 .. N-1]`).
 

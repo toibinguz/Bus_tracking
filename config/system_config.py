@@ -348,3 +348,60 @@ def normalize_direction_int(direction: Any) -> int:
     """Trả về 0 cho 'go' và 1 cho 're'."""
     return 1 if normalize_direction(direction) == "re" else 0
 
+
+# -------------------------------------------------------------
+# 7. STEP 3.4 ETA SERVING CONSTANTS (SPEC-15 §7.1 & SPEC-16 §5.2)
+# -------------------------------------------------------------
+# Hàm bao suy giảm độ đệm cận bến kappa(d) trên [MIN, MAX] (m)
+STATION_BUFFER_ATTEN_MIN_M = 30.0
+STATION_BUFFER_ATTEN_MAX_M = 150.0
+
+# Dead-reckoning (HOÃN ở đợt này — SPEC-16 §2.12/P8; giữ hằng số theo SSOT)
+DEAD_RECKONING_TAU_HALF_LIFE_S = 20.0
+DEAD_RECKONING_MAX_HORIZON_S = 90.0
+
+# Lọc độ cũ gói tin viễn trắc (s)
+MAX_TELEMETRY_STALE_SEC = 300.0
+
+# Lọc nhất quán hướng vector (Heading Cosine)
+HEADING_MIN_SPEED_KMPH = 5.0
+HEADING_COS_SIMILARITY_MIN = -0.20
+
+# Ngưỡng trạng thái giao thông (SPEC-15 §5.4)
+CONGESTION_SPEED_THRESHOLD_KMPH = 10.0
+FREEFLOW_SPEED_THRESHOLD_KMPH = 20.0
+REALTIME_DELAY_ALERT_SEC = 120.0
+
+# Vận tốc bò vật lý tối thiểu & trần độ đệm an toàn
+MIN_PHYSICAL_CRAWL_SPEED_MPS = 0.556
+MAX_SAFE_BUFFER_CEILING_SEC = 180.0
+
+# Hệ số độ đệm bất đối xứng LINEX (SPEC-15 §6.2)
+BUFFER_ALPHA_SIGMA = 0.60
+BUFFER_BETA_TELEMETRY = 0.5
+TELEMETRY_HEARTBEAT_SEC = 15.0
+BUFFER_GAMMA_HORIZON = 0.04
+
+# Vận tốc ego hiệu dụng & tỷ lệ ùn tắc (SPEC-15/SPEC-16)
+EGO_SPEED_WEIGHT_OBS = 0.75
+CONGESTION_PROP_MAX = 2.5
+CONGESTION_PROP_EXP = 0.5
+
+# Online feature extractor (SPEC-16 §2.6, bám feature_store_builder.py)
+RECENT_PROBE_WINDOW_SEC = 1800.0
+FLEET_ACTIVE_WINDOW_SEC = 300.0
+MIN_EGO_SAMPLE_ADVANCE_M = 150.0
+
+# Trộn vật lý họ (f) (feature_store_builder.py:531-539)
+PHYS_W_PROBE = 0.35
+PHYS_W_EGO = 0.20
+PHYS_DECAY_M = 2500.0
+PHYS_INC_DELAY_FACTOR = 0.25
+PHYS_INC_DELAY_CAP = 180.0
+
+# Cache RAM live telemetry (s) — SPEC-16 §5.1
+LIVE_CACHE_TTL_SEC = 8.0
+
+# Thông điệp gợi ý giãn cách khi tuyến vắng xe (thuần hiển thị)
+NEXT_BUS_HEADWAY_HINT_TEXT = "~10-15 phút"
+

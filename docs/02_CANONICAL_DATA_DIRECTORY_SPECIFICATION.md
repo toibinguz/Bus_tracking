@@ -1,8 +1,9 @@
 # ĐẶC TẢ CẤU TRÚC THƯ MỤC DỮ LIỆU & QUẢN TRỊ LAKEHOUSE (CANONICAL DATA GOVERNANCE)
+> **Reconciliation note (2026-11-10):** This document defines the target data contract. Ignored `data/raw/` and `data/lakehouse/` paths are runtime-managed; tracked canonical inputs are `data/ground_truth/`, `data/metadata/`, and `data/models/`. Counts in this document are snapshots.
 
-> **Mã tài liệu**: `docs/02_CANONICAL_DATA_DIRECTORY_SPECIFICATION.md`  
-> **Căn cứ pháp lý**: Tuân thủ vô điều kiện **Điều 3** (Phân định ranh giới), **Điều 4** (Nguồn chân lý dữ liệu), và **Điều 8** (Nghiệm thu trung thực & minh bạch nợ kỹ thuật) của [AGENTS.md](file:///z:/Desktop/Bus_tracking/AGENTS.md).  
-> **Ngày ban hành**: 07/11/2026  
+> **Mã tài liệu**: `docs/02_CANONICAL_DATA_DIRECTORY_SPECIFICATION.md`
+> **Căn cứ pháp lý**: Tuân thủ vô điều kiện **Điều 3** (Phân định ranh giới), **Điều 4** (Nguồn chân lý dữ liệu), và **Điều 8** (Nghiệm thu trung thực & minh bạch nợ kỹ thuật) của [AGENTS.md](../AGENTS.md).
+> **Ngày ban hành**: 07/11/2026
 > **Trạng thái**: CHÍNH THỨC ÁP DỤNG (Frozen Canonical Standard)
 
 ---
@@ -47,7 +48,7 @@ data/
 │   │   └── route_projected_telemetry/ # Hive Partitioning: route_code=XX/direction=YY/dt=ZZ
 │   └── gold/                          # Feature Store & Ma trận Baseline chuẩn hóa
 │       ├── agg_segment_travel_times/  # Prior matrix parquet
-│       └── feature_matrix/            # Unified feature matrix (train/ & test/)
+│       └── eta_feature_store/         # Unified feature matrix (train/ & test/)
 │
 ├── metadata/                          # Metadata vận hành (tomtom_quota_tracker, hust_cluster_config)
 ├── splits/                            # Đóng băng tập Train/Test chống rò rỉ (train_test_split_v1.json)

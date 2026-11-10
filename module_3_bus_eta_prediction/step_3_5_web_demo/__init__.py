@@ -1,4 +1,5 @@
 """
-Module 3 - Step 3.5: Web App Demo Package.
-Contract-First real-time ETA prediction web service and interactive passenger interface.
+Step 3.5 Web Demo Application
 """
+
+# Kept clean to avoid shadowing app.py module name

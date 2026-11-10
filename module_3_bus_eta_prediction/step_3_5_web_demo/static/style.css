@@ -1,0 +1,1020 @@
+/* Hanoi Bus Live - Modern Discrete Tracking Stylesheet */
+
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #1e293b;
+  --bg-card-hover: #334155;
+  --border-color: #334155;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent-blue: #38bdf8;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --sidebar-width: 380px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* App Layout */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100%;
+  background-color: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.4);
+}
+
+.sidebar-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: rgba(15, 23, 42, 0.95);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.badge-mode {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  background-color: rgba(56, 189, 248, 0.12);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+}
+
+/* Controls */
+.controls-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background-color: #111c34;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.select-wrapper {
+  position: relative;
+}
+
+.form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-main);
+  font-size: 0.92rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-select:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+}
+
+.form-select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-main);
+}
+
+/* Direction Toggle Buttons */
+.direction-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn-dir {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-dir:hover {
+  background-color: var(--bg-card-hover);
+  color: var(--text-main);
+}
+
+.btn-dir.active {
+  background-color: rgba(56, 189, 248, 0.15);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+#dirGoBtn.active {
+  background-color: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  color: #10b981;
+}
+
+#dirBackBtn.active {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.dir-icon {
+  font-size: 1rem;
+}
+
+/* Status Card */
+.status-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-divider {
+  width: 1px;
+  height: 28px;
+  background-color: var(--border-color);
+}
+
+.status-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.status-val-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.status-value.highlight {
+  color: var(--accent-blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-emerald);
+  box-shadow: 0 0 8px var(--accent-emerald);
+  animation: pulse 1.8s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+/* Sidebar Tab Navigation (Lỗi 2) */
+.sidebar-tab-nav {
+  display: flex;
+  background-color: #0b1329;
+  border-bottom: 1px solid var(--border-color);
+  padding: 6px 12px;
+  gap: 6px;
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.tab-btn.active {
+  background-color: var(--bg-secondary);
+  color: var(--accent-blue);
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.tab-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  background-color: var(--border-color);
+  color: var(--text-main);
+  padding: 1px 6px;
+  border-radius: 9999px;
+}
+
+.tab-btn.active .tab-badge {
+  background-color: rgba(56, 189, 248, 0.2);
+  color: var(--accent-blue);
+}
+
+.tab-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Empty guide in Station Tab */
+.station-empty-guide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.empty-guide-icon {
+  font-size: 2.2rem;
+  opacity: 0.8;
+}
+
+.empty-guide-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.empty-guide-desc {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 260px;
+}
+
+/* Mini Timeline (Station Focus) */
+.mini-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  background-color: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.timeline-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.timeline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  position: relative;
+}
+
+.timeline-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 7px;
+  width: 2px;
+  height: calc(100% + 2px);
+  background-color: var(--border-color);
+}
+
+.timeline-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--accent-emerald);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #fff;
+  flex-shrink: 0;
+  margin-top: 1px;
+  z-index: 2;
+}
+
+.timeline-dot.dest-dot {
+  background-color: var(--accent-blue);
+}
+
+.timeline-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.timeline-main-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.timeline-sub-text {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.focus-eta-val.arriving-now {
+  color: var(--accent-amber);
+  animation: pulse 1.5s infinite;
+}
+
+/* Vehicles Section */
+.vehicles-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 20px 8px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.count-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: var(--border-color);
+  color: var(--text-main);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.vehicle-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.vehicle-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.vehicle-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vehicle-list::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 3px;
+}
+
+/* Vehicle Card */
+.vehicle-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vehicle-card:hover {
+  background-color: var(--bg-card-hover);
+  border-color: var(--accent-blue);
+  transform: translateY(-1px);
+}
+
+.vehicle-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vehicle-plate {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.vehicle-speed {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-emerald);
+  background-color: rgba(16, 185, 129, 0.12);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vehicle-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 30px 12px;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.sidebar-footer a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.sidebar-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Map Container */
+.map-container {
+  flex: 1;
+  height: 100%;
+  position: relative;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  background-color: #0b1120;
+}
+
+/* Leaflet Bus Marker Styling */
+.bus-marker-icon-wrapper {
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bus-marker-img {
+  width: 40px;
+  height: 40px;
+  transition: transform 0.2s ease-out;
+  display: block;
+}
+
+/* Leaflet Popup Customization */
+.leaflet-popup-content-wrapper {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-main) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+  border: 1px solid var(--border-color) !important;
+  padding: 4px !important;
+}
+
+.leaflet-popup-tip {
+  background-color: var(--bg-secondary) !important;
+}
+
+.bus-popup {
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: inherit;
+  min-width: 170px;
+}
+
+.bus-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 4px;
+}
+
+.bus-popup-plate {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.bus-popup-speed {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-emerald);
+}
+
+.bus-popup-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.bus-popup-row span:last-child {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+/* Leaflet Layer Switcher Customization */
+.leaflet-control-layers {
+  background: rgba(30, 41, 59, 0.95) !important;
+  color: #f8fafc !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+  font-family: inherit !important;
+  font-size: 0.85rem !important;
+  padding: 8px 12px !important;
+}
+
+.leaflet-control-layers-base label,
+.leaflet-control-layers-overlays label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.leaflet-control-layers-base label:last-child,
+.leaflet-control-layers-overlays label:last-child {
+  margin-bottom: 0;
+}
+
+/* Station Badge DivIcon Styling (SPEC-05) */
+.station-badge-icon-wrapper {
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.station-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Chiều đi: Xanh lá Emerald (#10b981) */
+.station-badge-go {
+  background-color: #10b981;
+}
+
+/* Chiều về: Xanh dương Vibrant (#3b82f6) */
+.station-badge-re {
+  background-color: #3b82f6;
+}
+
+/* Hover state */
+.station-badge:hover {
+  transform: scale(1.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+  z-index: 1000 !important;
+}
+
+/* Leaflet Station Popup Styling */
+.station-popup {
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: inherit;
+  min-width: 200px;
+}
+
+.station-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.station-popup-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.station-dir-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.station-dir-badge.badge-go {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.station-dir-badge.badge-re {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.station-popup-order {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.station-popup-order strong {
+  color: #ffffff;
+}
+
+.station-popup-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 2px 0;
+}
+
+.station-popup-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.75rem;
+}
+
+.station-popup-row .popup-label {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.station-popup-row .popup-value {
+  color: var(--text-main);
+  font-weight: 500;
+  text-align: right;
+  word-break: break-word;
+}
+
+/* Station Focus Card (Sidebar - SPEC-08) */
+.station-focus-card {
+  margin: 12px 20px 0;
+  padding: 12px 14px;
+  background-color: #112238;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-left: 4px solid var(--accent-emerald);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.focus-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.focus-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent-emerald);
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-unpin {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 7px;
+  border-radius: 4px;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-unpin:hover {
+  background-color: rgba(244, 63, 94, 0.2);
+  border-color: var(--accent-rose);
+  color: var(--accent-rose);
+}
+
+.focus-station-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.focus-station-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.focus-eta-box {
+  background-color: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.focus-eta-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.focus-eta-plate {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.focus-eta-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--accent-emerald);
+  font-variant-numeric: tabular-nums;
+}
+
+.focus-eta-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+}
+
+.focus-recommend {
+  font-size: 0.72rem;
+  color: var(--accent-amber);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.focus-next-bus {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  border-top: 1px dashed var(--border-color);
+  padding-top: 4px;
+  margin-top: 2px;
+}
+
+.focus-empty {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 8px 4px;
+  line-height: 1.4;
+}
+
+/* Station Popup ETA Box (Leaflet Marker - SPEC-08) */
+.popup-eta-box {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background-color: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.popup-eta-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+  padding-bottom: 4px;
+}
+
+.popup-eta-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent-emerald);
+  letter-spacing: 0.04em;
+}
+
+.popup-eta-time {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--accent-emerald);
+  font-variant-numeric: tabular-nums;
+}
+
+.popup-eta-details {
+  font-size: 0.74rem;
+  color: var(--text-main);
+  display: flex;
+  justify-content: space-between;
+}
+
+.popup-eta-window {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.popup-eta-rec {
+  font-size: 0.72rem;
+  color: var(--accent-amber);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.popup-next-bus {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  border-top: 1px dashed var(--border-color);
+  padding-top: 4px;
+  margin-top: 4px;
+}
+
+.popup-eta-loading {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 8px 4px;
+  text-align: center;
+  font-style: italic;
+}
+
+.btn-pin-station {
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 10px;
+  background-color: rgba(56, 189, 248, 0.12);
+  border: 1px solid var(--accent-blue);
+  color: var(--accent-blue);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-pin-station:hover {
+  background-color: rgba(56, 189, 248, 0.25);
+  color: #ffffff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .app-layout {
+    flex-direction: column-reverse;
+  }
+  .sidebar {
+    width: 100%;
+    height: 45vh;
+  }
+  .map-container {
+    height: 55vh;
+  }
+}

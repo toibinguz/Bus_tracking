@@ -1,4 +1,5 @@
 # MODULE 1: THU THẬP VÀ TIỀN XỬ LÝ DỮ LIỆU (DATA INGESTION & PREPROCESSING)
+> **Snapshot note (2026-11-10):** This README describes module topology; operational counts and commands are snapshot-dependent. Treat public entry points as authoritative over exhaustive support-module listings.
 > **Phần 1 - Dự án**: Hanoi Bus Big Data & Real-time ETA Prediction System  
 > **Mục tiêu**: Tự động hóa toàn bộ luồng thu thập Telemetry 24/7, quản trị Master Ground Truth từ BusMap Canonical (`hanoi_bus_data`), làm sạch động học xe và chiếu hóa 1D Frenet cho toàn mạng lưới xe buýt.
 
