@@ -17,6 +17,7 @@ from module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.spool import 
     write_closed_window,
     write_receipt,
 )
+from module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.webhdfs import WebHdfsUploader
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "hdfs_telemetry_v1.json"
@@ -127,3 +128,31 @@ def test_private_runner_keeps_closed_spool_when_upload_is_not_acknowledged(tmp_p
 
     assert closed.exists()
     assert load_receipt(closed) is None
+
+
+def test_failpoint_after_remote_commit_never_writes_receipt(tmp_path, monkeypatch):
+    spool_file = tmp_path / "dt=2026-11-01" / "hr=07" / "ingest-fault.jsonl"
+    spool_file.parent.mkdir(parents=True)
+    payload = b'{"event":"fixture"}\n'
+    spool_file.write_bytes(payload)
+    uploader = WebHdfsUploader(base_url="http://namenode:9870")
+    hdfs_path = "/bus-eta/v1/bronze/telemetry/dt=2026-11-01/hr=07/ingest-fault.jsonl"
+
+    status_calls = 0
+
+    def remote_status(self, path):
+        nonlocal status_calls
+        assert path == hdfs_path
+        status_calls += 1
+        return None if status_calls == 1 else {"length": len(payload)}
+
+    monkeypatch.setattr(WebHdfsUploader, "_remote_status", remote_status)
+    monkeypatch.setattr(WebHdfsUploader, "_create", lambda self, path, content: None)
+    monkeypatch.setattr(WebHdfsUploader, "_remote_bytes", lambda self, path: payload)
+    monkeypatch.setenv("HDFS_INGEST_FAULT", "after_remote_commit_before_receipt")
+
+    with pytest.raises(RuntimeError, match="after_remote_commit_before_receipt"):
+        uploader.upload(spool_file)
+
+    assert spool_file.exists()
+    assert load_receipt(spool_file) is None

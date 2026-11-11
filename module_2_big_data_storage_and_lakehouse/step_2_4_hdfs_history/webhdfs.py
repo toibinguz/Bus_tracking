@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
@@ -58,6 +59,36 @@ class WebHdfsUploader:
         with build_opener().open(Request(redirect_url, data=content, method="PUT")):
             pass
 
+    def _verify_remote_payload(self, hdfs_path: str, payload: bytes, payload_hash: str) -> None:
+        remote_status = self._remote_status(hdfs_path)
+        if remote_status is None or int(remote_status["length"]) != len(payload):
+            raise RuntimeError(f"HDFS object is missing or has unexpected length: {hdfs_path}")
+        if file_sha256_bytes(self._remote_bytes(hdfs_path)) != payload_hash:
+            raise RuntimeError(f"HDFS object differs from spool payload: {hdfs_path}")
+
+    def _fail_after_remote_commit_if_requested(
+        self,
+        spool_path: Path,
+        hdfs_path: str,
+        payload: bytes,
+        payload_hash: str,
+    ) -> None:
+        if os.environ.get("HDFS_INGEST_FAULT") != "after_remote_commit_before_receipt":
+            return
+        self._verify_remote_payload(hdfs_path, payload, payload_hash)
+        print(
+            json.dumps(
+                {
+                    "event": "hdfs_ingest_failpoint",
+                    "fault": "after_remote_commit_before_receipt",
+                    "spool_file": spool_path.name,
+                    "hdfs_path": hdfs_path,
+                },
+                sort_keys=True,
+            )
+        )
+        raise RuntimeError("HDFS_INGEST_FAULT after_remote_commit_before_receipt")
+
     def upload(self, spool_file: str | Path) -> str:
         """Upload once, verify a collision byte-for-byte, then atomically record receipt."""
         spool_path = Path(spool_file)
@@ -75,6 +106,7 @@ class WebHdfsUploader:
             self._create(hdfs_path, payload)
         elif int(remote_status["length"]) != len(payload) or file_sha256_bytes(self._remote_bytes(hdfs_path)) != payload_hash:
             raise RuntimeError(f"existing HDFS object differs from spool payload: {hdfs_path}")
+        self._fail_after_remote_commit_if_requested(spool_path, hdfs_path, payload, payload_hash)
         write_receipt(spool_path, hdfs_path, payload_hash)
         return hdfs_path
 
