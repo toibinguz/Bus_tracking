@@ -111,3 +111,19 @@ def test_private_runner_selects_only_closed_spool_files(tmp_path):
         "/bus-eta/v1/bronze/telemetry/dt=2026-11-01/hr=07/ingest-closed.jsonl"
     ]
     assert uploaded == [closed]
+
+
+def test_private_runner_keeps_closed_spool_when_upload_is_not_acknowledged(tmp_path):
+    closed = tmp_path / "dt=2026-11-01" / "hr=07" / "ingest-retry.jsonl"
+    closed.parent.mkdir(parents=True)
+    closed.write_text("{}\n", encoding="utf-8")
+
+    class UnavailableUploader:
+        def upload(self, spool_file):
+            raise ConnectionError("namenode unavailable")
+
+    with pytest.raises(ConnectionError, match="namenode unavailable"):
+        upload_closed_spool(tmp_path, UnavailableUploader())
+
+    assert closed.exists()
+    assert load_receipt(closed) is None
