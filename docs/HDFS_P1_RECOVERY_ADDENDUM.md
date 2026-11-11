@@ -66,7 +66,7 @@ and receipt state before and after this bounded sequence.
 
 ```powershell
 docker compose -f .\docker-compose.hdfs.yml stop namenode
-docker compose -f .\docker-compose.hdfs.yml --profile ingest run --rm ingest-runner
+docker compose -f .\docker-compose.hdfs.yml --profile ingest run --rm --no-deps ingest-runner
 if ($LASTEXITCODE -eq 0) { throw 'unexpected success while NameNode is stopped' }
 Test-Path $spoolFile
 Test-Path $receiptFile
