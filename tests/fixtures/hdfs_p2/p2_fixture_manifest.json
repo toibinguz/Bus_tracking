@@ -1,0 +1,19 @@
+{
+  "fixture_id": "hdfs-p2-replayed-observed-08a",
+  "source_window_id": "replayed-observed-08a-2026-10-08T055801Z",
+  "provenance": "replayed_observed",
+  "dt": "2026-10-08",
+  "hr": "13",
+  "bronze_sha256": "33522b62f78ad571ad9f67ba50b43b52a3672bb2efd33a4273df2a42a76b58ae",
+  "reference_sha256": "9850f3634472e8bd6ee49f895b95617be68555dd363200d89b1c1f2853370ecd",
+  "raw_row_count": 5,
+  "duplicate_event_id": "312d9cb3855c2fce61f8be2056d6bd551c05ccaada09cbc2a0f99747f01f601c",
+  "distinct_event_count": 4,
+  "accepted_row_count": 4,
+  "expected_projection": [
+    {"event_id":"312d9cb3855c2fce61f8be2056d6bd551c05ccaada09cbc2a0f99747f01f601c","s_bus_m":9489.3,"cross_track_m":1.0,"derived_speed_kmh":null},
+    {"event_id":"67889e04d28804e134295e6a499434dc58844739bc78c06ce12bf3671aaf220f","s_bus_m":9750.3,"cross_track_m":12.0,"derived_speed_kmh":11.75},
+    {"event_id":"085463671b3a763a2df48b42da429e80481555d99ffdcb5c30c34acd271fdd0d","s_bus_m":10154.0,"cross_track_m":16.2,"derived_speed_kmh":18.17},
+    {"event_id":"b664e6a955367a576a8a77ef9651c3be17da62bb982c0e7e301ae7bf04bde330","s_bus_m":10591.1,"cross_track_m":8.0,"derived_speed_kmh":19.67}
+  ]
+}
