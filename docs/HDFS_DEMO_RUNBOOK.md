@@ -56,23 +56,23 @@ The second runner invocation must report the same HDFS path already stored in
 the receipt.  The `hdfs dfs -ls` output must still contain exactly one object
 with that `ingest-UUID.jsonl` name.
 
-To exercise recovery before acknowledgement, create a fresh closed spool file,
-start the runner, and interrupt its process before it returns.  The exact file
-must still exist locally and must have no receipt:
+To exercise recovery after HDFS accepts bytes but before local acknowledgement,
+create a fresh closed spool file and run the explicit test failpoint.  The
+runner verifies the remote bytes, exits before receipt persistence, and prints
+one `hdfs_ingest_failpoint` event.  The exact file must still exist locally and
+must have no receipt:
 
 ```powershell
-# In one terminal; stop it with Ctrl+C before it prints uploaded=...
-docker compose -f .\docker-compose.hdfs.yml --profile ingest run --rm ingest-runner
-
-# In another terminal, for the chosen fresh file:
+docker compose -f .\docker-compose.hdfs.yml --profile ingest run --rm `
+  -e HDFS_INGEST_FAULT=after_remote_commit_before_receipt ingest-runner
 Test-Path $spoolFile.FullName
 Test-Path "$($spoolFile.FullName).receipt.json"
 ```
 
-Re-run the bounded runner after the interruption.  It must either create the
-one immutable HDFS object or recognize the byte-identical object left by the
-interrupted attempt; it then writes one receipt.  A second object for the same
-spool filename is a failure.
+Re-run the bounded normal runner after that deliberate interruption.  It must
+recognize the byte-identical HDFS object and write one receipt.  Re-run it once
+more; `hdfs dfs -ls` must still show one object for the same spool filename.
+A second object is a failure.
 
 ## NET-05: NameNode outage
 
