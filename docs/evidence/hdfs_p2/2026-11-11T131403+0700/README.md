@@ -20,7 +20,7 @@ run did not retain the original raw Spark transform log.
 | Re-run is checkpoint no-op | `19_spark_submit_staged_noop_raw.log`, `19_spark_submit_staged_noop_raw.exit.txt` |
 | Checkpoint/publish content, HDFS state, and hash | `20_staged_job_hdfs_state.txt` |
 | Silver schema, row/dedup diagnostics, Gold readback | `21_spark_readback_staged.py`, `21_spark_readback_staged.log`, `21_spark_readback_staged.exit.txt` |
-| Per-file HDFS replication/checksum for the staged job | `20_staged_job_hdfs_state.txt` |
+| Per-file HDFS replication/checksum for the staged job | `20_staged_job_hdfs_state.txt`, `23_staged_output_file_checksums.txt` |
 | Independent `spark-sql` aggregate agreement | `22_staged_spark_sql_gold_validation.sql`, `22_staged_spark_sql_gold_validation.log`, `22_staged_spark_sql_gold_validation.exit.txt` |
 
 The current transform log records five raw Bronze rows, one duplicate identity,
