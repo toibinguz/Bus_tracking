@@ -1,0 +1,5 @@
+horizon_case,sample_count_N,actual_eta_median_sec,pred_eta_median_sec,time_error_mean_sec,time_error_std_sec,time_error_median_sec,mae_sec,medae_sec,pct_error_mean,pct_error_std,pct_error_median,wape_pct,pct_early_arrivals,pct_late_arrivals,within_tolerance_1m_pct,within_tolerance_2m_pct
+K=1,863984,69.84,71.65,-0.91,50.8,-2.8,23.38,11.48,-11.57,41.71,-5.43,22.79,58.5,41.5,92.32,97.64
+K=2,124490,194.64,195.44,2.31,80.43,-3.39,40.69,23.12,-3.58,25.99,-1.83,15.43,54.46,45.54,81.71,94.32
+K=5,47128,529.66,529.41,3.05,122.89,-4.17,72.52,46.77,-1.9,18.18,-0.81,11.91,52.56,47.44,59.72,83.99
+K=10,50040,1133.23,1134.41,-9.36,173.91,-12.96,115.79,80.28,-2.03,14.6,-1.18,9.5,54.57,45.43,39.23,66.59

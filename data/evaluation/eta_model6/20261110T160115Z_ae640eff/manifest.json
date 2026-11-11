@@ -1,0 +1,409 @@
+{
+  "run_id": "20261110T160115Z_ae640eff",
+  "created_utc": "2026-11-10T16:01:56.938507+00:00",
+  "model": {
+    "path": "data\\models\\eta_xgb_global_pruned.json",
+    "sha256": "ae640effe01af08a301e0ddc9689edfcaf000a52b38073a0c6335fe9319db700",
+    "metadata_sha256": "cdee484c0a7988944797c818cccb7d51c98dbf38b4e96a922c7fbb15070ac755",
+    "feature_count": 51,
+    "features": [
+      "baseline_skew_sec",
+      "baseline_eta_iqr_sec",
+      "cos_time",
+      "recent_corridor_congestion_ratio",
+      "hour_slot",
+      "sin_time",
+      "baseline_max_seg_p90_sec",
+      "ego_cum_delay_vs_baseline_sec",
+      "baseline_eta_rss_std_sec",
+      "inc_ahead_total_delay_sec",
+      "inc_ahead_max_delay_sec",
+      "route_id_idx",
+      "day_of_week",
+      "dist_to_next_station_m",
+      "route_base_speed_kmh",
+      "recent_corridor_tt_sum_sec",
+      "physics_probe_corrected_eta_sec",
+      "route_station_spacing_m",
+      "baseline_tier0_frac",
+      "lead_bus_speed_ratio",
+      "ego_speed_roll5_kmh",
+      "recent_seg_coverage_ratio",
+      "n_stations_ahead",
+      "day_type",
+      "ego_speed_instant_kmh",
+      "inc_ahead_jam_length_m",
+      "baseline_eta_p50_sec",
+      "progress_ratio",
+      "s_bus_m",
+      "target_station_order",
+      "ego_speed_ratio_vs_baseline",
+      "recent_next_seg_congestion_ratio",
+      "remaining_distance_m",
+      "physics_kinematic_eta_sec",
+      "baseline_eta_p90_sec",
+      "direction_id",
+      "ego_speed_roll3_kmh",
+      "n_buses_in_corridor_ahead",
+      "current_station_order",
+      "s_target_m",
+      "inc_ahead_max_magnitude",
+      "lead_bus_speed_kmh",
+      "lead_bus_dist_ahead_m",
+      "ego_trip_elapsed_sec",
+      "target_progress_ratio",
+      "inc_dist_to_nearest_m",
+      "inc_ahead_count",
+      "baseline_eta_p10_sec",
+      "baseline_eta_mean_sec",
+      "lead_bus_time_headway_sec",
+      "ego_accel_kmh_per_min"
+    ]
+  },
+  "script_sha256": "29d9368ec912dc310a8800f0bb4a9a0a5568fff73f19a2fa3493b993adbe6c89",
+  "source_split": "test",
+  "source_files": [
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=01/part-00000.snappy.parquet",
+      "sha256": "c46b6fd5e1f3027d563d36dfcc4628ae770bcef89e2ff2bf923f0eada4ba37fe",
+      "rows_input": 54335,
+      "rows_scored": 54335,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=02/part-00000.snappy.parquet",
+      "sha256": "cbe56bfe41cb5598ee6ace7b8ff05b4e0f5747f95ff3d12477df63664bca3ff0",
+      "rows_input": 158756,
+      "rows_scored": 158756,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=05/part-00000.snappy.parquet",
+      "sha256": "eadc2e2d25857d625dcefd2fbcac1011b604606f0bf65dbf095a55fa456bf651",
+      "rows_input": 75045,
+      "rows_scored": 75045,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=07/part-00000.snappy.parquet",
+      "sha256": "9c763076c74516d4c7a9f632d680c029aa386ad6d62df661151adc77d86c3423",
+      "rows_input": 117913,
+      "rows_scored": 117913,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=08A/part-00000.snappy.parquet",
+      "sha256": "389d6f8714bf8e3bbce61e78d19f708373a0b16c59e8cd13248dabca0115bf18",
+      "rows_input": 84689,
+      "rows_scored": 84689,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=101A/part-00000.snappy.parquet",
+      "sha256": "649a7fb949385d9ee0151c46d4ce559a155f18f7c4cb70d4b9adf62364c4f75f",
+      "rows_input": 69426,
+      "rows_scored": 69426,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=105/part-00000.snappy.parquet",
+      "sha256": "24f2be41a3ca76e00f515173beda250cd94f4550a1b6843cf150496ab0aed614",
+      "rows_input": 92481,
+      "rows_scored": 92481,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=107/part-00000.snappy.parquet",
+      "sha256": "381e04845c9dec3152a332a4b92a3a0ff881deaa7a80afa10e115f912d0358ad",
+      "rows_input": 130235,
+      "rows_scored": 130235,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=109/part-00000.snappy.parquet",
+      "sha256": "ce048dd1958c8beeba7ec61229a52b85c0facf0b8ff90360e150aa2a990d60e5",
+      "rows_input": 50128,
+      "rows_scored": 50128,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=11/part-00000.snappy.parquet",
+      "sha256": "795412a7a3d7b7cff2dae8ffbe0361d45dbcc099d4fded453c7df31c58cad526",
+      "rows_input": 55811,
+      "rows_scored": 55811,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=122/part-00000.snappy.parquet",
+      "sha256": "25deef3a3bb9489e41e9543e151999d331f6c6b08cb839b951de69cab395beee",
+      "rows_input": 72978,
+      "rows_scored": 72978,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=123/part-00000.snappy.parquet",
+      "sha256": "5c89a68dc96d81cb3ce2bcc1cb8b1311a68b165061a84b693c9579c33a6ce0c5",
+      "rows_input": 42729,
+      "rows_scored": 42729,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=13/part-00000.snappy.parquet",
+      "sha256": "ab5b6f60f3a2239a8b72785f9f20b6aa48050e57aa9077858aade05c20140965",
+      "rows_input": 35451,
+      "rows_scored": 35451,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=146/part-00000.snappy.parquet",
+      "sha256": "402148c0fc78ccc5dcbadb2d32d4876fb3ec012c9ade23c9e104557c1eb2343f",
+      "rows_input": 89947,
+      "rows_scored": 89947,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=17/part-00000.snappy.parquet",
+      "sha256": "57eb75d17eeb530254509af0606ab82eea6a80a4ffc747cc5d302bfd1fb5f447",
+      "rows_input": 69486,
+      "rows_scored": 69486,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=19/part-00000.snappy.parquet",
+      "sha256": "e00b86e0a4f1e57abdbde7de80a5ee34d558994da6cd16a6e9ee8b5d47c78986",
+      "rows_input": 124679,
+      "rows_scored": 124679,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=21A/part-00000.snappy.parquet",
+      "sha256": "ba39f0385dc691953c76144c65ea0bd2e03856d247e7618de323c922c916824c",
+      "rows_input": 89821,
+      "rows_scored": 89821,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=22A/part-00000.snappy.parquet",
+      "sha256": "ae0cf8847fc13b37aa161b19f325412829913982d268b2eb08a1d0c96e27b0fb",
+      "rows_input": 141850,
+      "rows_scored": 141850,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=26/part-00000.snappy.parquet",
+      "sha256": "62ead674bd857b5a658ec3822fec0dda8abe9ab67e4702ce136e6f8dfc852e60",
+      "rows_input": 109772,
+      "rows_scored": 109772,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=27/part-00000.snappy.parquet",
+      "sha256": "de141b8977bd57e9553fc664bd190049df07ad7c1cc3f0c87e2d67ce33518cf1",
+      "rows_input": 167383,
+      "rows_scored": 167383,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=28/part-00000.snappy.parquet",
+      "sha256": "9e4bf5a963fa1d6d3f8b2301d07ada92c21aa1c7ad5f2776a5a82ada2e8c3bae",
+      "rows_input": 44703,
+      "rows_scored": 44703,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=32/part-00000.snappy.parquet",
+      "sha256": "635a36c6cdccb4778fddf9440072c30a60caa3298bf8a0d5176c8b58a14c8196",
+      "rows_input": 124997,
+      "rows_scored": 124997,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=34/part-00000.snappy.parquet",
+      "sha256": "d226d7213f2e891d1432e2a2f87605553bed6246f2822abe30b8b6cfef500457",
+      "rows_input": 116691,
+      "rows_scored": 116691,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=35A/part-00000.snappy.parquet",
+      "sha256": "f55fbd9cb79023e018dad559d7a7a5ca7b14c29512a7526b1f7e4495a153024d",
+      "rows_input": 47092,
+      "rows_scored": 47092,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=37/part-00000.snappy.parquet",
+      "sha256": "aad6ee6b03bf88516b4de1935b1916dcf6f71ef79a615384def6945c4b148a04",
+      "rows_input": 95428,
+      "rows_scored": 95428,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=38/part-00000.snappy.parquet",
+      "sha256": "f575c11c0da66ef53807b5303eb79dee508f81da6dd6863abc9c52c9ade7ce94",
+      "rows_input": 48089,
+      "rows_scored": 48089,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=39/part-00000.snappy.parquet",
+      "sha256": "2e4ba5863a599e6f9420843f99c29ebde21c6d551a5498cc76926da8dc7c7c5d",
+      "rows_input": 21517,
+      "rows_scored": 21517,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=42/part-00000.snappy.parquet",
+      "sha256": "f77f1ffa1d5965c2940a3c3eac500d2c5a41bc3b3aa6dcbd9971194d0ab3c550",
+      "rows_input": 60249,
+      "rows_scored": 60249,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=43/part-00000.snappy.parquet",
+      "sha256": "fc1f51ab6575253869200aa475afd8127fbac5b1a3c080b48d151878ef7a8680",
+      "rows_input": 63373,
+      "rows_scored": 63373,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=48/part-00000.snappy.parquet",
+      "sha256": "e92ce6c0386868b2379b329c6b778bf3b295fa87993383760980bdc8033a917d",
+      "rows_input": 68454,
+      "rows_scored": 68454,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=51/part-00000.snappy.parquet",
+      "sha256": "6351c1474f25f987cacb6c164a5e89e3569c0413e364b401adc0e550e99d54b3",
+      "rows_input": 96364,
+      "rows_scored": 96364,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=56B/part-00000.snappy.parquet",
+      "sha256": "b4cb59b727af54c80c40187614743d6238f78adf1b4c610d4c4dee86159a3a39",
+      "rows_input": 36509,
+      "rows_scored": 36509,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=61/part-00000.snappy.parquet",
+      "sha256": "176f4587d4670021b4aa3ee1704f947f54b73de8d0a4d823ee57c9f47efcbc54",
+      "rows_input": 67250,
+      "rows_scored": 67250,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=64/part-00000.snappy.parquet",
+      "sha256": "ea5d455d78044fdc1e1fc8662efae2d6e72cf642be0bb5f1e5277cfbda8e1de8",
+      "rows_input": 80227,
+      "rows_scored": 80227,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=67/part-00000.snappy.parquet",
+      "sha256": "749dc13b09eaa0ee9a80ea98caa362aae862eb81baa3aa46cd992694c911ed4a",
+      "rows_input": 41922,
+      "rows_scored": 41922,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=90/part-00000.snappy.parquet",
+      "sha256": "ffbacebd175bb62aa99bd4da37cd88402ca8a2e8a9672c7dfbf897bd918c175e",
+      "rows_input": 39634,
+      "rows_scored": 39634,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=92/part-00000.snappy.parquet",
+      "sha256": "608100e36219d0aee4a6a3dfc10d37590671217db8d91b7067e0663adea05d7b",
+      "rows_input": 57896,
+      "rows_scored": 57896,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=99/part-00000.snappy.parquet",
+      "sha256": "47137c91b3b22b4cb5443f75a1450858b17262557c9d9cb4e6fbb277c62cd647",
+      "rows_input": 45015,
+      "rows_scored": 45015,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=BRT01/part-00000.snappy.parquet",
+      "sha256": "17ee4aa784669395ace695c7c07dc30063b6a60bb253d259b71c26cc3ce868b1",
+      "rows_input": 77745,
+      "rows_scored": 77745,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=E01/part-00000.snappy.parquet",
+      "sha256": "f75cf20d1e710be631f4caf50b78e8b28aaff26fd10df702c274fc43df6384bc",
+      "rows_input": 126794,
+      "rows_scored": 126794,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=E02/part-00000.snappy.parquet",
+      "sha256": "65a239d151c84d263f2d5edd01849a2a1ebe14ca231a1de830f5f857231fd5a2",
+      "rows_input": 105615,
+      "rows_scored": 105615,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=E03/part-00000.snappy.parquet",
+      "sha256": "5ebcf79062742d279bdad176ebc83e0f1aec2021928dbad6383dbbfd86cd2d39",
+      "rows_input": 80758,
+      "rows_scored": 80758,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=E04/part-00000.snappy.parquet",
+      "sha256": "2d2bbdedfc87cdbcccf3f3ec8ae1563b0ca95d6937c5bcaf3d4e9472640b3b5f",
+      "rows_input": 95562,
+      "rows_scored": 95562,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=E05/part-00000.snappy.parquet",
+      "sha256": "2ac2d6806b1975e11de95d2d341dd53505041e0a8524a3feceb6343eafe65115",
+      "rows_input": 53535,
+      "rows_scored": 53535,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=E06/part-00000.snappy.parquet",
+      "sha256": "690caca79f335cd4bb971d2d01317781ad0540248e543811bbeb2f571014d65d",
+      "rows_input": 81030,
+      "rows_scored": 81030,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=E10/part-00000.snappy.parquet",
+      "sha256": "a7779f08ebeba95ce1b218dde00c92037c3faec3f23be5174ac32f5d8ead280a",
+      "rows_input": 62035,
+      "rows_scored": 62035,
+      "rows_rejected": 0
+    },
+    {
+      "path": "data/lakehouse/gold/eta_feature_store/split=test/route_code=E11/part-00000.snappy.parquet",
+      "sha256": "1f79eb7646dc46405d2021b159a5939bf28b5b0e97de84e7545e50e9f8c73d55",
+      "rows_input": 33421,
+      "rows_scored": 33421,
+      "rows_rejected": 0
+    }
+  ],
+  "rows_scored": 3704820,
+  "rejection_counts": {},
+  "tests": {
+    "horizon_accounting": "pass",
+    "minimum_prediction_sec": 5.0,
+    "all_finite": true
+  },
+  "environment": {
+    "python": "3.14.2 (tags/v3.14.2:df79316, Dec  5 2025, 17:18:21) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "pandas": "3.0.0",
+    "xgboost": "3.3.0"
+  }
+}
