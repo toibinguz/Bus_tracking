@@ -1,0 +1,1 @@
+{"events":[{"event_id":"f4","legacy_ping_id":null,"route_id":1,"route_code":"01","vehicle_id":1,"plate":"x","device_update_time":"t","device_epoch_s":0.0,"direction_hint":"go","current_station_id":null,"lat":22.0,"lon":105.0}],"shape_by_direction":{"go":[[1,21.0,105.0,0.0],[2,21.0,105.01,1040.0]]},"station_direction_lookup":[]}

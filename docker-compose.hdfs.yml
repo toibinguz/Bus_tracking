@@ -1,0 +1,99 @@
+services:
+  namenode:
+    build:
+      context: infra/hdfs
+    command: ["/usr/local/bin/start-namenode.sh"]
+    hostname: namenode
+    ports:
+      - "127.0.0.1:9870:9870"
+    volumes:
+      - namenode-data:/data/dfs/name
+    networks: [hdfs-private]
+    healthcheck:
+      test: ["CMD-SHELL", "hdfs dfsadmin -report | grep -q 'Live datanodes (2):'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+
+  datanode-1:
+    build:
+      context: infra/hdfs
+    command: ["/usr/local/bin/start-datanode.sh"]
+    hostname: datanode-1
+    depends_on:
+      namenode:
+        condition: service_started
+    volumes:
+      - datanode-1-data:/data/dfs/data
+    networks: [hdfs-private]
+
+  datanode-2:
+    build:
+      context: infra/hdfs
+    command: ["/usr/local/bin/start-datanode.sh"]
+    hostname: datanode-2
+    depends_on:
+      namenode:
+        condition: service_started
+    volumes:
+      - datanode-2-data:/data/dfs/data
+    networks: [hdfs-private]
+
+  spark-master:
+    build:
+      context: infra
+      dockerfile: spark/Dockerfile
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
+    hostname: spark-master
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:7077:7077"
+    volumes:
+      - .:/workspace:ro
+    networks: [hdfs-private]
+
+  spark-worker-1:
+    build:
+      context: infra
+      dockerfile: spark/Dockerfile
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    depends_on: [spark-master]
+    networks: [hdfs-private]
+    volumes:
+      - .:/workspace:ro
+
+  spark-worker-2:
+    build:
+      context: infra
+      dockerfile: spark/Dockerfile
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    depends_on: [spark-master]
+    networks: [hdfs-private]
+    volumes:
+      - .:/workspace:ro
+
+  ingest-runner:
+    profiles: ["ingest"]
+    build:
+      context: infra
+      dockerfile: spark/Dockerfile
+    command: ["python3", "/workspace/scripts/hdfs_ingest_runner.py", "/spool"]
+    depends_on:
+      namenode:
+        condition: service_healthy
+    environment:
+      HDFS_WEBHDFS_URL: http://namenode:9870
+      HDFS_WEBHDFS_USER: root
+    volumes:
+      - .:/workspace:ro
+      - ./runtime/hdfs_spool:/spool
+    networks: [hdfs-private]
+
+networks:
+  hdfs-private:
+    internal: true
+
+volumes:
+  namenode-data:
+  datanode-1-data:
+  datanode-2-data:

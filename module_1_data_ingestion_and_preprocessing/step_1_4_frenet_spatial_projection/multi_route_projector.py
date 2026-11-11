@@ -194,115 +194,50 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
     if not pings or (not shapes.get("go") and not shapes.get("re")):
         return (route_id, route_code, 0, [], time.time() - t0)
 
-    # 1. Clean Direction Assignment & Depot Quarantine
-    # GTFS standard: 0 -> go, 1 -> re
-    # -1: Check if current_station_id is unambiguous in st_dir; if station = 0, isolate as depot
-    pings_by_veh: Dict[int, List[Tuple[int, float, float, float, str]]] = {}
-    ping_meta: Dict[int, Any] = {}
-    quarantine_count = 0
+    # The SQLite reader is deliberately a thin adapter around SPEC-26's single
+    # storage-independent projection policy.
+    from .projection_boundary import ProjectableEvent, project_route_events
 
-    for p in pings:
-        pid, vid, plate, t_str, epoch, p_dir, lat, lon, curr_st = p
-        ping_meta[pid] = p
-
-        d_str = None
-        if curr_st and (route_id, curr_st) in st_dir:
-            d_str = st_dir[(route_id, curr_st)]
-        elif p_dir == 0:
-            d_str = "go"
-        elif p_dir == 1:
-            d_str = "re"
-        else:
-            # p_dir == -1 with no unambiguous station -> Depot / Off-duty
-            quarantine_count += 1
-            continue
-
-        pings_by_veh.setdefault(vid, []).append((pid, lat, lon, epoch, d_str))
-
-    # 2. Execute Monotonic Projection per vehicle across contiguous same-direction runs
-    #    (First collapse any short opposite-direction glitch bursts within dt <= STALE_DELTA_T_MAX_SEC)
-    projected_results: Dict[int, Tuple[float, float, str]] = {}
-    for vid, v_pings in pings_by_veh.items():
-        v_pings.sort(key=lambda x: x[3])  # sort chronologically by epoch
-        dir_runs: List[List[Any]] = []
-        for p_item in v_pings:
-            if not dir_runs or p_item[4] != dir_runs[-1][0]:
-                dir_runs.append([p_item[4], [p_item]])
-            else:
-                dir_runs[-1][1].append(p_item)
-
-        idx_r = 1
-        while idx_r < len(dir_runs) - 1:
-            prev_run = dir_runs[idx_r - 1]
-            curr_run = dir_runs[idx_r]
-            next_run = dir_runs[idx_r + 1]
-            dt_span = next_run[1][0][3] - prev_run[1][-1][3]
-            if prev_run[0] == next_run[0] and 0 < dt_span <= STALE_DELTA_T_MAX_SEC:
-                # Merge short opposite-direction glitch burst into surrounding direction run
-                relabeled = [(x[0], x[1], x[2], x[3], prev_run[0]) for x in curr_run[1]]
-                prev_run[1].extend(relabeled)
-                prev_run[1].extend(next_run[1])
-                del dir_runs[idx_r : idx_r + 2]
-            else:
-                idx_r += 1
-
-        for r_dir, r_pings in dir_runs:
-            if shapes.get(r_dir) and r_pings:
-                cur_run = [(x[0], x[1], x[2], x[3]) for x in r_pings]
-                for r_pid, s_m, d_perp in project_points_to_shape(cur_run, shapes[r_dir]):
-                    projected_results[r_pid] = (s_m, d_perp, r_dir)
-
-    # 3. Filter to strict Silver corridor (d_perp <= MAX_CORRIDOR_CROSS_TRACK_M) FIRST,
-    #    then calculate derived kinematics (delta_s / delta_t) per vehicle trajectory
-    records = []
-    vehicles: Dict[int, List[Tuple[int, float, Tuple[float, float, str]]]] = {}
-    for p in pings:
-        pid = p[0]
-        if pid in projected_results:
-            s_m, d_perp, d_str = projected_results[pid]
-            if d_perp <= MAX_CORRIDOR_CROSS_TRACK_M:
-                vid = p[1]
-                vehicles.setdefault(vid, []).append((pid, p[4], (s_m, d_perp, d_str)))
-
-    for vid, v_pings in vehicles.items():
-        v_pings.sort(key=lambda x: x[1])  # sort by epoch
-        for i in range(len(v_pings)):
-            pid, epoch, (s_m, d_perp, d_str) = v_pings[i]
-            meta = ping_meta[pid]
-
-            derived_speed_kmh = None
-
-            if i > 0:
-                prev_pid, prev_epoch, (prev_s, prev_d_perp, prev_d_str) = v_pings[i - 1]
-                dt = epoch - prev_epoch
-                ds = round(s_m - prev_s, 1)
-
-                # Strict Corridor Chain Rule:
-                # Both points are already guaranteed within corridor (d_perp <= MAX_CORRIDOR_CROSS_TRACK_M).
-                # Speed capped at physical urban limit (GPS_DRIFT_MAX_SPEED_KMPH).
-                is_same_trip = (0 < dt <= STALE_DELTA_T_MAX_SEC) and (d_str == prev_d_str) and (ds >= -MAX_GPS_BACKWARD_JITTER_M)
-
-                if is_same_trip:
-                    v_mps = max(0.0, ds) / dt
-                    spd_kmh = round(v_mps * 3.6, 2)
-                    if spd_kmh <= GPS_DRIFT_MAX_SPEED_KMPH:
-                        derived_speed_kmh = spd_kmh
-
-            records.append((
-                pid,
-                route_code,
-                route_id,
-                meta[1],  # vehicle_id
-                meta[2],  # plate
-                meta[3],  # device_update_time
-                meta[4],  # device_epoch
-                d_str,
-                meta[6],  # lat
-                meta[7],  # lon
-                s_m,
-                d_perp,
-                derived_speed_kmh,
-            ))
+    direction_hints = {0: "go", 1: "re"}
+    events = [
+        ProjectableEvent(
+            event_id=f"legacy:{ping_id}",
+            legacy_ping_id=ping_id,
+            route_id=route_id,
+            route_code=route_code,
+            vehicle_id=vehicle_id,
+            plate=plate,
+            device_update_time=device_update_time,
+            device_epoch_s=device_epoch,
+            direction_hint=direction_hints.get(raw_direction, "unknown"),
+            current_station_id=current_station_id,
+            lat=lat,
+            lon=lon,
+        )
+        for (
+            ping_id, vehicle_id, plate, device_update_time, device_epoch,
+            raw_direction, lat, lon, current_station_id,
+        ) in pings
+    ]
+    projected_events, _ = project_route_events(events, shapes, st_dir)
+    records = [
+        (
+            event.legacy_ping_id,
+            event.route_code,
+            event.route_id,
+            event.vehicle_id,
+            event.plate,
+            event.device_update_time,
+            event.device_epoch_s,
+            event.direction,
+            event.lat,
+            event.lon,
+            event.s_bus_m,
+            event.cross_track_m,
+            event.derived_speed_kmh,
+        )
+        for event in projected_events
+    ]
 
     compute_time = time.time() - t0
     return (route_id, route_code, len(pings), records, compute_time)
