@@ -49,3 +49,4 @@ Bus_tracking/
 .pytest_cache/
 scratch/
 experiments/**/*.json
+.worktrees/

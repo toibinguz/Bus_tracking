@@ -1,0 +1,74 @@
+% !TEX program = xelatex
+\documentclass[10pt,a4paper]{article}
+\usepackage[a4paper,top=1.25cm,bottom=1.25cm,left=1.35cm,right=1.35cm]{geometry}
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\usepackage{polyglossia}
+\setdefaultlanguage{vietnamese}
+\usepackage{array,booktabs,tabularx}
+\usepackage[table]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{microtype}
+\usepackage{ragged2e}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\renewcommand{\arraystretch}{1.17}
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\newcolumntype{P}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\definecolor{navy}{HTML}{183B5B}
+\definecolor{bluebox}{HTML}{E8F1F8}
+\definecolor{green}{HTML}{236B45}
+\definecolor{greenbox}{HTML}{E9F4EC}
+\definecolor{amber}{HTML}{8A5A00}
+\definecolor{amberbox}{HTML}{FFF3D6}
+\definecolor{graybox}{HTML}{F0F2F4}
+\newcommand{\done}{\colorbox{greenbox}{\scriptsize\textcolor{green}{\strut HOÀN THÀNH}}}
+\newcommand{\doing}{\colorbox{amberbox}{\scriptsize\textcolor{amber}{\strut ĐANG TRIỂN KHAI}}}
+\newcommand{\paused}{\colorbox{graybox}{\scriptsize\textcolor{black!65}{\strut TẠM DỪNG}}}
+
+\begin{document}
+\begin{center}
+  {\Large\bfseries\textcolor{navy}{HỆ THỐNG DỰ BÁO THỜI GIAN XE BUÝT ĐẾN TRẠM}}\\[-1pt]
+  {\small Báo cáo tiến độ dự án \enspace\textbar\enspace\ Dữ liệu kiểm chứng: snapshot E1--E2}
+\end{center}
+\vspace{2pt}\hrule\vspace{5pt}
+
+\section*{1. Bài toán và pipeline dự kiến}
+Người đi xe cần biết \textbf{xe còn bao lâu đến trạm}. Dữ liệu công khai chỉ cung cấp vị trí xe tại từng thời điểm, nên nhóm cần biến các lần ghi nhận rời rạc thành lịch sử hành trình đáng tin cậy, sau đó dùng lịch sử này để dự báo ETA. Phạm vi hiện tại là một hệ thống thử nghiệm có thể chạy lại và kiểm tra số liệu; không tuyên bố dịch vụ trực tuyến 24/7.
+
+\begin{center}
+\begin{tikzpicture}[node distance=2.2mm, every node/.style={font=\scriptsize, align=center},
+  pipelinebox/.style={draw=navy!55, fill=bluebox, rounded corners=2pt, minimum height=8.5mm, text width=2.35cm, inner sep=2pt},
+  arrow/.style={-{Stealth[length=1.5mm]}, navy!70, line width=.45pt}]
+  \node[pipelinebox] (a) {Nhận vị trí xe\\từ API công khai};
+  \node[pipelinebox,right=of a] (b) {Làm sạch dữ liệu\\và bỏ bản ghi lỗi};
+  \node[pipelinebox,right=of b] (c) {Xác định xe trên\\tuyến và chiều chạy};
+  \node[pipelinebox,right=of c] (d) {Lưu lịch sử\\hành trình};
+  \node[pipelinebox,right=of d] (e) {Huấn luyện mô hình\\ML dự báo ETA};
+  \node[pipelinebox,right=of e] (f) {Trả ETA và\\đánh giá sai số};
+  \draw[arrow] (a) -- (b); \draw[arrow] (b) -- (c); \draw[arrow] (c) -- (d);
+  \draw[arrow] (d) -- (e); \draw[arrow] (e) -- (f);
+\end{tikzpicture}
+\end{center}
+\vspace{-2pt}
+Hiện nhóm lưu dữ liệu vận hành trong SQLite và tệp Parquet để phân tích. Hướng tiếp theo là bổ sung HDFS và Spark để lưu lịch sử lâu dài, xử lý lại dữ liệu lớn hơn và phục vụ truy vấn lịch sử; phần này đang triển khai, chưa coi là hoàn thành.
+
+\section*{2. Tiến độ theo nhóm công việc}
+\footnotesize
+\rowcolors{2}{white}{black!2}
+\begin{tabularx}{\textwidth}{P{2.65cm} P{3.55cm} P{2.02cm} Y}
+\toprule
+\textbf{Nhóm công việc} & \textbf{Nội dung đã làm / đang làm} & \textbf{Tình trạng} & \textbf{Kết quả đã kiểm chứng} \\
+\midrule
+Thu thập và chuẩn hóa dữ liệu & Nhận vị trí xe; chuẩn hóa tuyến, trạm, thời gian và đường đi. & \done & 7.333.298 bản ghi vị trí khác nhau. \\
+Xác định hành trình xe & Ghép vị trí vào đúng tuyến, đúng chiều chạy và theo dõi quãng đường xe đã đi. & \done & 5.565.232 vị trí hợp lệ; 48 tuyến, 481 xe. \\
+Lưu dữ liệu và tạo lịch sử & Lưu dữ liệu vận hành trong SQLite; xuất tệp Parquet để kiểm tra và phân tích. & \done & 1.191 tệp, 5.565.232 dòng đã kiểm tra. \\
+Lưu trữ và xử lý phân tán & Xây dựng HDFS/Spark để lưu lịch sử lâu dài và xử lý lượng dữ liệu lớn hơn. & \doing & HDFS ingest đã có proof; xử lý Spark/truy vấn lịch sử chưa hoàn tất. \\
+Mô hình dự báo ETA & Huấn luyện một mô hình ML dùng chung cho các tuyến và đánh giá trên dữ liệu tách riêng. & \done & 3.704.820 mẫu held-out; MAE E1: 96,70 giây. \\
+Giải thích chất lượng dự báo & Phân tích sai số theo số trạm xe còn phải đi và theo phân phối lỗi. & \done & Còn 1 trạm: 23,74s; trên 15 trạm: 201,90s. \\
+Giao diện minh họa & Hiển thị trực tiếp vị trí xe và ETA cho người dùng. & \paused & --- \\
+Tài liệu và tái lập kết quả & Lưu số liệu, lệnh chạy, hash artifact và báo cáo để đối chiếu. & \done & Có ledger số liệu và báo cáo dự án. \\
+\bottomrule
+\end{tabularx}
+\end{document}
