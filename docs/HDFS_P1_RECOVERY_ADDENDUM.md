@@ -46,7 +46,7 @@ docker compose -f .\docker-compose.hdfs.yml exec namenode hdfs dfs -ls $hdfsObje
 docker compose -f .\docker-compose.hdfs.yml exec namenode hdfs dfs -checksum $hdfsObject
 
 # Recovery: recognize the committed object, then create the missing receipt.
-docker compose -f .\docker-compose.hdfs.yml --profile ingest run --rm ingest-runner
+docker compose -f .\docker-compose.hdfs.yml --profile ingest run --rm --no-deps ingest-runner
 Get-Content $receiptFile
 
 # Acknowledged retry must be a no-op for the same logical object.
