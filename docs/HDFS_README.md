@@ -9,11 +9,11 @@
 | U1 — Hợp đồng batch HF | [SPEC-45](specs/45_U1_HF_BATCH_AND_HISTORY_CONTRACT.md) | Khảo sát bus/incidents ở revision cố định |
 | U2 — Nhận HF vào Bronze | [SPEC-46 và cách chạy](specs/46_U2_HF_TO_HDFS_BRONZE_IMPLEMENTATION.md) | Nhận batch thật; retry/outage/hash |
 | U3 — Silver tích lũy | [SPEC-47](specs/47_U3_CUMULATIVE_SILVER_PLAN.md), [runbook](HDFS_U3_RUNBOOK.md) | Snapshot từ ba batch thật; late/dedup/publication/query |
-| U4 — Baseline/feature dùng snapshot chung | SPEC-44 | Chưa hoàn tất; mới có thử nghiệm cache baseline cũ |
-| U5 — Đồng bộ phục vụ/offline | SPEC-44 | Chưa hoàn tất |
-| U6 — Diễn tập toàn luồng | SPEC-44 | Chưa hoàn tất |
+| U4 — Baseline/feature dùng snapshot chung | [SPEC-48](specs/48_U4_U5_U6_ETA_SNAPSHOT_EXECUTION.md) | Đạt kiểm chứng 02/27, hai ngày; Gold thật, exact parity, global model smoke |
+| U5 — Đồng bộ phục vụ/offline | [Runbook U4–U6](HDFS_U456_RUNBOOK.md) | Release bất biến/pointer, lookup offline, lỗi không mất bản tốt trước; chưa đổi web DB |
+| U6 — Diễn tập toàn luồng | [Evidence U4–U6](evidence/hdfs_u456/README.md) | HF → Bronze/Silver → domain Gold → release và replay đã chạy |
 
-Không suy ra U4–U6 đã hoàn thành từ việc các kiểm chứng U1–U3 đạt trên mẫu nhỏ.
+U1–U6 đều đã có kiểm chứng trong phạm vi đã ghi; không suy ra đã nhập toàn bộ lịch sử, tái huấn luyện mọi model hoặc cutover live serving. Các bước offline không yêu cầu Docker chạy liên tục.
 
 ## Runbook và bằng chứng được giữ
 

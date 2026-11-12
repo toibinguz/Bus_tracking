@@ -1,0 +1,15 @@
+{
+  "artifact_id": "4ee4031b0330c244267f0a249eaa8b49f3151bd664c277945c1179045e500e8a",
+  "snapshot_id": "fcd8fdaa7f7717b00cf4282f3f9d1a0b7c54981e46b4238b7ae392a89e9ba1f9",
+  "exact_domain_table_and_parquet_parity": true,
+  "feature_rows": {
+    "train": 180,
+    "test": 234
+  },
+  "offline_external_calls": 0,
+  "global_model_loaded": true,
+  "model_sha256": "bfc8b1f8f1fc0d05720c7833be31d028e391dd2a88c0b9373c63f470cc709a10",
+  "prediction_smoke_rows": 16,
+  "prediction_finite": true,
+  "limitation": "loader/prediction compatibility only; no retraining or accuracy claim; route index mapping not promoted to serving"
+}

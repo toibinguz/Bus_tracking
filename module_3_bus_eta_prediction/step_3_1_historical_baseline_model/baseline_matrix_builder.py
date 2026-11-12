@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 import pyarrow.dataset as ds_pa
 
 if sys.stdout.encoding != "utf-8":
@@ -197,7 +198,8 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
         stations_map[(r_code, d_str)].append((int(st_ord), int(st_id), str(st_name), float(s_m)))
 
     # 2. Scan Silver Parquet dataset grouped by route_code
-    dataset = ds_pa.dataset(SILVER_TEL_DIR, format="parquet", partitioning="hive")
+    partitioning = ds_pa.partitioning(pa.schema([('route_code', pa.string()), ('dt', pa.string())]), flavor='hive')
+    dataset = ds_pa.dataset(SILVER_TEL_DIR, format="parquet", partitioning=partitioning)
     tbl = dataset.to_table(
         columns=["route_code", "vehicle_id", "device_update_time", "device_epoch", "direction", "s_bus_m", "derived_speed_kmh"]
     )

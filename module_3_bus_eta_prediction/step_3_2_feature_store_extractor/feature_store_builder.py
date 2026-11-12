@@ -67,6 +67,12 @@ SILVER_TEL_DIR = os.path.join(BASE_DIR, DEFAULT_LAKEHOUSE_ROOT, "silver", "route
 SILVER_INC_DIR = os.path.join(BASE_DIR, DEFAULT_LAKEHOUSE_ROOT, "silver", "fact_route_tomtom_incidents")
 GOLD_FEATURE_DIR = os.path.join(BASE_DIR, DEFAULT_LAKEHOUSE_ROOT, "gold", "eta_feature_store")
 
+
+def initialize_storage_paths(db_path, silver_tel_dir, silver_inc_dir, gold_feature_dir):
+    """Pass the selected history workspace to spawned worker processes."""
+    global DB_PATH, SILVER_TEL_DIR, SILVER_INC_DIR, GOLD_FEATURE_DIR
+    DB_PATH, SILVER_TEL_DIR, SILVER_INC_DIR, GOLD_FEATURE_DIR = db_path, silver_tel_dir, silver_inc_dir, gold_feature_dir
+
 RECENT_PROBE_WINDOW_SEC = 1800.0   # 30-minute causal window for preceding bus segment traversals
 FLEET_ACTIVE_WINDOW_SEC = 300.0    # 5-minute causal window for active lead/following buses on same route
 MIN_EGO_SAMPLE_ADVANCE_M = 150.0   # Minimum spatial advance between consecutive ego query points in a trip
@@ -705,7 +711,8 @@ def build_gold_feature_store(max_workers: int = 8) -> Dict[str, Any]:
     total_test = 0
     completed = 0
 
-    with ProcessPoolExecutor(max_workers=max_workers) as pool:
+    with ProcessPoolExecutor(max_workers=max_workers, initializer=initialize_storage_paths,
+                             initargs=(DB_PATH, SILVER_TEL_DIR, SILVER_INC_DIR, GOLD_FEATURE_DIR)) as pool:
         futures = {pool.submit(_process_single_route, t): t[0] for t in tasks}
         for fut in as_completed(futures):
             r_c, n_tr, n_te, el_s = fut.result()

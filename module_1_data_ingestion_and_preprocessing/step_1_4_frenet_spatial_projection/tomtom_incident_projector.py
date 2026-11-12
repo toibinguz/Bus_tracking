@@ -497,7 +497,7 @@ def main():
     print(f"  - Total clean records: {res[0]:,}")
     print(f"  - Unique incidents matched: {res[1]:,}")
     print(f"  - Unique routes: {res[2]} / {len(target_routes)}")
-    print(f"  - Max segment span: {res[3]:.1f}m | Avg segment overlap span: {res[4]:.1f}m")
+    print(f"  - Max segment span: {res[3] or 0.0:.1f}m | Avg segment overlap span: {res[4] or 0.0:.1f}m")
     print(f"  - Corrupted s_min=0 (>500m) rows: {res[5]} (0.00%!)", flush=True)
 
     conn.close()

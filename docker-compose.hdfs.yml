@@ -89,6 +89,17 @@ services:
       - ./runtime/hdfs_spool:/spool
     networks: [hdfs-private]
 
+  eta-artifacts:
+    profiles: ["eta"]
+    build:
+      context: infra
+      dockerfile: spark/Dockerfile
+    command: ["python3", "/workspace/scripts/eta_snapshot_pipeline.py", "--help"]
+    volumes:
+      - .:/workspace:ro
+      - ./runtime/eta_releases:/releases
+    networks: [hdfs-private]
+
   history-api:
     profiles: ["history"]
     build:
