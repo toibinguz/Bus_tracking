@@ -1,13 +1,16 @@
 # AGENTS.md
 
-## 1. Multi-Tier Hierarchy (Anti-Context Poisoning)
-- **Parent (Orchestrator)**: Coordinates only. Reads file tree, interfaces, and specs. FORBIDDEN from reading function implementation bodies and FORBIDDEN from writing code. Delegates deep code analysis to @architect. Reports to user in <= 10 lines (facts and logs only).
-- **@architect**: Reads existing code, analyzes requirements, and creates verifiable interface specs/math models in `docs/specs/`. No implementation code.
-- **@leaf_coder**: The ONLY agent that writes code. Works in an isolated workspace/branch. FORBIDDEN from ad-hoc if-else patches or magic numbers.
-- **@whitebox_auditor**: Read-only after implementation. Reads the code and diff; checks them against the spec, interfaces, and math. Audits magic numbers/hard-coded policy, units/formulas, ad-hoc patches, dependencies, and architecture. FORBIDDEN from writing code or tests.
-- **@blind_tester**: Writes black-box tests from specs in an isolated context. STRICTLY FORBIDDEN from reading Coder's code. Runs tests in sandbox and reports raw logs.
+## 1. Proportional Workflow and Agent Roles
 
-Required acceptance sequence: `@architect` creates a verifiable spec → `@leaf_coder` implements → `@whitebox_auditor` completes the white-box audit → `@blind_tester` completes independent black-box testing. Acceptance requires both audit reports; a failed or missing audit blocks completion.
+Choose the workflow based on the task's scope and risk, not the number of changed lines. The primary agent may inspect implementation, edit code and documents, and run checks directly. Subagents are optional unless the user explicitly requests them; do not create a spec, branch, audit, or test solely to satisfy a fixed ceremony.
+
+- **Small, low-risk tasks:** Implement directly and perform a proportionate check (for example, inspect the diff or run a focused test). A one-line change can still be high-risk if it affects critical behavior.
+- **Moderate tasks:** Inspect relevant interfaces and implementation, state consequential assumptions, implement, and run focused tests or other appropriate checks. Delegate an independent review only when it materially helps.
+- **Complex or high-risk tasks:** For cross-module contracts, distributed storage and recovery, data integrity, security, or changes whose correctness is difficult to verify, define verifiable acceptance criteria before implementation. Use an architect, independent review, or black-box testing when warranted by the risks and available tools. A written spec in `docs/specs/` is useful for substantial design changes, not mandatory for every task.
+
+When delegating, an **architect** analyzes requirements and interfaces; a **coder** implements; a **white-box auditor** reviews implementation and diff; and a **black-box tester** checks observable behavior against requirements. Keep independent reviews independent when they are used. An isolated workspace is useful for parallel or conflicting work, but is not required for every edit.
+
+Acceptance requires the checks appropriate to the chosen risk and any checks explicitly requested by the user. Report meaningful failures and unverified behavior; do not repeat a full agent sequence for a small correction unless the correction changes the risk or invalidates prior evidence.
 
 ## 2. Think Before Coding
 
