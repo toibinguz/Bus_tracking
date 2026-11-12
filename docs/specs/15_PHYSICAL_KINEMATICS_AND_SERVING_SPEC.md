@@ -1,4 +1,7 @@
 # SPEC-15: ĐẶC TẢ TOÁN HỌC ĐỘNG HỌC VẬT LÝ, BÙ ĐẮP TRỄ VIỄN TRẮC & CHUẨN HÓA PHỤC VỤ THỜI GIAN THỰC (REAL-TIME PHYSICAL KINEMATICS & SERVING SPECIFICATION)
+
+> Thiết kế giữ để tra hợp đồng; trạng thái/số liệu/giao diện gốc cần đối chiếu code/test. Xem [chỉ mục](README.md). Không tự thực thi phân công agent hoặc lệnh dọn file lịch sử.
+
 > **Authority note (2026-11-10):** This is the current mathematical authority over SPEC-11--14. Server-side projection is permitted; BusMap-only, discrete browser behavior remains mandatory under [SPEC-04](04_BUSMAP_ONLY_DISCRETE_TRACKING_SPEC.md), so browser interpolation and TimBus remain prohibited.
 ## Document ID: `15_PHYSICAL_KINEMATICS_AND_SERVING_SPEC`
 

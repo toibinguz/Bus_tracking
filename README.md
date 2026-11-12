@@ -1,6 +1,6 @@
 # Hanoi Bus Big Data & Real-Time ETA Prediction System
 
-> **Kế hoạch lưu trữ thống nhất:** [SPEC-44](docs/specs/44_UNIFIED_STORAGE_ARCHITECTURE_AND_EXECUTION_PLAN.md) xác định vai trò GitHub Actions/Hugging Face, HDFS/Spark và SQLite/local Parquet; liệt kê module ảnh hưởng, thứ tự U1–U6 và tiêu chí nghiệm thu. Đây là kiến trúc đích, không phải tuyên bố mọi giai đoạn đã triển khai.
+> **HDFS:** [kiến trúc/kết quả](docs/HDFS_README.md), [cách chạy](docs/HDFS_RUNBOOK.md). Bronze đủ 6.076 batch/5,43 GB tại revision cố định; Silver → ETA → offline release kiểm chứng trên tập con. [Chỉ mục specs](docs/specs/README.md).
 >
 > [Chỉ mục HDFS: trạng thái, cách chạy và bằng chứng](docs/HDFS_README.md).
 

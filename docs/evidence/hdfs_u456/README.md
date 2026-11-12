@@ -41,7 +41,7 @@ Raw identifying result of the initial replay:
 {"artifact_id":"c5e2be5879848b1196228b88f1a274adc4fe777bb575a892c610b0b31f735822","snapshot_id":"fcd8fdaa7f7717b00cf4282f3f9d1a0b7c54981e46b4238b7ae392a89e9ba1f9","activated_at":"2026-11-12T14:01:01.171226+00:00","feature_result":{"elapsed_sec":2.7,"n_columns":60,"test_rows":234,"train_rows":180}}
 ```
 
-All commands, prerequisites and limits: [runbook](../../HDFS_U456_RUNBOOK.md). No full-model retraining, full HF import, live-serving cutover or production availability claim.
+All commands, prerequisites and limits: [runbook](../../HDFS_RUNBOOK.md). No full-model retraining, full HF import, live-serving cutover or production availability claim.
 
 ## Final regression
 

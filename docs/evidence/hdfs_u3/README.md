@@ -12,7 +12,7 @@
 | Repeat `app-20261112095212-0016` | Exit 0; same final snapshot, `noop=true` |
 | Separate verification script | Exit 0; all projected columns match local canonical boundary result, prior unique event IDs retained, query matches independent Spark SQL |
 
-Raw final HDFS publication: [published_snapshot.json](published_snapshot.json). Actual host HTTP payload: [http_snapshot_query.json](http_snapshot_query.json). Exact commands and limits: [runbook](../../HDFS_U3_RUNBOOK.md).
+Raw final HDFS publication: [published_snapshot.json](published_snapshot.json). Actual host HTTP payload: [http_snapshot_query.json](http_snapshot_query.json). Exact commands and limits: [runbook](../../HDFS_RUNBOOK.md).
 
 ## Verification script final output
 

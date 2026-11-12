@@ -1,4 +1,7 @@
 # SPEC-16: ĐẶC TẢ REFACTOR HYBRID (CONTROLLED) — STEP 3.4 SERVING & STEP 3.5 WEB DEMO
+
+> Thiết kế giữ để tra hợp đồng; trạng thái/số liệu/giao diện gốc cần đối chiếu code/test. Xem [chỉ mục](README.md). Không tự thực thi phân công agent hoặc lệnh dọn file lịch sử.
+
 > **Status: partially implemented / verification pending (2026-11-10).** Split files exist, but `app.py` still imports `busmap_service.py`; interface inspection therefore fails W-01 and planned tests are absent.
 
 - **Document ID:** `16_REFACTOR_SPEC_STEP_3_4_SERVING_AND_3_5_WEB_DEMO`

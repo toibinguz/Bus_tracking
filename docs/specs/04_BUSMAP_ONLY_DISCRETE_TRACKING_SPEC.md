@@ -1,4 +1,7 @@
 # ĐẶC TẢ KIẾN TRÚC: HỆ THỐNG THEO DÕI XE BUÝT GIẬT CỤC RỜI RẠC CHỈ DÙNG DỮ LIỆU BUSMAP
+
+> Thiết kế giữ để tra hợp đồng; trạng thái/số liệu/giao diện gốc cần đối chiếu code/test. Xem [chỉ mục](README.md). Không tự thực thi phân công agent hoặc lệnh dọn file lịch sử.
+
 > **Implementation note (2026-11-10):** The browser animation ban remains authoritative. Server-side physical projection under [SPEC-15](15_PHYSICAL_KINEMATICS_AND_SERVING_SPEC.md) is allowed and does not authorize browser interpolation. The eventual public facade, not the current monolith, is the intended integration boundary.
 ## Document ID: `04_BUSMAP_ONLY_DISCRETE_TRACKING_SPEC`
 **Tác giả:** @architect  

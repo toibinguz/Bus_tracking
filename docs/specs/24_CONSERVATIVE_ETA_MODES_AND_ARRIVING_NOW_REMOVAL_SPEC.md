@@ -1,5 +1,8 @@
 # SPEC-24: ETA bao thu, che do Passenger/Debug va bo `ARRIVING_NOW`
 
+> Thiết kế giữ để tra hợp đồng; trạng thái/số liệu/giao diện gốc cần đối chiếu code/test. Xem [chỉ mục](README.md). Không tự thực thi phân công agent hoặc lệnh dọn file lịch sử.
+
+
 **Trang thai:** APPROVED PRODUCT DECISION — chua trien khai  
 **Phạm vi:** Module 3.4/3.5, giu nguyen model ML, baseline va cac module frozen theo SPEC-19.
 

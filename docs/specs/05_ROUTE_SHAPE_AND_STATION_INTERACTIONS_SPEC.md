@@ -1,4 +1,7 @@
 # SPEC-05: ĐẶC TẢ GIAO DIỆN & DỮ LIỆU - VẼ TIM TUYẾN, TRẠM DỪNG ĐÁNH SỐ VÀ TƯƠNG TÁC TRẠM CHUẨN TRÊN NỀN VỆ TINH ESRI
+
+> Thiết kế giữ để tra hợp đồng; trạng thái/số liệu/giao diện gốc cần đối chiếu code/test. Xem [chỉ mục](README.md). Không tự thực thi phân công agent hoặc lệnh dọn file lịch sử.
+
 > **Verification note (2026-11-10):** Historic PASS statements are pending re-verification. Until the split migration is wired, `busmap_service.py` owns the public route facade; no current black-box suite exists.
 
 - **Mã tài liệu**: `docs/specs/05_ROUTE_SHAPE_AND_STATION_INTERACTIONS_SPEC.md`

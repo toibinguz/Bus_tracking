@@ -1,5 +1,8 @@
 # SPEC-26: Narrow Frenet projection boundary and parity gate
 
+> Thiết kế giữ để tra hợp đồng; trạng thái/số liệu/giao diện gốc cần đối chiếu code/test. Xem [chỉ mục](README.md). Không tự thực thi phân công agent hoặc lệnh dọn file lịch sử.
+
+
 **Status:** proposed; prerequisite to SPEC-25 P1/P2.  
 **Date:** 2026-11-10  
 **Owner:** `@architect`  
