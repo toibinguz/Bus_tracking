@@ -89,9 +89,23 @@ services:
       - ./runtime/hdfs_spool:/spool
     networks: [hdfs-private]
 
+  history-api:
+    profiles: ["history"]
+    build:
+      context: infra
+      dockerfile: spark/Dockerfile
+    command: ["/opt/spark/bin/spark-submit", "--master", "spark://spark-master:7077", "/workspace/scripts/hdfs_history_server.py"]
+    depends_on: [namenode, spark-master]
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - .:/workspace:ro
+    networks: [hdfs-private, history-client]
+
 networks:
   hdfs-private:
     internal: true
+  history-client:
 
 volumes:
   namenode-data:

@@ -7,6 +7,7 @@ Modular architecture importing from core package.
 import os
 import sys
 import json
+import sqlite3
 import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -147,6 +148,16 @@ def main():
                 with open(bus_out_file, "a", encoding="utf-8") as f:
                     for rec in bus_records:
                         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                # Optional durable handoff: collection remains usable while Docker is off.
+                if os.environ.get("HDFS_SPOOL_ROOT"):
+                    from .hdfs_bronze_adapter import load_route_code_lookup, spool_crawler_batch
+                    try:
+                        paths = spool_crawler_batch(
+                            bus_records, spool_root=os.environ["HDFS_SPOOL_ROOT"],
+                            route_codes=load_route_code_lookup(os.environ.get("HDFS_ROUTE_DB", "data/hanoi_bus_system.db")))
+                        print(f"[HDFS spool] closed {len(paths)} window(s); upload when Docker is available", flush=True)
+                    except (ValueError, OSError, sqlite3.Error) as error:
+                        print(f"[HDFS spool ERROR] {error}; capture retained in {bus_out_file}", file=sys.stderr, flush=True)
 
             total_vids = len(v_ids)
             resp_rate = (len(bus_records) / total_vids) if total_vids > 0 else 0
