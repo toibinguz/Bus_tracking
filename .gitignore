@@ -50,3 +50,6 @@ Bus_tracking/
 scratch/
 experiments/**/*.json
 .worktrees/
+
+# Generated full-history download cache, staging and import checkpoints
+/runtime/hf_full_history/

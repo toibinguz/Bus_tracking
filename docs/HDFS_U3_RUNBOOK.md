@@ -16,7 +16,7 @@ Luồng HF → Bronze → Silver đã chạy trên batch thật. Khi nhận thê
 docker compose -f docker-compose.hdfs.yml exec -T spark-master /opt/spark/bin/spark-submit --master spark://spark-master:7077 --conf spark.cores.max=2 --conf spark.executor.cores=1 --conf spark.executor.memory=512m --conf spark.executorEnv.PYTHONPATH=/workspace /workspace/scripts/hdfs_build_history_snapshot.py --reference hdfs://namenode:8020/bus-eta/v1/reference/history/sha256=7e1664bb57315eb23875421de7d3b7de7b9982e0fe6cfd6d04037729df24a2aa/reference.json
 ```
 
-Builder chốt mọi manifest hoàn tất trong `_received/hf_batch/*/manifest.json`, xác minh byte raw và reference trước xử lý. Muốn chọn ngày/phạm vi ở bản này, kiểm soát tập batch đã nhận qua CLI U2; chưa có selector tập con riêng trong builder. Không nạp cả lịch sử HF nếu chưa chủ ý tăng phạm vi.
+Builder đọc manifest nhận hoàn tất trong `_received/hf_batch/*/manifest.json`, xác minh byte raw và reference trước xử lý. Sau khi bổ sung nhập toàn lịch sử, bắt buộc chọn `--batch-id ID1 ID2 ...` để xử lý tập con, hoặc `--all-received` để chủ động yêu cầu recompute toàn ledger. Không dùng `--all-received` cho toàn lịch sử trên laptop khi chưa kiểm chứng tài nguyên. Các lệnh ban đầu bên trên cần thêm một trong hai lựa chọn này ở phiên bản mới. Source-window workflow U4–U6 đã truyền batch IDs cụ thể; lịch sử traffic được giữ ở Bronze, không ép vào incident observations.
 
 Snapshot ID cuối đã kiểm chứng:
 

@@ -20,7 +20,7 @@ def main():
     selection = stage.add_mutually_exclusive_group(required=True)
     selection.add_argument('--path', action='append')
     selection.add_argument('--date', type=date.fromisoformat)
-    stage.add_argument('--category', choices=['bus', 'incidents', 'all'], default='all')
+    stage.add_argument('--category', choices=['bus', 'incidents', 'traffic', 'all'], default='all')
     upload = sub.add_parser('upload', help='local staging to HDFS only; no HF access')
     upload.add_argument('--stage-dir', type=Path, required=True)
     upload.add_argument('--failpoint', choices=['after_raw', 'before_receipt'])
@@ -35,7 +35,7 @@ def main():
         if args.path:
             paths = sorted(set(args.path))
         else:
-            categories = {'bus', 'incidents'} if args.category == 'all' else {args.category}
+            categories = {'bus', 'incidents', 'traffic'} if args.category == 'all' else {args.category}
             prefix = 'raw_data/' + args.date.isoformat() + '/'
             paths = sorted(path for path in api.list_repo_files(dataset, repo_type='dataset', revision=revision)
                            if path.startswith(prefix) and len(path.split('/')) == 4 and path.split('/')[2] in categories and path.endswith('.jsonl'))

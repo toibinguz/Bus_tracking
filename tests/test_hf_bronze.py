@@ -98,7 +98,14 @@ def test_lost_create_ack_is_verified_before_success(tmp_path):
     assert len(list(tmp_path.glob('*/receipts/*.json'))) == 1
 
 
-@pytest.mark.parametrize('path', ['../other.jsonl', 'raw_data/2026-11-12/traffic/file.jsonl', 'raw_data/bad/bus/file.jsonl'])
+@pytest.mark.parametrize('path', ['../other.jsonl', 'raw_data/2026-11-12/unknown/file.jsonl', 'raw_data/bad/bus/file.jsonl'])
 def test_path_contract(path):
     with pytest.raises(ValueError):
         descriptor('test/dataset', REV, path, b'')
+
+
+def test_legacy_traffic_is_raw_bronze_not_bus_schema():
+    content=b'{"legacy_traffic":true}\n'
+    metadata=descriptor('test/dataset',REV,'raw_data/2026-11-12/traffic/file.jsonl',content)
+    assert metadata['category']=='traffic'
+    assert '/category=traffic/' in metadata['hdfs_raw_path']

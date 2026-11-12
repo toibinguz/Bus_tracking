@@ -17,6 +17,8 @@ U1–U6 đều đã có kiểm chứng trong phạm vi đã ghi; không suy ra �
 
 ## Runbook và bằng chứng được giữ
 
+**Kho Bronze đầy đủ:** đã nhập toàn bộ 6.076 batch HF (5,43 GB) tại revision cố định; [kế hoạch/resume](specs/49_FULL_HF_HISTORY_BRONZE_IMPORT.md), [đối chiếu toàn bộ và fsck](evidence/hdfs_full_history/README.md). Silver/Gold vẫn giữ phạm vi kiểm chứng nêu riêng, không tự coi là đã xử lý toàn lịch sử.
+
 - [Cluster/P1 ban đầu](HDFS_DEMO_RUNBOOK.md), [phục hồi ingest](HDFS_P1_RECOVERY_ADDENDUM.md).
 - [P3A query/validation](HDFS_P3A_RUNBOOK.md), [P3B mô phỏng block/executor](HDFS_P3B_RUNBOOK.md): kiểm chứng lịch sử, không phải lộ trình triển khai tiếp theo.
 - Evidence [P1](evidence/hdfs_p1/), [P2](evidence/hdfs_p2/), [P3A](evidence/hdfs_p3a/README.md), [black-box P3A](evidence/HDFS_P3A_BLACKBOX_REPORT.md), [P3B](evidence/hdfs_p3b/verification.md).

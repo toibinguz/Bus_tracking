@@ -32,12 +32,12 @@ Chi tiết hash, output và kiểm chứng: [evidence](evidence/hdfs_u456/README
 ## Một lệnh diễn tập từ HF
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/run_hdfs_eta_workflow.py --source-window docs/evidence/hdfs_u456/source_window.json --workspace runtime/eta_u456_03 --dates 2026-10-27 2026-11-01 --routes 02 27 --pointer runtime/eta_active.json
+.\.venv\Scripts\python.exe scripts/run_hdfs_eta_workflow.py --source-window docs/evidence/hdfs_u456/source_window.json --workspace runtime/eta_window_next --dates 2026-10-27 2026-11-01 --routes 02 27 --pointer runtime/eta_active.json
 ```
 
 Lệnh pin revision, stage/upload batch qua U2, gọi U3 để lấy snapshot đã công bố, materialize nếu chưa có cache, chạy domain builders nếu chưa có output, publish, download/verify rồi mới activate pointer. Chạy lại tái dùng cache/output/release có cùng identity và kiểm tra code baseline/feature/pipeline; không append thêm feature hoặc ghi đè model. Nếu output dở chưa có manifest, chọn workspace mới; chưa có sửa tự động workspace dở.
 
-Ở cụm mới chỉ có source window này, snapshot ID sẽ khác cụm đã có thêm batch trước đó; luôn dùng ID do builder trả về. Nội dung source window không phải bộ lọc xóa batch cũ khỏi ledger. Ngày/tuyến consumer là bộ lọc rõ ràng.
+Sau khi có importer toàn lịch sử, source-window workflow truyền batch IDs cụ thể cho builder; chỉ những batch trong source window được xử lý. Các snapshot kiểm chứng cũ từng gồm bảy batch đã nhận vẫn được giữ nguyên và đọc được, nhưng chạy lại với bộ lọc mới có thể cho snapshot ID mới. Hãy chọn workspace mới và dùng ID builder trả về khi phạm vi/code thay đổi. Không xóa batch ngoài lựa chọn khỏi Bronze; ngày/tuyến consumer vẫn là bộ lọc riêng.
 
 Nếu Silver đã có, bỏ qua việc truy cập HF:
 

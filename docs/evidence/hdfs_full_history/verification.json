@@ -1,0 +1,17 @@
+{
+  "categories": {
+    "bus": 3649,
+    "incidents": 2285,
+    "traffic": 142
+  },
+  "dataset": "Toibinguz/hust-bus-data",
+  "elapsed_seconds": 83.6,
+  "files": 6076,
+  "logical_bytes": 5433831020,
+  "revision": "d0a59a0689f375ba72cad1729dd4cb19fd1f7c74",
+  "scope": "Bronze raw history only",
+  "source_digest_verified": true,
+  "status": "verified_all_remote_bytes_and_lineage",
+  "unique_raw_bytes": 5433831020,
+  "unique_raw_objects": 6076
+}

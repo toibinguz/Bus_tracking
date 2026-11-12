@@ -1,0 +1,16 @@
+{
+  "categories": {
+    "bus": 3649,
+    "incidents": 2285,
+    "traffic": 142
+  },
+  "completed": 6076,
+  "dataset": "Toibinguz/hust-bus-data",
+  "elapsed_seconds": 2034.9,
+  "revision": "d0a59a0689f375ba72cad1729dd4cb19fd1f7c74",
+  "scope": "HDFS Bronze only; no full Silver recomputation or model promotion",
+  "status": "all_planned_batches_received",
+  "total": 6076,
+  "total_bytes": 5433831020,
+  "verified_bytes": 5433831020
+}

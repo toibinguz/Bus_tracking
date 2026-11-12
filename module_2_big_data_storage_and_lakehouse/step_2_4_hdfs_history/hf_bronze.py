@@ -33,7 +33,7 @@ def atomic_write(path, content):
 
 def descriptor(dataset, revision, path, content):
     parts = PurePosixPath(path).parts
-    if len(parts) != 4 or parts[0] != 'raw_data' or parts[2] not in ('bus', 'incidents') or not parts[3].endswith('.jsonl'):
+    if len(parts) != 4 or parts[0] != 'raw_data' or parts[2] not in ('bus', 'incidents', 'traffic') or not parts[3].endswith('.jsonl'):
         raise ValueError('unsupported HF batch path')
     if not re.fullmatch(r'[0-9a-f]{40}', revision):
         raise ValueError('revision must be a pinned HF commit')
@@ -107,7 +107,7 @@ def ensure_object(store, path, content):
 
 def receive_batch(root, metadata_path, store, failpoint=None):
     metadata_path = Path(metadata_path)
-    if not metadata_path.resolve().is_relative_to(Path(root).resolve()):
+    if Path(root).resolve() not in metadata_path.resolve().parents:
         raise ValueError('source descriptor outside staging root')
     metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
     target = metadata_path.parent.parent

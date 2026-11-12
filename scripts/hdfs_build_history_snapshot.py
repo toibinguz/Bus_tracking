@@ -20,6 +20,9 @@ def main():
     from pyspark.sql.types import StructType, StructField, StringType, LongType, DoubleType
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--reference', required=True)
+    selection=parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument('--batch-id',nargs='+',help='explicit bounded set of received HF batches')
+    selection.add_argument('--all-received',action='store_true',help='explicitly recompute the entire received ledger; may exceed laptop memory')
     parser.add_argument('--fail-before-publish', action='store_true')
     args = parser.parse_args()
     if not args.reference.startswith(HDFS+'/reference/history/'):
@@ -46,6 +49,11 @@ def main():
             raise ValueError('reference content hash mismatch')
         reference = json.loads(ref_raw)
         manifests = [json.loads(bytes(row.content)) for row in spark.read.format('binaryFile').load(HDFS+'/_received/hf_batch/*/manifest.json').collect()]
+        if args.batch_id:
+            requested=set(args.batch_id)
+            manifests=[manifest for manifest in manifests if manifest['batch_id'] in requested]
+            if {manifest['batch_id'] for manifest in manifests}!=requested:
+                raise ValueError('requested received batch missing')
         manifests.sort(key=lambda row: row['batch_id'])
         if len({row['batch_id'] for row in manifests}) != len(manifests):
             raise ValueError('duplicate batch manifest')
@@ -71,6 +79,8 @@ def main():
             expected = descriptor(manifest['dataset'],manifest['revision'],manifest['path'],raw)
             if any(manifest[k] != v for k,v in expected.items()):
                 raise ValueError('received batch metadata/hash mismatch')
+            if manifest['category']=='traffic':
+                continue  # raw legacy traffic retained in Bronze; it is not an incident
             frame = spark.read.text(raw_path).withColumn('batch_id', F.lit(manifest['batch_id']))
             (bus_inputs if manifest['category']=='bus' else incident_inputs).append(frame)
         if not bus_inputs:
@@ -118,6 +128,7 @@ def main():
                       raw_bus_rows=normalized.count(), unique_bus_events=unique.count(),
                       duplicate_bus_observations=valid.count()-unique.count(), rejected_rows=rejected.count(),
                       incident_observations=incident_rows, rejected_incidents=rejected_incidents, published_at=datetime.now(timezone.utc).isoformat())
+        report['bronze_only_traffic_batches']=sum(manifest['category']=='traffic' for manifest in manifests)
         write_once(attempt+'/reference.json',ref_raw)
         write_once(attempt+'/snapshot.json',encoded(report))
         if args.fail_before_publish:

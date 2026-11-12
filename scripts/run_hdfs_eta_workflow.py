@@ -35,7 +35,14 @@ def main():
             print(result.stdout,flush=True)
             if result.returncode:
                 raise RuntimeError(result.stderr)
-        process=['docker','compose','-f',str(ROOT/'docker-compose.hdfs.yml'),'exec','-T','spark-master','/opt/spark/bin/spark-submit','--master','spark://spark-master:7077','--conf','spark.cores.max=2','--conf','spark.executor.cores=1','--conf','spark.executor.memory=512m','--conf','spark.executorEnv.PYTHONPATH=/workspace','/workspace/scripts/hdfs_build_history_snapshot.py','--reference',window['reference']]
+        batch_ids=[]
+        for source_path in staging.glob('*/sources/'+window['revision']+'.json'):
+            metadata=json.loads(source_path.read_text(encoding='utf-8'))
+            if metadata['dataset']==window['dataset'] and metadata['path'] in window['paths']:
+                batch_ids.append(metadata['batch_id'])
+        if len(batch_ids)!=len(set(window['paths'])):
+            raise ValueError('source-window staging descriptors incomplete')
+        process=['docker','compose','-f',str(ROOT/'docker-compose.hdfs.yml'),'exec','-T','spark-master','/opt/spark/bin/spark-submit','--master','spark://spark-master:7077','--conf','spark.cores.max=2','--conf','spark.executor.cores=1','--conf','spark.executor.memory=512m','--conf','spark.executorEnv.PYTHONPATH=/workspace','/workspace/scripts/hdfs_build_history_snapshot.py','--reference',window['reference'],'--batch-id']+sorted(batch_ids)
         processed=subprocess.run(process,capture_output=True,text=True,timeout=600)
         if processed.returncode:
             raise RuntimeError(processed.stderr)

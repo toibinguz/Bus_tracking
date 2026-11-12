@@ -89,6 +89,17 @@ services:
       - ./runtime/hdfs_spool:/spool
     networks: [hdfs-private]
 
+  history-import:
+    profiles: ["import"]
+    build:
+      context: infra
+      dockerfile: spark/Dockerfile
+    command: ["python3", "/workspace/scripts/hdfs_import_history.py", "upload", "--help"]
+    volumes:
+      - .:/workspace:ro
+      - ./runtime/hf_full_history:/import
+    networks: [hdfs-private]
+
   eta-artifacts:
     profiles: ["eta"]
     build:
