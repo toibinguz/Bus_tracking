@@ -35,7 +35,7 @@ write `not measured in this revision`.
 | Temporal split | `data/splits/train_test_split_v1.json` | exact train/test dates and counts read from each feature parquet | versioned split exists; counts must be recomputed |
 | ETA models 0–6 | `eta_model_trainer.py`, model JSON and `eta_xgb_metadata_and_calibrator*.json` | model tag/hash; feature count; MAE, RMSE, MedAE, P90, MAPE, R2, <=1/2/3-min accuracy by horizon; per-route table | artifact `*_r3_big.json` contains 3,704,820 test rows; it is evidence only after its artifact hash is recorded |
 | ETA serving/demo | `step_3_4_*`, `step_3_5_web_demo`; request/response log | exact endpoint, timestamp, selected route, response fields/latency | do not infer from source alone |
-| HDFS baseline | SPEC-30 evidence/runbook; Compose and command logs | 2 DataNodes, RF=2, `fsck`, single-DataNode read, WebHDFS Bronze receipt/hash | demonstrated; retain raw logs before report claim |
+| HDFS baseline | HDFS_DEMO_RUNBOOK.md, HDFS_P1_RECOVERY_ADDENDUM.md and docs/evidence/hdfs_p1; Compose and command logs | 2 DataNodes, RF=2, `fsck`, single-DataNode read, WebHDFS Bronze receipt/hash | demonstrated; retain raw logs before report claim |
 | HDFS/Spark historical path | HDFS specs 25–30 and actual job/API logs | Spark input URI, Silver/Gold output counts, independent aggregate parity, failure/retry logs | **not complete**; report only as planned/in progress |
 
 ## 3. Mandatory numeric tables and the allowed null value

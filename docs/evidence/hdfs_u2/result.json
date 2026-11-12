@@ -1,0 +1,25 @@
+{
+  "actual_outage": {
+    "exit_code": 1,
+    "seconds": 0.7107200999998895
+  },
+  "before_receipt": {
+    "exit_code": 1,
+    "seconds": 36.939488600000914
+  },
+  "recovered": {
+    "exit_code": 0,
+    "seconds": 66.38169639999978
+  },
+  "repeated": {
+    "exit_code": 0,
+    "seconds": 67.25431340000068
+  },
+  "batch_ids": [
+    "9a369ce3ed0e6c6203a71f3d8752c4c7854d69931cdc975082de3a7edbc58781",
+    "d31126bc150d10c2f4c45504ce5fd15583df641dc5d070cd126fe9ea62285e6b"
+  ],
+  "staging_preserved_during_outage": true,
+  "all_remote_bytes_verified_by_receiver": true,
+  "receipts": 2
+}

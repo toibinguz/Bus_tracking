@@ -1,0 +1,63 @@
+{
+  "schema_version": "history-snapshot.v1",
+  "batches": [
+    [
+      "9a369ce3ed0e6c6203a71f3d8752c4c7854d69931cdc975082de3a7edbc58781",
+      "9529bff97b7b455ee3b8cc052b37363fb018c2cbb05a1abf90534fd740421e8d"
+    ],
+    [
+      "d31126bc150d10c2f4c45504ce5fd15583df641dc5d070cd126fe9ea62285e6b",
+      "fc0d7ee1b9eca673ef4d02cd22a2f8c00ac2400b6079f479d1354728d5f8766e"
+    ]
+  ],
+  "reference_sha256": "7e1664bb57315eb23875421de7d3b7de7b9982e0fe6cfd6d04037729df24a2aa",
+  "code_sha256": "d1d7ed75a72096c2b3690aec4521c023a8f83570782ac1dd9edf59246cb8bab2",
+  "policy": {
+    "MAX_CORRIDOR_CROSS_TRACK_M": 35,
+    "MAX_GPS_BACKWARD_JITTER_M": 20,
+    "FRENET_MIN_FORWARD_WINDOW_M": 1500,
+    "FRENET_MAX_SPEED_MPS": 22.22222222222222,
+    "GPS_DRIFT_MAX_SPEED_KMPH": 80,
+    "STALE_DELTA_T_MAX_SEC": 300,
+    "TERMINAL_RESET_ZONE_M": 800,
+    "METERS_PER_DEG_LON_EQUATOR": 111320,
+    "METERS_PER_DEG_LAT": 110540
+  },
+  "snapshot_id": "a2dc50ad61ac39d1ecfa92ad99ed37dee917eb7b85f996262c2c7dcce6226082",
+  "silver_path": "hdfs://namenode:8020/bus-eta/v1/silver/history/_runs/snapshot=a2dc50ad61ac39d1ecfa92ad99ed37dee917eb7b85f996262c2c7dcce6226082/attempt=680ee031-99dd-4663-a6d9-4f371a5ef927/route_projected_telemetry",
+  "snapshot_path": "hdfs://namenode:8020/bus-eta/v1/silver/history/_runs/snapshot=a2dc50ad61ac39d1ecfa92ad99ed37dee917eb7b85f996262c2c7dcce6226082/attempt=680ee031-99dd-4663-a6d9-4f371a5ef927",
+  "reference_path": "hdfs://namenode:8020/bus-eta/v1/reference/history/sha256=7e1664bb57315eb23875421de7d3b7de7b9982e0fe6cfd6d04037729df24a2aa/reference.json",
+  "source_manifests": [
+    {
+      "batch_id": "9a369ce3ed0e6c6203a71f3d8752c4c7854d69931cdc975082de3a7edbc58781",
+      "bytes": 186839,
+      "category": "incidents",
+      "content_sha256": "9529bff97b7b455ee3b8cc052b37363fb018c2cbb05a1abf90534fd740421e8d",
+      "dataset": "Toibinguz/hust-bus-data",
+      "hdfs_raw_path": "/bus-eta/v1/bronze/hf_raw/category=incidents/sha256=9529bff97b7b455ee3b8cc052b37363fb018c2cbb05a1abf90534fd740421e8d/batch.jsonl",
+      "path": "raw_data/2026-11-12/incidents/batch_161350.jsonl",
+      "received_at_utc": "2026-11-12T09:32:25.876397+00:00",
+      "revision": "f2e7378002113cb548e194f2e8bd11c97a1b94d9",
+      "schema_version": "hf-batch.v1"
+    },
+    {
+      "batch_id": "d31126bc150d10c2f4c45504ce5fd15583df641dc5d070cd126fe9ea62285e6b",
+      "bytes": 1990612,
+      "category": "bus",
+      "content_sha256": "fc0d7ee1b9eca673ef4d02cd22a2f8c00ac2400b6079f479d1354728d5f8766e",
+      "dataset": "Toibinguz/hust-bus-data",
+      "hdfs_raw_path": "/bus-eta/v1/bronze/hf_raw/category=bus/sha256=fc0d7ee1b9eca673ef4d02cd22a2f8c00ac2400b6079f479d1354728d5f8766e/batch.jsonl",
+      "path": "raw_data/2026-11-12/bus/batch_161350.jsonl",
+      "received_at_utc": "2026-11-12T09:33:37.491663+00:00",
+      "revision": "f2e7378002113cb548e194f2e8bd11c97a1b94d9",
+      "schema_version": "hf-batch.v1"
+    }
+  ],
+  "accepted_bus_rows": 3324,
+  "raw_bus_rows": 5110,
+  "unique_bus_events": 4145,
+  "duplicate_bus_observations": 860,
+  "rejected_rows": 926,
+  "incident_observations": 192,
+  "published_at": "2026-11-12T09:45:43.901175+00:00"
+}

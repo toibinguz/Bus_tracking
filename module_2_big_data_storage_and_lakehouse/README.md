@@ -1,7 +1,9 @@
 # MODULE 2: LƯU TRỮ VÀ XỬ LÝ DỮ LIỆU LỚN (BIG DATA STORAGE & MEDALLION LAKEHOUSE)
+> **Unified storage roadmap:** [SPEC-44](../docs/specs/44_UNIFIED_STORAGE_ARCHITECTURE_AND_EXECUTION_PLAN.md) defines GA/HF raw capture → HDFS history/Spark → ETA data, while retaining SQLite/local Parquet for serving and offline development. U1–U3 have bounded verification; U4–U6 remain incomplete. See the roadmap for exact scope.
+>
 > **Status note (2026-11-10):** Step 2.3 currently contains only its package marker; it is not a PyArrow/DuckDB query engine. Lakehouse row counts below are dated data snapshots.
 > **Phần 2 - Dự án**: Hanoi Bus Big Data & Real-time ETA Prediction System  
-> **Đặc tả cấu trúc**: [docs/02_CANONICAL_DATA_DIRECTORY_SPECIFICATION.md](../docs/02_CANONICAL_DATA_DIRECTORY_SPECIFICATION.md)
+> **HDFS — cách chạy và bằng chứng**: [Chỉ mục HDFS](../docs/HDFS_README.md)
 
 ---
 

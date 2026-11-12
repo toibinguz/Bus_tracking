@@ -1,0 +1,16 @@
+{
+    "route_code":  "08A",
+    "date_from":  "2026-11-12",
+    "date_to":  "2026-11-12",
+    "rows":  [
+                 {
+                     "dt":  "2026-11-12",
+                     "ping_count":  140,
+                     "speed_sample_count":  127,
+                     "avg_speed_kmh":  14.127165354330712
+                 }
+             ],
+    "storage":  "hdfs-silver",
+    "provenance":  "observed",
+    "snapshot_id":  "f02a3bbf522eadf3bae1347ba63f0e50fcf54bf1c806e43dedb4c7e16223b57f"
+}

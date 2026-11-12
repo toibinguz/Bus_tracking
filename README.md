@@ -1,5 +1,9 @@
 # Hanoi Bus Big Data & Real-Time ETA Prediction System
 
+> **Kế hoạch lưu trữ thống nhất:** [SPEC-44](docs/specs/44_UNIFIED_STORAGE_ARCHITECTURE_AND_EXECUTION_PLAN.md) xác định vai trò GitHub Actions/Hugging Face, HDFS/Spark và SQLite/local Parquet; liệt kê module ảnh hưởng, thứ tự U1–U6 và tiêu chí nghiệm thu. Đây là kiến trúc đích, không phải tuyên bố mọi giai đoạn đã triển khai.
+>
+> [Chỉ mục HDFS: trạng thái, cách chạy và bằng chứng](docs/HDFS_README.md).
+
 ## 1. Giới thiệu dự án
 
 Dự án xây dựng pipeline tích hợp cho bài toán theo dõi và ước lượng thời gian đến trạm (ETA) của mạng lưới xe buýt Hà Nội dựa trên dữ liệu viễn trắc (telemetry):
