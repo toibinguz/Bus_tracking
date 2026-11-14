@@ -5,7 +5,7 @@
     "start": "05:00",
     "end": "22:00"
   },
-  "total_vehicles": 752,
+  "total_vehicles": 767,
   "target_route_ids": [
     101103,
     27,
@@ -2317,13 +2317,6 @@
       "description": "Tuyến E02: Hào Nam - Khu đô thị Ocean Park"
     },
     {
-      "id": 8827175,
-      "busId": "29F02931",
-      "routeId": 861,
-      "title": "29F-029.31",
-      "description": "Tuyến 61: Dục Tú (Đông Anh) - Công viên Cầu Giấy"
-    },
-    {
       "id": 7026081,
       "busId": "29F05193",
       "routeId": 101111,
@@ -2448,13 +2441,6 @@
       "routeId": 4107,
       "title": "29B-203.90",
       "description": "Tuyến 107: Kim Mã -  Làng văn hóa du lịch các dân tộc Việt Nam"
-    },
-    {
-      "id": 7609825,
-      "busId": "29B20747",
-      "routeId": 439,
-      "title": "29B-207.47",
-      "description": "Tuyến 39: Công viên Nghĩa Đô - Mai Động"
     },
     {
       "id": 8823220,
@@ -2751,13 +2737,6 @@
       "description": "Tuyến E10: Khu đô thị Ocean Park – Nội Bài"
     },
     {
-      "id": 1151790,
-      "busId": "29F02660",
-      "routeId": 101109,
-      "title": "29F-026.60",
-      "description": "Tuyến E04: Khu đô thị Smart City - Vincom Long Biên"
-    },
-    {
       "id": 7026084,
       "busId": "29F02685",
       "routeId": 101111,
@@ -3021,11 +3000,6 @@
       "routeId": 101105
     },
     {
-      "id": 7106513,
-      "title": "29F-024.56",
-      "routeId": 101105
-    },
-    {
       "id": 8832892,
       "title": "29F-026.48",
       "routeId": 101105
@@ -3198,11 +3172,6 @@
     {
       "id": 1151783,
       "title": "29F-019.34",
-      "routeId": 101102
-    },
-    {
-      "id": 7763775,
-      "title": "29F-024.56",
       "routeId": 101102
     },
     {
@@ -3866,11 +3835,6 @@
       "routeId": 13009
     },
     {
-      "id": 8831309,
-      "title": "29E-760.37",
-      "routeId": 11
-    },
-    {
       "id": 8836966,
       "title": "29E-957.76",
       "routeId": 28
@@ -3943,11 +3907,6 @@
     {
       "id": 8830388,
       "title": "29B-149.24",
-      "routeId": 17
-    },
-    {
-      "id": 8837055,
-      "title": "29E-957.61",
       "routeId": 17
     },
     {
@@ -4099,16 +4058,6 @@
       "id": 8824596,
       "title": "29B-516.72",
       "routeId": 35
-    },
-    {
-      "id": 7919011,
-      "title": "29B-187.73",
-      "routeId": 99
-    },
-    {
-      "id": 8316845,
-      "title": "29B-417.89",
-      "routeId": 856
     },
     {
       "id": 7026241,
@@ -4399,7 +4348,127 @@
       "id": 7210971,
       "title": "29B-515.80",
       "routeId": 42
+    },
+    {
+      "id": 8837142,
+      "title": "29B-059.04",
+      "routeId": 27
+    },
+    {
+      "id": 8837136,
+      "title": "29B-027.43",
+      "routeId": 27
+    },
+    {
+      "id": 8703796,
+      "title": "29B-419.41",
+      "routeId": 27
+    },
+    {
+      "id": 8837144,
+      "title": "29E-864.03",
+      "routeId": 27
+    },
+    {
+      "id": 8837151,
+      "title": "29F-078.74",
+      "routeId": 27
+    },
+    {
+      "id": 8837148,
+      "title": "29F-078.48",
+      "routeId": 27
+    },
+    {
+      "id": 8837150,
+      "title": "29F-078.70",
+      "routeId": 27
+    },
+    {
+      "id": 8837149,
+      "title": "29F-078.57",
+      "routeId": 27
+    },
+    {
+      "id": 232476,
+      "title": "29B-415.21",
+      "routeId": 27
+    },
+    {
+      "id": 8837145,
+      "title": "29E-864.44",
+      "routeId": 27
+    },
+    {
+      "id": 8837139,
+      "title": "29B-058.54",
+      "routeId": 27
+    },
+    {
+      "id": 8837137,
+      "title": "29B-057.06",
+      "routeId": 27
+    },
+    {
+      "id": 8835403,
+      "title": "29B-150.41",
+      "routeId": 22
+    },
+    {
+      "id": 8833656,
+      "title": "29E-559.34",
+      "routeId": 19
+    },
+    {
+      "id": 8830833,
+      "title": "29E-690.04",
+      "routeId": 426
+    },
+    {
+      "id": 8830851,
+      "title": "29E-690.55",
+      "routeId": 426
+    },
+    {
+      "id": 8830838,
+      "title": "29E-690.29",
+      "routeId": 426
+    },
+    {
+      "id": 7532018,
+      "title": "29H-937.82",
+      "routeId": 438
+    },
+    {
+      "id": 8820094,
+      "title": "29B-415.21",
+      "routeId": 35
+    },
+    {
+      "id": 7996148,
+      "title": "29B-417.02",
+      "routeId": 35
+    },
+    {
+      "id": 7602094,
+      "title": "29B-419.41",
+      "routeId": 35
+    },
+    {
+      "id": 8830786,
+      "title": "29B-122.76",
+      "routeId": 90
+    },
+    {
+      "id": 7481330,
+      "title": "29B-515.24",
+      "routeId": 42
+    },
+    {
+      "id": 7290050,
+      "title": "29B-516.03",
+      "routeId": 42
     }
   ],
-  "last_catalog_refresh": "2026-11-14 05:08:15"
+  "last_catalog_refresh": "2026-11-15 05:07:52"
 }
