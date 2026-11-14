@@ -53,3 +53,6 @@ experiments/**/*.json
 
 # Generated full-history download cache, staging and import checkpoints
 /runtime/hf_full_history/
+
+# HDFS runtime
+/runtime

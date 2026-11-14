@@ -421,11 +421,6 @@ body {
   color: var(--text-muted);
 }
 
-.focus-eta-val.arriving-now {
-  color: var(--accent-amber);
-  animation: pulse 1.5s infinite;
-}
-
 /* Vehicles Section */
 .vehicles-section {
   flex: 1;

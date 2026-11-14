@@ -27,6 +27,7 @@ from config.system_config import (
     STATION_BUFFER_ATTEN_MAX_M,
     STATION_BUFFER_ATTEN_MIN_M,
     TELEMETRY_HEARTBEAT_SEC,
+    THONG_THOANG_MAX_DELAY_SEC,
     TZ_HANOI,
 )
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.dto import (
@@ -195,10 +196,10 @@ def compute_station_eta(
     # (P6) Trạng thái giao thông.
     if v_obs_kmh < CONGESTION_SPEED_THRESHOLD_KMPH or is_delayed:
         traffic_status = "UN_TAC"
-    elif v_obs_kmh < FREEFLOW_SPEED_THRESHOLD_KMPH:
-        traffic_status = "BINH_THUONG"
-    else:
+    elif v_obs_kmh >= FREEFLOW_SPEED_THRESHOLD_KMPH and delta_delay < THONG_THOANG_MAX_DELAY_SEC:
         traffic_status = "THONG_THOANG"
+    else:
+        traffic_status = "BINH_THUONG"
 
     p10_seconds = max(0.0, min(base_rem_p10, eta_core_p50))
     p90_seconds = max(eta_core_p50, base_rem_p90 + delta_delay)

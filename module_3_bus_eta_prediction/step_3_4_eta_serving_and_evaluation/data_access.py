@@ -13,6 +13,7 @@ import os
 import sqlite3
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
+from urllib.parse import quote
 
 from config.system_config import (
     CONFIG_FILE,
@@ -125,8 +126,9 @@ class DataAccess:
     # ------------------------------------------------------------------ IO
     @contextmanager
     def _connect(self):
-        """Kết nối SQLite read-only, đóng chắc chắn trong finally."""
-        conn = sqlite3.connect(str(self._db_path))
+        """Kết nối SQLite chỉ đọc (URI ?mode=ro), đóng chắc chắn trong finally."""
+        uri = "file:" + quote(self._db_path.replace("\\", "/"), safe="/:") + "?mode=ro"
+        conn = sqlite3.connect(uri, uri=True)
         try:
             yield conn
         finally:
