@@ -21,6 +21,15 @@ TIMBUS_DB = ROOT / "experiments/timbus/timbus_hanoi.sqlite"
 AUDIT_PATH = ROOT / "experiments/timbus/data/timbus_full_audit_176.json"
 RECOV_PATH = ROOT / "experiments/timbus/data/timbus_recovered_tail_anchors.json"
 
+RESCUED_EXTRA: Dict[Tuple[str, int], Tuple[int, Optional[int], str, str, int]] = {
+    ("40", 1): (1735, 1178, "rj_last", "40CT", 2),
+    ("40CT", 1): (1735, 1178, "rj_last", "40CT", 2),
+    ("66", 1): (5302, None, "bm_penult", "66", 1),
+    ("87", 1): (2060, 2059, "rj_last", "87", 1),
+    ("02TC", 0): (1667, 606, "rj_last", "02", 2),
+    ("02TC", 1): (1750, 1470, "rj_last", "02", 2),
+}
+
 
 def resolve_pair_anchors(
     row: Dict[str, Any], recov_item: Optional[Dict[str, Any]]
@@ -59,6 +68,47 @@ def resolve_pair_anchors(
     return 0, "TIMBUS_EMPTY_CONFIRMED", None, None, None, None, 0
 
 
+def _write_anchor_table(
+    con: sqlite3.Connection, table_name: str, rows: List[Tuple[Any, ...]]
+) -> None:
+    """Ghi bảng khóa anchor vào SQLite (không trùng lặp logic tạo/nạp)."""
+    con.execute(f"DROP TABLE IF EXISTS {table_name}")
+    con.execute(
+        f"""
+        CREATE TABLE {table_name} (
+            route_id INTEGER NOT NULL,
+            route_code TEXT NOT NULL,
+            direction INTEGER NOT NULL,
+            direction_str TEXT NOT NULL,
+            timbus_enabled INTEGER NOT NULL,
+            audit_status TEXT NOT NULL,
+            primary_anchor_sid INTEGER,
+            backup_anchor_sid INTEGER,
+            anchor_source TEXT,
+            rj_code TEXT,
+            verified_tb_route TEXT,
+            verified_hits INTEGER DEFAULT 0,
+            audited_at TEXT NOT NULL,
+            PRIMARY KEY (route_id, direction)
+        )
+        """
+    )
+    con.executemany(
+        f"""
+        INSERT INTO {table_name} (
+            route_id, route_code, direction, direction_str,
+            timbus_enabled, audit_status, primary_anchor_sid, backup_anchor_sid,
+            anchor_source, rj_code, verified_tb_route, verified_hits, audited_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        rows,
+    )
+    con.execute(
+        f"CREATE INDEX IF NOT EXISTS idx_{table_name}_enabled "
+        f"ON {table_name} (timbus_enabled, route_id, direction)"
+    )
+
+
 def main() -> None:
     audit = json.loads(AUDIT_PATH.read_text(encoding="utf-8"))
     recov = json.loads(RECOV_PATH.read_text(encoding="utf-8"))
@@ -67,7 +117,8 @@ def main() -> None:
     }
 
     audited_at = str(audit["summary"]["audited_at"])
-    rows_to_insert: List[Tuple[Any, ...]] = []
+    resolved_rows: List[List[Any]] = []
+    enabled_dirs_by_route: Dict[str, set] = {}
 
     for r in audit["results"]:
         rid = int(r["route_id"])
@@ -75,55 +126,40 @@ def main() -> None:
         d = int(r["direction"])
         d_str = "go" if d == 0 else "re"
         enabled, st, pri, bak, src, tb_route, hits = resolve_pair_anchors(r, recov_map.get((rid, d)))
-        rows_to_insert.append(
-            (rid, rcode, d, d_str, enabled, st, pri, bak, src, r.get("rj_code"), tb_route, hits, audited_at)
+        if not enabled and (rcode, d) in RESCUED_EXTRA:
+            pri, bak, src, tb_route, hits = RESCUED_EXTRA[(rcode, d)]
+            enabled = 1
+            st = "LIVE_VERIFIED"
+        if enabled:
+            enabled_dirs_by_route.setdefault(rcode, set()).add(d)
+        resolved_rows.append(
+            [rid, rcode, d, d_str, enabled, st, pri, bak, src, r.get("rj_code"), tb_route, hits, audited_at]
         )
+
+    # Quy tắc 2 chiều sạch: tuyến nào không đủ cả 2 chiều bật TimBus thì khóa toàn tuyến về BusMap-only
+    rows_to_insert: List[Tuple[Any, ...]] = []
+    for row in resolved_rows:
+        rcode = row[1]
+        if enabled_dirs_by_route.get(rcode) != {0, 1}:
+            row[4] = 0
+            row[5] = "IGNORED_BUSMAP_ONLY"
+            row[6] = None
+            row[7] = None
+        rows_to_insert.append(tuple(row))
 
     con = sqlite3.connect(str(TIMBUS_DB))
     try:
-        con.execute("DROP TABLE IF EXISTS timbus_verified_anchors")
-        con.execute(
-            """
-            CREATE TABLE timbus_verified_anchors (
-                route_id INTEGER NOT NULL,
-                route_code TEXT NOT NULL,
-                direction INTEGER NOT NULL,
-                direction_str TEXT NOT NULL,
-                timbus_enabled INTEGER NOT NULL,
-                audit_status TEXT NOT NULL,
-                primary_anchor_sid INTEGER,
-                backup_anchor_sid INTEGER,
-                anchor_source TEXT,
-                rj_code TEXT,
-                verified_tb_route TEXT,
-                verified_hits INTEGER DEFAULT 0,
-                audited_at TEXT NOT NULL,
-                PRIMARY KEY (route_id, direction)
-            )
-            """
-        )
-        con.executemany(
-            """
-            INSERT INTO timbus_verified_anchors (
-                route_id, route_code, direction, direction_str,
-                timbus_enabled, audit_status, primary_anchor_sid, backup_anchor_sid,
-                anchor_source, rj_code, verified_tb_route, verified_hits, audited_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            rows_to_insert,
-        )
-        con.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tva_enabled ON timbus_verified_anchors (timbus_enabled, route_id, direction)"
-        )
+        _write_anchor_table(con, "timbus_route_anchors", rows_to_insert)
+        _write_anchor_table(con, "timbus_verified_anchors", rows_to_insert)
         con.commit()
 
         stats = con.execute(
-            "SELECT audit_status, timbus_enabled, COUNT(*) FROM timbus_verified_anchors GROUP BY audit_status, timbus_enabled"
+            "SELECT audit_status, timbus_enabled, COUNT(*) FROM timbus_route_anchors GROUP BY audit_status, timbus_enabled"
         ).fetchall()
         routes_enabled = con.execute(
-            "SELECT COUNT(DISTINCT route_code) FROM timbus_verified_anchors WHERE timbus_enabled = 1"
+            "SELECT COUNT(DISTINCT route_code) FROM timbus_route_anchors WHERE timbus_enabled = 1"
         ).fetchone()[0]
-        print("Locked into timbus_hanoi.sqlite -> timbus_verified_anchors:")
+        print("Locked into timbus_hanoi.sqlite -> timbus_route_anchors & timbus_verified_anchors:")
         for st, en, cnt in stats:
             print(f"  {st} (enabled={en}): {cnt} pairs")
         print(f"Total distinct enabled routes: {routes_enabled}")

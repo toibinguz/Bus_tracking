@@ -187,11 +187,15 @@ def compute_station_eta(
     )
     delta_buffer = max(0.0, min(MAX_SAFE_BUFFER_CEILING_SEC, raw_buffer))
 
-    conservative_eta = eta_core_p50 + delta_buffer
+    eta_core = max(0.0, float(eta_core_p50))
+    optimistic_eta = max(0.0, eta_core - delta_buffer)
+    conservative_eta = eta_core + delta_buffer
 
-    # (P10) Lượng tử hóa phút nguyên.
-    display_min = int(math.ceil(conservative_eta / 60.0))
+    # (P10) Lượng tử hóa phút nguyên theo P50/eta_core (bỏ +delta_buffer) và ước tính lạc quan (P50 - delta_buffer).
+    display_min = int(math.ceil(eta_core / 60.0))
     display_text = _quantized_text(display_min)
+    opt_min = max(0, int(math.ceil(optimistic_eta / 60.0)))
+    opt_text = _quantized_text(opt_min)
 
     # (P6) Trạng thái giao thông.
     if v_obs_kmh < CONGESTION_SPEED_THRESHOLD_KMPH or is_delayed:
@@ -201,38 +205,52 @@ def compute_station_eta(
     else:
         traffic_status = "BINH_THUONG"
 
-    p10_seconds = max(0.0, min(base_rem_p10, eta_core_p50))
-    p90_seconds = max(eta_core_p50, base_rem_p90 + delta_delay)
+    p10_seconds = max(0.0, min(base_rem_p10, eta_core))
+    p90_seconds = max(eta_core, base_rem_p90 + delta_delay)
+    opt_arrival_time = _format_hms(now_epoch + optimistic_eta)
 
     safe_window = SafeWindowDTO(
         p10_seconds=round(p10_seconds, 1),
-        p50_seconds=round(eta_core_p50, 1),
+        p50_seconds=round(eta_core, 1),
         p90_seconds=round(p90_seconds, 1),
         p10_minutes=max(0, int(math.ceil(p10_seconds / 60.0))),
         p90_minutes=max(0, int(math.ceil(p90_seconds / 60.0))),
         conservative_eta_seconds=round(conservative_eta, 1),
         buffer_seconds=round(delta_buffer, 1),
         display_eta_minutes=display_min,
+        optimistic_eta_seconds=round(optimistic_eta, 1),
+        optimistic_minutes=opt_min,
+        optimistic_display_text=opt_text,
+        optimistic_arrival_time=opt_arrival_time,
         is_delayed=is_delayed,
         delay_seconds=round(delta_delay, 1),
-        recommended_arrival_time=_format_hms(now_epoch + base_rem_p10),
+        recommended_arrival_time=opt_arrival_time,
     )
+
+    arrival_epoch = round(now_epoch + eta_core, 1)
 
     return ApproachingBusDTO(
         vehicle_id=v.id,
         plate=v.plate,
         distance_to_station_m=round(d_station, 1),
         stops_remaining=stops_rem,
-        eta_seconds=round(conservative_eta, 1),
+        eta_seconds=round(eta_core, 1),
         eta_minutes=display_min,
-        eta_minutes_precise=round(conservative_eta / 60.0, 1),
+        eta_minutes_precise=round(eta_core / 60.0, 1),
         display_eta_minutes=display_min,
         display_text=display_text,
+        optimistic_eta_seconds=round(optimistic_eta, 1),
+        optimistic_display_text=opt_text,
+        optimistic_arrival_time=opt_arrival_time,
         prediction_source=prediction_source,
         safe_window=safe_window,
         speed_kmh=round(v_obs_kmh, 1),
         traffic_status=traffic_status,
         ping_time=bus_state.ping_time,
         ping_age_seconds=round(bus_state.delta_t_age, 1),
-        arrival_time_epoch=round(now_epoch + conservative_eta, 1),
+        arrival_time_epoch=arrival_epoch,
+        estimated_arrival_time=_format_hms(arrival_epoch),
+        telemetry_source=v.telemetry_source,
+        raw_speed_kmh=v.raw_speed_kmh,
+        speed_window_sec=v.speed_window_sec,
     )

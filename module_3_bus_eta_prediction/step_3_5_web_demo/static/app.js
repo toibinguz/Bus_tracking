@@ -8,6 +8,7 @@
 
   // Constants
   const POLL_INTERVAL_MS = 15000;
+  const TIMBUS_POLL_MS = 5000;
   const HANOI_COORDS = [21.0285, 105.8542];
   const DEFAULT_ZOOM = 13;
   const DEFAULT_ROUTE_NO = '27';
@@ -17,10 +18,12 @@
   // State
   let currentRouteId = null;
   let currentDirection = 0; // 0: Chiều đi, 1: Chiều về
+  let activePollIntervalMs = POLL_INTERVAL_MS;
   let countdownSeconds = 15;
   let pollTimer = null;
   let countdownTimer = null;
   let isPolling = false;
+  let latestLiveVehicles = [];
 
   // Active markers map: vehicleId -> Leaflet Marker
   const activeMarkers = new Map();
@@ -63,6 +66,7 @@
   let latestPopupEtaData = null;
   let latestPopupStationOrder = null;
   let latestPopupContainer = null;
+  let latestPopupStationRef = null;
 
   // Initialize Leaflet Map
   const map = L.map('map', {
@@ -97,6 +101,14 @@
   // Khởi tạo nhóm lớp trạm dừng
   stationsLayerGroup = L.layerGroup().addTo(map);
 
+  map.on('popupclose', () => {
+    latestPopupStationRef = null;
+    latestPopupStationOrder = null;
+    latestPopupContainer = null;
+    latestPopupEtaData = null;
+    syncStationFastPolling(latestPinnedEtaData);
+  });
+
   /**
    * Tạo HTML Icon xe buýt kèm góc xoay SVG
    */
@@ -112,12 +124,91 @@
   }
 
   /**
-   * Xây dựng nội dung Popup hiển thị thông tin xe
+   * Các helper định dạng hiển thị 1 thông tin / 1 dòng & thời điểm đến (time now + ETA)
+   */
+  function formatTelemetryLabel(bus) {
+    return bus && bus.telemetry_source === 'timbus' ? 'TIMBUS 5s' : 'BUSMAP 15s';
+  }
+
+  function formatRemainingDuration(secVal) {
+    const s = Math.max(0, Math.round(Number(secVal || 0)));
+    if (s < 60) return `${s} giây`;
+    const mins = Math.floor(s / 60);
+    const rem = s % 60;
+    return rem > 0 ? `${mins} phút ${rem}s` : `${mins} phút`;
+  }
+
+  function formatEpochClock(epochMs) {
+    if (isNaN(epochMs)) return '--:--:--';
+    const d = new Date(epochMs);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  function formatEstimatedArrival(bus) {
+    if (bus && bus.estimated_arrival_time) {
+      return bus.estimated_arrival_time;
+    }
+    let epochMs = NaN;
+    if (bus && typeof bus.arrival_time_epoch === 'number') {
+      epochMs = bus.arrival_time_epoch * 1000;
+    } else if (bus && typeof bus.eta_seconds === 'number') {
+      epochMs = Date.now() + bus.eta_seconds * 1000;
+    }
+    return formatEpochClock(epochMs);
+  }
+
+  function getOptimisticSeconds(bus) {
+    if (bus && typeof bus.optimistic_eta_seconds === 'number') {
+      return bus.optimistic_eta_seconds;
+    }
+    if (bus && bus.safe_window && typeof bus.safe_window.optimistic_eta_seconds === 'number') {
+      return bus.safe_window.optimistic_eta_seconds;
+    }
+    const p50 = Number((bus && bus.eta_seconds) || 0);
+    const buf = Number((bus && bus.safe_window && bus.safe_window.buffer_seconds) || 0);
+    return Math.max(0, p50 - buf);
+  }
+
+  function formatOptimisticArrival(bus) {
+    if (bus && bus.optimistic_arrival_time) {
+      return bus.optimistic_arrival_time;
+    }
+    if (bus && bus.safe_window && bus.safe_window.optimistic_arrival_time) {
+      return bus.safe_window.optimistic_arrival_time;
+    }
+    const optSec = getOptimisticSeconds(bus);
+    return formatEpochClock(Date.now() + optSec * 1000);
+  }
+
+  function formatTrafficMeta(status) {
+    if (status === 'THONG_THOANG') return { label: 'Thông thoáng', cls: 'traffic-ok' };
+    if (status === 'UN_TAC') return { label: 'Ùn tắc', cls: 'traffic-jam' };
+    return { label: 'Bình thường', cls: 'traffic-normal' };
+  }
+
+  function formatDistanceText(distM) {
+    const m = Math.round(Number(distM || 0));
+    if (m >= 1000) return `${(m / 1000).toFixed(2)} km (${m} m)`;
+    return `${m} m`;
+  }
+
+  function renderKvRowsHtml(rows, dividerBeforeIndex = -1) {
+    return rows.map((r, idx) => {
+      const dividerCls = (dividerBeforeIndex >= 0 && idx === dividerBeforeIndex) ? ' kv-debug-divider' : '';
+      const valCls = r.valClass ? ` ${r.valClass}` : '';
+      const idAttr = r.valId ? ` id="${escapeHtml(r.valId)}"` : '';
+      return `<div class="kv-row${dividerCls}"><span class="kv-label">${escapeHtml(r.label)}</span><span class="kv-val${valCls}"${idAttr}>${r.valHtml}</span></div>`;
+    }).join('');
+  }
+
+  /**
+   * Xây dựng nội dung Popup hiển thị thông tin xe (mỗi thông tin 1 dòng)
    */
   function buildPopupContent(vehicle) {
     const speed = (typeof vehicle.speed_kmh === 'number') ? vehicle.speed_kmh.toFixed(1) : '0.0';
     const timeFormatted = vehicle.updated_at ? vehicle.updated_at.replace('T', ' ').substring(11, 19) : '--:--:--';
-    const stationInfo = vehicle.next_station_id ? `Trạm kế: #${vehicle.next_station_id}` : 'Đang di chuyển';
+    const stationInfo = vehicle.next_station_id ? `Trạm #${vehicle.next_station_id}` : 'Đang di chuyển';
     let ageStr = '';
     if (vehicle.updated_at) {
       try {
@@ -129,24 +220,31 @@
       } catch (e) {}
     }
 
+    const debug = presentationMode === 'debug';
+    const rows = [
+      { label: 'Vận tốc ổn định:', valHtml: `${escapeHtml(speed)} km/h`, valClass: 'traffic-ok' },
+      { label: 'Hướng đi:', valHtml: `${Math.round(vehicle.deg || 0)}&deg;` },
+      { label: 'Trạm tiếp theo:', valHtml: escapeHtml(stationInfo) },
+      { label: 'Cập nhật GPS:', valHtml: `${escapeHtml(timeFormatted)}${escapeHtml(ageStr)}` },
+      { label: 'Tọa độ:', valHtml: `${Number(vehicle.lat).toFixed(5)}, ${Number(vehicle.lng).toFixed(5)}` }
+    ];
+    let dividerIdx = -1;
+    if (debug) {
+      dividerIdx = rows.length;
+      rows.push({ label: 'Nguồn GPS:', valHtml: escapeHtml(formatTelemetryLabel(vehicle)) });
+      if (typeof vehicle.raw_speed_kmh === 'number') {
+        const winText = (typeof vehicle.speed_window_sec === 'number') ? ` (&Delta;t=${Math.round(vehicle.speed_window_sec)}s)` : '';
+        rows.push({ label: 'Vận tốc hộp đen:', valHtml: `${escapeHtml(vehicle.raw_speed_kmh.toFixed(1))} km/h${winText}` });
+      }
+    }
+
     return `
       <div class="bus-popup">
         <div class="bus-popup-header">
           <span class="bus-popup-plate">${escapeHtml(vehicle.plate)}</span>
           <span class="bus-popup-speed">${speed} km/h</span>
         </div>
-        <div class="bus-popup-row">
-          <span>Hướng đi:</span>
-          <span>${Math.round(vehicle.deg || 0)}&deg;</span>
-        </div>
-        <div class="bus-popup-row">
-          <span>Trạm tiếp theo:</span>
-          <span>${escapeHtml(stationInfo)}</span>
-        </div>
-        <div class="bus-popup-row">
-          <span>Cập nhật GPS:</span>
-          <span>${escapeHtml(timeFormatted)}${ageStr}</span>
-        </div>
+        <div class="kv-list">${renderKvRowsHtml(rows, dividerIdx)}</div>
       </div>
     `;
   }
@@ -163,12 +261,16 @@
 
     listCounterBadge.textContent = `${vehicles.length} xe`;
     vehicleListEl.innerHTML = '';
+    const debug = presentationMode === 'debug';
 
     vehicles.forEach(v => {
       const card = document.createElement('div');
       card.className = 'vehicle-card';
       const speed = (typeof v.speed_kmh === 'number') ? v.speed_kmh.toFixed(1) : '0.0';
-      const timeStr = v.updated_at ? v.updated_at.substring(11, 19) : '';
+      const timeStr = v.updated_at ? v.updated_at.substring(11, 19) : '--:--:--';
+      const debugLine = debug
+        ? `<div class="vehicle-card-bottom"><span>Nguồn: ${escapeHtml(formatTelemetryLabel(v))}</span><span>${typeof v.raw_speed_kmh === 'number' ? `Gốc: ${v.raw_speed_kmh.toFixed(0)} km/h` : ''}</span></div>`
+        : '';
 
       card.innerHTML = `
         <div class="vehicle-card-top">
@@ -179,6 +281,7 @@
           <span>${escapeHtml(v.next_station_id ? 'Tới trạm #' + v.next_station_id : 'Trên đường')}</span>
           <span>${escapeHtml(timeStr)}</span>
         </div>
+        ${debugLine}
       `;
 
       card.addEventListener('click', () => {
@@ -338,7 +441,8 @@
         const pingEpoch = new Date(b0.ping_time).getTime() / 1000.0;
         if (!isNaN(pingEpoch)) {
           const age = Math.max(0, Math.round(nowSec - pingEpoch));
-          focusAgeEl.textContent = `GPS: ${age}s trước`;
+          const hm = escapeHtml(b0.ping_time.substring(11, 19));
+          focusAgeEl.textContent = `${age}s trước (${hm})`;
         }
       }
     }
@@ -351,7 +455,8 @@
         const pingEpoch = new Date(pb0.ping_time).getTime() / 1000.0;
         if (!isNaN(pingEpoch)) {
           const age = Math.max(0, Math.round(nowSec - pingEpoch));
-          popupAgeEl.textContent = `GPS: ${age}s trước`;
+          const hm = escapeHtml(pb0.ping_time.substring(11, 19));
+          popupAgeEl.textContent = `${age}s trước (${hm})`;
         }
       }
     }
@@ -374,6 +479,45 @@
       stationFocusCardEl.style.display = 'flex';
       if (stationEmptyGuide) stationEmptyGuide.style.display = 'none';
       updateStationFocusCard();
+    }
+  }
+
+  async function refreshOpenPopupEta() {
+    if (!latestPopupStationRef || !latestPopupContainer || !latestPopupContainer.isConnected) return;
+    const ref = latestPopupStationRef;
+    if (ref.routeId !== currentRouteId || ref.direction !== currentDirection) return;
+    try {
+      const res = await fetch(`/api/station-eta?route_id=${ref.routeId}&direction=${ref.direction}&station_order=${ref.stationOrder}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!latestPopupContainer || !latestPopupContainer.isConnected) return;
+      latestPopupEtaData = data;
+      renderStationPopupEta(latestPopupContainer, data);
+    } catch (err) {
+      console.error('[Station Popup ETA] Lỗi cập nhật ETA popup:', err);
+    }
+  }
+
+  function syncVehiclePolling(supportsFast, serverIntervalSec) {
+    const targetMs = (supportsFast || serverIntervalSec === 5) ? TIMBUS_POLL_MS : POLL_INTERVAL_MS;
+    if (targetMs !== activePollIntervalMs) {
+      activePollIntervalMs = targetMs;
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = setInterval(pollVehicles, activePollIntervalMs);
+      }
+      const targetSec = Math.floor(activePollIntervalMs / 1000);
+      if (countdownSeconds > targetSec || countdownSeconds <= 0) {
+        countdownSeconds = targetSec;
+        if (countdownEl) countdownEl.textContent = `${countdownSeconds}s`;
+      }
+    }
+  }
+
+  function syncStationFastPolling(etaData) {
+    if (!etaData) return;
+    if (etaData.timbus_supported || etaData.poll_interval_sec === 5) {
+      syncVehiclePolling(true, 5);
     }
   }
 
@@ -400,9 +544,64 @@
       if (!res.ok) return;
       const data = await res.json();
       renderStationFocusCard(data);
+      syncStationFastPolling(data);
     } catch (err) {
       console.error('[Station ETA] Lỗi cập nhật thẻ trạm ghim:', err);
     }
+  }
+
+  function buildEtaInfoRows(bus, debug, ageElementId) {
+    const p10m = bus.safe_window.p10_minutes !== undefined ? bus.safe_window.p10_minutes : Math.ceil(bus.safe_window.p10_seconds / 60.0);
+    const p90m = bus.safe_window.p90_minutes !== undefined ? bus.safe_window.p90_minutes : Math.ceil(bus.safe_window.p90_seconds / 60.0);
+    const traffic = formatTrafficMeta(bus.traffic_status);
+    const arrivalClock = formatEstimatedArrival(bus);
+    const p50Remain = formatRemainingDuration(bus.eta_seconds);
+    const optSec = getOptimisticSeconds(bus);
+    const optRemain = formatRemainingDuration(optSec);
+    const optClock = formatOptimisticArrival(bus);
+
+    const rows = [
+      {
+        label: 'Dự kiến (P50):',
+        valHtml: `${escapeHtml(p50Remain)} &bull; <span class="arrival-highlight">${escapeHtml(arrivalClock)}</span>`
+      },
+      {
+        label: 'Lạc quan (-&Delta; đệm):',
+        valHtml: `${escapeHtml(optRemain)} &bull; <span class="optimistic-highlight">${escapeHtml(optClock)}</span>`
+      },
+      { label: 'Khoảng an toàn:', valHtml: `${p10m} &ndash; ${p90m} phút` },
+      { label: 'Quãng đường còn lại:', valHtml: escapeHtml(formatDistanceText(bus.distance_to_station_m)) },
+      { label: 'Số trạm còn lại:', valHtml: `${escapeHtml(bus.stops_remaining)} trạm` },
+      { label: 'Vận tốc ổn định:', valHtml: `${Number(bus.speed_kmh || 0).toFixed(1)} km/h` },
+      { label: 'Tình trạng giao thông:', valHtml: escapeHtml(traffic.label), valClass: traffic.cls }
+    ];
+
+    let dividerIdx = -1;
+    if (debug) {
+      dividerIdx = rows.length;
+      const ageSec = typeof bus.ping_age_seconds === 'number' ? Math.round(bus.ping_age_seconds) : 0;
+      const pingHm = bus.ping_time ? bus.ping_time.substring(11, 19) : '--:--:--';
+      const rawSpd = typeof bus.raw_speed_kmh === 'number' ? bus.raw_speed_kmh.toFixed(1) : Number(bus.speed_kmh || 0).toFixed(1);
+      const winText = typeof bus.speed_window_sec === 'number' ? `${Math.round(bus.speed_window_sec)}s` : '--';
+
+      rows.push({ label: 'Nguồn GPS:', valHtml: escapeHtml(formatTelemetryLabel(bus)) });
+      rows.push({ label: 'Tuổi gói GPS:', valHtml: `${ageSec}s trước (${escapeHtml(pingHm)})`, valId: ageElementId });
+      rows.push({ label: 'Hộp đen gốc / Δt:', valHtml: `${escapeHtml(rawSpd)} km/h (&Delta;t=${escapeHtml(winText)})` });
+      rows.push({ label: 'Nguồn dự báo ETA:', valHtml: escapeHtml(bus.prediction_source) });
+      rows.push({
+        label: 'Độ trễ thực tế:',
+        valHtml: `+${bus.safe_window.delay_seconds}s (${bus.safe_window.is_delayed ? 'Cảnh báo trễ' : 'Đúng lịch'})`
+      });
+      rows.push({
+        label: 'P10 / P50 / P90:',
+        valHtml: `${bus.safe_window.p10_seconds}s / ${bus.safe_window.p50_seconds}s / ${bus.safe_window.p90_seconds}s`
+      });
+      rows.push({
+        label: 'Đệm (B) / Lạc quan / Bảo thủ:',
+        valHtml: `-${bus.safe_window.buffer_seconds}s &rarr; ${Math.round(optSec)}s | +${bus.safe_window.buffer_seconds}s &rarr; ${bus.safe_window.conservative_eta_seconds}s`
+      });
+    }
+    return { rows, dividerIdx };
   }
 
   function renderStationFocusCard(data) {
@@ -411,6 +610,7 @@
     const target = data.target_station || {};
     const stName = target.station_name || pinnedStation.stationName;
     const stOrder = target.station_order !== undefined ? target.station_order + 1 : pinnedStation.stationIndex + 1;
+    const debug = presentationMode === 'debug';
 
     if (stationEmptyGuide) {
       stationEmptyGuide.style.display = 'none';
@@ -420,45 +620,33 @@
     let bodyHtml = '';
     if (data.buses && data.buses.length > 0) {
       const b0 = data.buses[0];
-      const p10m = b0.safe_window.p10_minutes !== undefined ? b0.safe_window.p10_minutes : Math.ceil(b0.safe_window.p10_seconds / 60.0);
-      const p90m = b0.safe_window.p90_minutes !== undefined ? b0.safe_window.p90_minutes : Math.ceil(b0.safe_window.p90_seconds / 60.0);
-      const ageSec = typeof b0.ping_age_seconds === 'number' ? Math.round(b0.ping_age_seconds) : 0;
-      const speedKmh = Math.round(b0.speed_kmh);
-      const distM = Math.round(b0.distance_to_station_m);
+      const info0 = buildEtaInfoRows(b0, debug, 'focusEtaAge');
 
-      // Mini Timeline
+      // Mini Timeline (tối đa 3 xe đang tiếp cận)
       let timelineStepsHtml = '';
-      timelineStepsHtml += `
-        <div class="timeline-step">
-          <div class="timeline-dot">1</div>
-          <div class="timeline-body">
-            <div class="timeline-main-text">${escapeHtml(b0.plate)} &bull; <span id="timelineStep0Countdown">${escapeHtml(b0.display_text)}</span></div>
-            <div class="timeline-sub-text">Còn ${escapeHtml(b0.stops_remaining)} trạm${presentationMode === 'debug' ? ` (${distM}m) &bull; ${speedKmh} km/h` : ''}</div>
-          </div>
-        </div>
-      `;
-
-      if (data.buses.length >= 2) {
-        const b1 = data.buses[1];
-        const speedKmh1 = Math.round(b1.speed_kmh);
-        const distM1 = Math.round(b1.distance_to_station_m);
-
+      data.buses.slice(0, 3).forEach((bx, idx) => {
+        const arrBx = formatEstimatedArrival(bx);
+        const optBx = formatOptimisticArrival(bx);
+        const optRemBx = formatRemainingDuration(getOptimisticSeconds(bx));
+        const speedBx = Number(bx.speed_kmh || 0).toFixed(1);
+        const distBx = formatDistanceText(bx.distance_to_station_m);
         timelineStepsHtml += `
           <div class="timeline-step">
-            <div class="timeline-dot">2</div>
+            <div class="timeline-dot">${idx + 1}</div>
             <div class="timeline-body">
-              <div class="timeline-main-text">${escapeHtml(b1.plate)} &bull; <span id="timelineStep1Countdown">${escapeHtml(b1.display_text)}</span></div>
-              <div class="timeline-sub-text">Còn ${escapeHtml(b1.stops_remaining)} trạm${presentationMode === 'debug' ? ` (${distM1}m) &bull; ${speedKmh1} km/h` : ''}</div>
+              <div class="timeline-main-text">${escapeHtml(bx.plate)} &bull; <span id="timelineStep${idx}Countdown">${escapeHtml(bx.display_text)}</span></div>
+              <div class="timeline-sub-text">Dự kiến (P50): <strong style="color:#fbbf24;">${escapeHtml(arrBx)}</strong> &bull; Lạc quan: <strong class="optimistic-highlight">${escapeHtml(optRemBx)} (${escapeHtml(optBx)})</strong></div>
+              <div class="timeline-sub-text">Còn ${escapeHtml(bx.stops_remaining)} trạm &bull; ${escapeHtml(distBx)} &bull; ${escapeHtml(speedBx)} km/h${debug ? ` &bull; ${escapeHtml(formatTelemetryLabel(bx))}` : ''}</div>
             </div>
           </div>
         `;
-      }
+      });
 
       timelineStepsHtml += `
         <div class="timeline-step">
           <div class="timeline-dot dest-dot">🚏</div>
           <div class="timeline-body">
-          <div class="timeline-main-text">[#${escapeHtml(stOrder)}] ${escapeHtml(stName)}</div>
+            <div class="timeline-main-text">[#${escapeHtml(stOrder)}] ${escapeHtml(stName)}</div>
             <div class="timeline-sub-text">Trạm dừng theo dõi</div>
           </div>
         </div>
@@ -470,14 +658,7 @@
             <span class="focus-eta-plate">${escapeHtml(b0.plate)}</span>
             <span class="focus-eta-val" id="focusEtaCountdown">${escapeHtml(b0.display_text)}</span>
           </div>
-          <div class="focus-eta-sub">
-            <span>Còn ${escapeHtml(b0.stops_remaining)} trạm${presentationMode === 'debug' ? ` (${distM}m)` : ''}</span>
-            ${presentationMode === 'debug' ? `<span id="focusEtaAge">GPS: ${ageSec}s trước</span>` : ''}
-          </div>
-          ${presentationMode === 'debug' ? `<div class="focus-eta-sub">
-            <span>Cửa sổ an toàn: [${p10m} - ${p90m} phút]</span>
-            <span>Vận tốc: ${speedKmh} km/h</span>
-          </div><div class="focus-recommend">Nguồn: ${escapeHtml(b0.prediction_source)}; Traffic: ${escapeHtml(b0.traffic_status)}; Delay: ${b0.safe_window.is_delayed ? 'yes' : 'no'} (${b0.safe_window.delay_seconds}s); T50 ${b0.safe_window.p50_seconds}s; B ${b0.safe_window.buffer_seconds}s; Tc ${b0.safe_window.conservative_eta_seconds}s; M ${b0.display_eta_minutes}; Giờ khuyến nghị: ${escapeHtml(b0.safe_window.recommended_arrival_time)}</div>` : ''}
+          <div class="kv-list">${renderKvRowsHtml(info0.rows, info0.dividerIdx)}</div>
         </div>
 
         <div class="mini-timeline">
@@ -505,17 +686,47 @@
   }
 
   function renderStationPopupEta(container, data) {
+    const debug = presentationMode === 'debug';
     if (!data.buses || data.buses.length === 0) {
-      container.innerHTML = `<div class="popup-eta-loading">${escapeHtml(data.message || 'Không có dữ liệu ETA cho trạm này.')}${presentationMode === 'debug' ? '<br><small>Lý do empty state được trả bởi dịch vụ ETA.</small>' : ''}</div>`;
+      container.innerHTML = `<div class="popup-eta-loading">${escapeHtml(data.message || 'Không có dữ liệu ETA cho trạm này.')}${debug ? '<br><small>Lý do empty state được trả bởi dịch vụ ETA.</small>' : ''}</div>`;
       return;
     }
     const b0 = data.buses[0];
-    const debug = presentationMode === 'debug';
-    const nextBus = data.buses.length >= 2
-      ? `<div class="popup-next-bus">Chuyến kế tiếp: <strong>${escapeHtml(data.buses[1].plate)}</strong> &bull; ${escapeHtml(data.buses[1].display_text)}${debug ? ` (GPS: ${Math.round(data.buses[1].ping_age_seconds || 0)}s trước)` : ''}</div>`
-      : '';
-    const diagnostics = debug ? `<div class="popup-eta-details"><span>GPS: ${Math.round(b0.ping_age_seconds || 0)}s; ${Math.round(b0.distance_to_station_m)}m; ${Math.round(b0.speed_kmh)} km/h</span><span>Stops: ${escapeHtml(b0.stops_remaining)}</span></div><div class="popup-eta-details"><span>Nguồn: ${escapeHtml(b0.prediction_source)}</span><span>Traffic: ${escapeHtml(b0.traffic_status)}</span></div><div class="popup-eta-details"><span>P10/P50/P90: ${b0.safe_window.p10_seconds}/${b0.safe_window.p50_seconds}/${b0.safe_window.p90_seconds}s</span><span>T50: ${b0.safe_window.p50_seconds}s; B: ${b0.safe_window.buffer_seconds}s</span></div><div class="popup-eta-details"><span>Tc: ${b0.safe_window.conservative_eta_seconds}s; M: ${b0.display_eta_minutes}</span><span>Delay: ${b0.safe_window.is_delayed ? 'yes' : 'no'} (${b0.safe_window.delay_seconds}s)</span></div>` : '';
-    container.innerHTML = `<div class="popup-eta-box"><div class="popup-eta-header"><span class="popup-eta-badge">Xe gần nhất đang đến</span><span class="popup-eta-time" id="popupEtaCountdown">${escapeHtml(b0.display_text)}</span></div><div class="popup-eta-details"><span>Biển số: <strong>${escapeHtml(b0.plate)}</strong></span><span>Còn ${escapeHtml(b0.stops_remaining)} trạm</span></div>${diagnostics}${nextBus}</div>`;
+    const headerRows = [
+      { label: 'Biển số xe:', valHtml: `<strong>${escapeHtml(b0.plate)}</strong>` }
+    ];
+    const info0 = buildEtaInfoRows(b0, debug, 'popupEtaAge');
+    const allRows = headerRows.concat(info0.rows);
+    const divIdx = info0.dividerIdx >= 0 ? info0.dividerIdx + headerRows.length : -1;
+
+    let nextBusHtml = '';
+    if (data.buses.length >= 2) {
+      const b1 = data.buses[1];
+      const nextRows = [
+        { label: 'Chuyến kế tiếp:', valHtml: `<strong>${escapeHtml(b1.plate)}</strong> &bull; ${escapeHtml(b1.display_text)}` },
+        { label: 'Dự kiến (P50):', valHtml: `${escapeHtml(formatRemainingDuration(b1.eta_seconds))} &bull; <span class="arrival-highlight">${escapeHtml(formatEstimatedArrival(b1))}</span>` },
+        { label: 'Lạc quan (-&Delta; đệm):', valHtml: `${escapeHtml(formatRemainingDuration(getOptimisticSeconds(b1)))} &bull; <span class="optimistic-highlight">${escapeHtml(formatOptimisticArrival(b1))}</span>` },
+        { label: 'Khoảng cách & trạm:', valHtml: `Còn ${escapeHtml(b1.stops_remaining)} trạm &bull; ${escapeHtml(formatDistanceText(b1.distance_to_station_m))}` }
+      ];
+      if (debug) {
+        nextRows.push({
+          label: 'Nguồn & tuổi GPS:',
+          valHtml: `${escapeHtml(formatTelemetryLabel(b1))} (${Math.round(b1.ping_age_seconds || 0)}s trước)`
+        });
+      }
+      nextBusHtml = `<div class="popup-next-bus"><div class="kv-list">${renderKvRowsHtml(nextRows)}</div></div>`;
+    }
+
+    container.innerHTML = `
+      <div class="popup-eta-box">
+        <div class="popup-eta-header">
+          <span class="popup-eta-badge">Xe gần nhất đang đến</span>
+          <span class="popup-eta-time" id="popupEtaCountdown">${escapeHtml(b0.display_text)}</span>
+        </div>
+        <div class="kv-list">${renderKvRowsHtml(allRows, divIdx)}</div>
+        ${nextBusHtml}
+      </div>
+    `;
   }
 
   async function loadStationPopupEta(station, index, totalStations, direction) {
@@ -541,7 +752,9 @@
       latestPopupEtaData = data;
       latestPopupStationOrder = station.station_order;
       latestPopupContainer = container;
+      latestPopupStationRef = { routeId: currentRouteId, direction: direction, stationOrder: station.station_order };
       renderStationPopupEta(container, data);
+      syncStationFastPolling(data);
       return;
     } catch (err) {
       console.error('[Station Popup ETA] Lỗi nạp ETA:', err);
@@ -641,6 +854,10 @@
 
       const data = await response.json();
       const vehicles = data.vehicles || [];
+      latestLiveVehicles = vehicles;
+
+      // Tự đồng bộ chu kỳ 5s (TimBus) hoặc 15s (BusMap-only)
+      syncVehiclePolling(Boolean(data.timbus_supported), data.poll_interval_sec);
 
       // Cập nhật UI trạng thái
       vehicleCountEl.textContent = `${vehicles.length} xe hoạt động`;
@@ -649,9 +866,12 @@
       updateMarkers(vehicles);
       renderVehicleList(vehicles);
 
-      // Cập nhật trạm ghim đồng bộ với nhịp poll 15s (SPEC-08)
+      // Đồng bộ trạm ghim & popup trạm đang mở cùng nhịp poll
       if (pinnedStation && pinnedStation.routeId === currentRouteId && pinnedStation.direction === currentDirection) {
         updateStationFocusCard();
+      }
+      if (latestPopupStationRef && latestPopupContainer && latestPopupContainer.isConnected) {
+        refreshOpenPopupEta();
       }
     } catch (err) {
       console.error('[Hanoi Bus Live] Lỗi lấy dữ liệu xe trực tiếp:', err);
@@ -666,7 +886,7 @@
    * Quản lý đồng hồ đếm ngược chu kỳ làm mới
    */
   function resetCountdown() {
-    countdownSeconds = Math.floor(POLL_INTERVAL_MS / 1000);
+    countdownSeconds = Math.floor(activePollIntervalMs / 1000);
     if (countdownEl) {
       countdownEl.textContent = `${countdownSeconds}s`;
     }
@@ -684,13 +904,14 @@
   }
 
   /**
-   * Bắt đầu chu kỳ Polling định kỳ 15 giây
+   * Bắt đầu chu kỳ Polling (5s cho tuyến TimBus sạch, 15s cho tuyến BusMap-only)
    */
   function startPolling() {
     if (pollTimer) clearInterval(pollTimer);
+    activePollIntervalMs = POLL_INTERVAL_MS;
     resetCountdown();
     pollVehicles();
-    pollTimer = setInterval(pollVehicles, POLL_INTERVAL_MS);
+    pollTimer = setInterval(pollVehicles, activePollIntervalMs);
   }
 
   /**
@@ -716,6 +937,11 @@
     if (stationsLayerGroup) {
       stationsLayerGroup.clearLayers();
     }
+    latestPopupStationRef = null;
+    latestPopupStationOrder = null;
+    latestPopupContainer = null;
+    latestPopupEtaData = null;
+    syncStationFastPolling(null);
   }
 
   /**
@@ -809,6 +1035,13 @@
       presentationMode = presentationModeEl.value;
       if (latestPinnedEtaData) renderStationFocusCard(latestPinnedEtaData);
       if (latestPopupContainer && latestPopupEtaData) renderStationPopupEta(latestPopupContainer, latestPopupEtaData);
+      if (latestLiveVehicles && latestLiveVehicles.length > 0) {
+        renderVehicleList(latestLiveVehicles);
+        latestLiveVehicles.forEach(v => {
+          const m = activeMarkers.get(v.id);
+          if (m) m.setPopupContent(buildPopupContent(v));
+        });
+      }
     });
   }
 

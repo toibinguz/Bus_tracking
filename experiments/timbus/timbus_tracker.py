@@ -21,6 +21,7 @@ import urllib.parse
 import struct
 import random
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, asdict
 from typing import List, Optional, Dict, Any
 
@@ -334,25 +335,48 @@ class TimBusClient:
         if not anchors or not norm_targets:
             return results
 
+        max_workers = min(6, len(norm_targets))
         for anchor_idx, sid in enumerate(anchors):
             anchor_hits = 0
-            for p_idx, np in enumerate(norm_targets):
-                if (anchor_idx > 0 or p_idx > 0) and inter_request_delay > 0:
-                    time.sleep(inter_request_delay)
-                try:
-                    rec = cls.query_targeted_vehicle(
-                        station_id=sid,
-                        route_code=route_code,
-                        plate=np,
-                        direction=direction,
-                        timeout=timeout,
-                    )
-                    if rec is not None:
-                        results[np] = rec
-                        anchor_hits += 1
-                except Exception:
-                    # Bỏ qua ngay lỗi mạng/timeout thoáng qua để caller fallback về BusMap
-                    continue
+            if anchor_idx > 0 and inter_request_delay > 0:
+                time.sleep(inter_request_delay)
+            if max_workers <= 1:
+                for np in norm_targets:
+                    try:
+                        rec = cls.query_targeted_vehicle(
+                            station_id=sid,
+                            route_code=route_code,
+                            plate=np,
+                            direction=direction,
+                            timeout=timeout,
+                        )
+                        if rec is not None:
+                            results[np] = rec
+                            anchor_hits += 1
+                    except Exception:
+                        continue
+            else:
+                with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                    fut_map = {
+                        pool.submit(
+                            cls.query_targeted_vehicle,
+                            station_id=sid,
+                            route_code=route_code,
+                            plate=np,
+                            direction=direction,
+                            timeout=timeout,
+                        ): np
+                        for np in norm_targets
+                    }
+                    for fut in as_completed(fut_map):
+                        np = fut_map[fut]
+                        try:
+                            rec = fut.result()
+                            if rec is not None:
+                                results[np] = rec
+                                anchor_hits += 1
+                        except Exception:
+                            continue
             if anchor_hits > 0:
                 break
 

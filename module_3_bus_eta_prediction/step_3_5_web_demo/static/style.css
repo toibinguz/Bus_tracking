@@ -597,13 +597,73 @@ body {
   background-color: var(--bg-secondary) !important;
 }
 
+/* Key-Value Single-Line Info Rows */
+.kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.kv-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.kv-label {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.kv-val {
+  color: var(--text-main);
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.kv-val.arrival-highlight,
+.kv-val .arrival-highlight {
+  color: var(--accent-amber);
+  font-weight: 700;
+}
+
+.kv-val.optimistic-highlight,
+.kv-val .optimistic-highlight,
+.optimistic-highlight {
+  color: var(--accent-emerald);
+  font-weight: 700;
+}
+
+.kv-val.traffic-ok {
+  color: var(--accent-emerald);
+}
+
+.kv-val.traffic-normal {
+  color: var(--accent-blue);
+}
+
+.kv-val.traffic-jam {
+  color: var(--accent-rose);
+}
+
+.kv-debug-divider {
+  border-top: 1px dashed rgba(148, 163, 184, 0.25);
+  margin: 4px 0 2px;
+  padding-top: 4px;
+}
+
 .bus-popup {
   padding: 6px 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   font-family: inherit;
-  min-width: 170px;
+  min-width: 225px;
 }
 
 .bus-popup-header {
@@ -715,7 +775,7 @@ body {
   flex-direction: column;
   gap: 5px;
   font-family: inherit;
-  min-width: 200px;
+  min-width: 265px;
 }
 
 .station-popup-header {
