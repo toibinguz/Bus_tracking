@@ -2,11 +2,11 @@
 
 ## 1. HDFS
 
-- **1.1 Xử lý Silver toàn lịch sử:** Spark Silver chưa chạy được trên toàn bộ `6.076` batch (`5,43 GB`) ở tầng Bronze do giới hạn gom dữ liệu theo route vào RAM.
-- **1.2 Đo lường hiệu năng & dedup:** Chưa có số liệu đo RAM, thời gian chạy và tỷ lệ nhận/loại trùng trên nhiều partition thực tế.
+- **1.1 Đã hoàn thành Silver toàn lịch sử:** Đã chạy toàn bộ `6.076` batch; bằng chứng trong `docs/evidence/hdfs_full_silver/`.
+- **1.2 Đã đo hiệu năng & dedup:** Số liệu RAM, thời gian, nhận/loại/trùng và phạm vi partition trong cùng thư mục bằng chứng ở mục 1.1.
 - **1.3 Dữ liệu Gold toàn mạng:** Chưa tạo Gold ETA (baseline, incidents, feature store) cho toàn bộ lịch sử trên HDFS; hiện mới có dữ liệu mẫu tuyến `02`/`27` trong `2` ngày.
 - **1.4 Vận hành tự động:** Chưa có cơ chế tự theo dõi batch mới trên Hugging Face, compaction và dọn dẹp các lần chạy lỗi/dở dang.
-- **1.5 Khởi tạo cụm trắng:** Script provision cụm cũ chưa tạo đầy đủ namespace history hiện hành.
+- **1.5 Đã kiểm chứng khởi tạo cụm trắng:** Provision namespace history và phục hồi dữ liệu đã được kiểm tra; xem `docs/HDFS_RUNBOOK.md` và bằng chứng mục 1.1.
 - **1.6 Kết nối phục vụ live:** Chưa kiểm chứng và nối luồng web serving hiện tại sang nguồn Gold release từ HDFS.
 
 ## 2. Pipeline dữ liệu
@@ -20,7 +20,7 @@
 
 - **3.1 Mã JS tập trung một file:** Toàn bộ logic UI nằm trong `static/app.js` (`1.057` dòng), trộn lẫn state, gọi API, bản đồ, popup, tab và bộ đếm thời gian.
 - **3.2 Trùng lặp logic hiển thị ETA:** Thẻ trạm ghim (`renderStationFocusCard`) và popup trạm (`renderStationPopupEta`) đang dựng lặp thông tin hiển thị ETA.
-- **3.3 Xung đột bất đồng bộ khi đổi tuyến/chiều:** Chưa loại bỏ phản hồi của request cũ trả về muộn khi người dùng đổi tuyến hoặc đổi chiều liên tiếp.
+- **3.3 Đã sửa xung đột bất đồng bộ:** Loại phản hồi cũ khi đổi tuyến/chiều, đổi trạm ghim hoặc popup; test hồi quy trong `tests/test_web_demo_async.cjs`.
 - **3.4 Nhãn giao diện lỗi thời:** `static/index.html` còn hiển thị mô tả cũ (`BusMap Discrete Engine`, `100% Thuần rời rạc`), chưa phản ánh chế độ hybrid TimBus `5s`.
 - **3.5 CSS cồng kềnh:** `static/style.css` (`1.075` dòng) viết dồn một file, chưa tách gọn theo từng vùng giao diện.
 
@@ -33,8 +33,8 @@
 
 ## 5. Kiểm thử (Testing)
 
-- **5.1 Thiếu kiểm thử tự động cho FE:** Chưa có test kiểm tra logic JS sau refactor, xử lý đổi tuyến/chiều nhanh và hiển thị 2 dòng ETA `P50` / `Lạc quan`.
-- **5.2 Lỗi xung đột cổng ở `test_spec21`:** `tests/test_spec21_r3_browser_cors_blackbox.py` lỗi setup khi cổng `8000` đang có server chạy sẵn.
-- **5.3 Thiếu artifact đầu vào ở `test_spec32`:** `tests/test_spec32_ml_error_distribution_blackbox.py` bị fail/error do thiếu thư mục báo cáo `reports/evaluation/ml_error_distribution/`.
+- **5.1 Kiểm thử FE đã bổ sung một phần:** Có test Node cho đổi tuyến/chiều, ghim/bỏ ghim, chuyển popup và phản hồi đảo thứ tự; chưa có kiểm tra trực quan đầy đủ hai dòng ETA `P50` / `Lạc quan`.
+- **5.2 Đã sửa xung đột cổng ở `test_spec21`:** Test dùng cổng riêng và profile Chrome riêng; launcher hỗ trợ `-Port` và `-NoBrowser`.
+- **5.3 Đã sửa đường dẫn artifact ở `test_spec32`:** Generator và test cùng dùng `data/evaluation/ml_error_distribution/`; 22 test đạt.
 - **5.4 Thiếu kiểm thử pipeline dữ liệu đầu-cuối:** Chưa có bộ test tích hợp kiểm chứng toàn bộ luồng từ dữ liệu thô đến Gold/feature store.
-- **5.5 Thiếu kiểm thử HDFS quy mô lớn:** Chưa có kiểm thử xác nhận tính đúng và độ ổn định khi mở rộng Spark Silver/Gold vượt tập mẫu `02`/`27`.
+- **5.5 Kiểm chứng quy mô lớn đã có một phần:** Silver toàn lịch sử đã được chạy và đối soát (mục 1.1); Gold toàn mạng và thử tải nhiều client vẫn chưa được kiểm chứng.
