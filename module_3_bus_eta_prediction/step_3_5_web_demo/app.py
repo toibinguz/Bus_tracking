@@ -21,7 +21,6 @@ from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation import (
     RouteStationsResponse,
     StationEtaResponse,
     normalize_direction,
-    fetch_live_vehicles_for_route
 )
 
 app = FastAPI(
@@ -109,7 +108,7 @@ def get_live_vehicles(
     if resolved_id is None:
         raise HTTPException(status_code=404, detail=f"Không tìm thấy tuyến '{target_ident}' trong danh mục")
 
-    return fetch_live_vehicles_for_route(route_id=resolved_id, direction=dir_int)
+    return service.get_live_vehicles(resolved_id, dir_int)
 
 
 @app.get("/api/route-shape", response_model=RouteShapeResponse)

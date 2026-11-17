@@ -1,0 +1,18 @@
+﻿{
+  "cache": {
+    "fresh_query_bus_count": 0,
+    "cached_query_bus_count": 0,
+    "passed_marker_retained": true
+  },
+  "fleet": {
+    "active_before_station_query": 2,
+    "active_after_station_query": 2,
+    "approaching_bus_count": 1
+  },
+  "windows": {
+    "train_roll3": 19.2,
+    "serving_roll3": 15.6,
+    "train_roll5": 13.440000000000001,
+    "serving_roll5": 12.0
+  }
+}

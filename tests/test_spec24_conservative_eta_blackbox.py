@@ -76,16 +76,23 @@ def test_spec24_every_public_approaching_bus_obeys_conservative_math(
         window = bus["safe_window"]
         t50 = window["p50_seconds"]
         buffer_seconds = window["buffer_seconds"]
+        optimistic_seconds = window["optimistic_eta_seconds"]
         conservative_seconds = window["conservative_eta_seconds"]
 
         assert "status" not in bus
         assert bus["prediction_source"] in PREDICTION_SOURCES
         assert buffer_seconds >= 0
         assert conservative_seconds >= t50
-        assert bus["eta_seconds"] == pytest.approx(conservative_seconds)
-        assert bus["display_eta_minutes"] == math.ceil(conservative_seconds / 60)
+        assert bus["eta_seconds"] == pytest.approx(t50, abs=0.2)
+        assert optimistic_seconds == pytest.approx(max(0.0, t50 - buffer_seconds), abs=0.2)
+        assert bus["optimistic_eta_seconds"] == pytest.approx(optimistic_seconds, abs=0.1)
+        assert bus["display_eta_minutes"] == math.ceil(t50 / 60)
         assert window["display_eta_minutes"] == bus["display_eta_minutes"]
-        expected_text = "~1 phút" if bus["display_eta_minutes"] == 1 else f"{bus['display_eta_minutes']} phút"
+        expected_text = (
+            "0 phút"
+            if bus["display_eta_minutes"] <= 0
+            else ("~1 phút" if bus["display_eta_minutes"] == 1 else f"{bus['display_eta_minutes']} phút")
+        )
         assert bus["display_text"] == expected_text
 
 

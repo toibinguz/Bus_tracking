@@ -30,8 +30,15 @@ def validate_snapshot_id(snapshot_id):
 def load_history_snapshot(spark, snapshot_id):
     """Only publication manifests grant visibility; _runs alone is never read."""
     validate_snapshot_id(snapshot_id)
+    spark.conf.set('spark.sql.sources.partitionColumnTypeInference.enabled','false')
     def read(path):
-        return bytes(spark.read.format('binaryFile').load(path).first().content)
+        # Metadata is small; launching a Spark job per JSON file dominates cold HTTP requests.
+        fs=spark._jvm.org.apache.hadoop.fs.FileSystem.get(spark._jsc.hadoopConfiguration())
+        stream=fs.open(spark._jvm.org.apache.hadoop.fs.Path(path))
+        try:
+            return bytes(stream.readAllBytes())
+        finally:
+            stream.close()
     raw = read(ROOT+'/_published/history_snapshots/'+snapshot_id+'.json')
     manifest = json.loads(raw)
     prefix = ROOT+'/silver/history/_runs/snapshot='+snapshot_id+'/attempt='
@@ -48,7 +55,16 @@ def query_snapshot_speed(spark, snapshot_id, route_code, date_from, date_to):
     from pyspark.sql import functions as F
     start, end = validate_request(route_code,date_from,date_to)
     manifest = load_history_snapshot(spark,snapshot_id)
-    frame = spark.read.parquet(manifest['silver_path'])
+    reader=spark.read.schema('route_code string, dt string, derived_speed_kmh double')
+    index=manifest.get('silver_partitions')
+    if index is not None:
+        paths=[manifest['silver_path']+'/route_code='+route_code+'/dt='+row['dt'] for row in index
+               if row['route_code']==route_code and start.isoformat()<=row['dt']<=end.isoformat()]
+        frame=(reader.option('basePath',manifest['silver_path']).parquet(*paths) if paths else None)
+    else:
+        frame=reader.parquet(manifest['silver_path'])
+    if frame is None:
+        return dict(route_code=route_code,date_from=date_from,date_to=date_to,rows=[],storage='hdfs-silver',provenance='observed',snapshot_id=snapshot_id)
     result = (frame.where((F.col('route_code')==F.lit(route_code)) & F.col('dt').between(start.isoformat(),end.isoformat()))
               .groupBy('dt').agg(F.count(F.lit(1)).alias('ping_count'),F.count('derived_speed_kmh').alias('speed_sample_count'),F.avg('derived_speed_kmh').alias('avg_speed_kmh')).orderBy('dt').collect())
     rows = [dict(row.asDict(),dt=str(row['dt'])) for row in result]
@@ -91,7 +107,7 @@ def query_route_speed(spark, route_code, date_from, date_to):
                 raise ValueError("multiple published runs for source window")
             windows[window] = checkpoint["job_key"]
             paths[silver] = day.isoformat()
-    frames = [spark.read.parquet(path).select("route_code", "derived_speed_kmh").withColumn("dt", F.lit(day)) for path, day in paths.items()]
+    frames = [spark.read.schema('route_code string, derived_speed_kmh double').parquet(path).withColumn("dt", F.lit(day)) for path, day in paths.items()]
     rows = []
     if frames:
         combined = frames[0]

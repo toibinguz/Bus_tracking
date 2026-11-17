@@ -16,6 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--snapshot',required=True)
     parser.add_argument('--previous')
+    parser.add_argument('--max-local-events',type=int,default=100000,help='refuse unbounded driver-side parity oracle')
     args = parser.parse_args()
     spark = SparkSession.builder.appName('verify-history-snapshot').config('spark.sql.session.timeZone','Asia/Ho_Chi_Minh').getOrCreate()
     spark.sparkContext.setLogLevel('WARN')
@@ -23,6 +24,8 @@ def main():
         return bytes(spark.read.format('binaryFile').load(path).first().content)
     try:
         manifest = load_history_snapshot(spark,args.snapshot)
+        if manifest['raw_bus_rows']>args.max_local_events:
+            raise ValueError('snapshot too large for local oracle; verify a bounded source window instead')
         reference = json.loads(read(manifest['reference_path']))
         grouped = defaultdict(list)
         batch_ids = defaultdict(set)

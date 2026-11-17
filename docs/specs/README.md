@@ -5,8 +5,7 @@ Codebase xác định hành vi. Spec là hợp đồng/thiết kế; nhãn APPRO
 | Chủ đề | Tài liệu | Cách dùng |
 | --- | --- | --- |
 | HDFS hiện hành | [Hợp đồng](HDFS_DATA_CONTRACTS.md) | Identity/mapping/publication/release/runtime/AC; [runbook](../HDFS_RUNBOOK.md) giữ lệnh |
-| HDFS ban đầu | [SPEC-25](25_MINIMUM_VIABLE_HDFS_STORAGE_AND_QUERY_SPEC.md) | Giữ nguyên theo yêu cầu, chỉ tham khảo lịch sử |
-| Projection | [SPEC-26](26_FRENET_PROJECTION_BOUNDARY_AND_PARITY_SPEC.md) | Interface/parity; trạng thái tra code/test/evidence |
+| HDFS thiết kế cũ | [SPEC-25](25_MINIMUM_VIABLE_HDFS_STORAGE_AND_QUERY_SPEC.md), [SPEC-26](26_FRENET_PROJECTION_BOUNDARY_AND_PARITY_SPEC.md) | Lưu để tra thiết kế ban đầu; không dùng làm kế hoạch hay hiện trạng. Hợp đồng HDFS hiện hành ở dòng trên |
 | BusMap/browser | [SPEC-04](04_BUSMAP_ONLY_DISCRETE_TRACKING_SPEC.md) | Cập nhật browser rời rạc; không lấy lệnh cấm TimBus cũ để xóa thí nghiệm độc lập |
 | Shape/trạm | [SPEC-05](05_ROUTE_SHAPE_AND_STATION_INTERACTIONS_SPEC.md) | Endpoint/tuyến/trạm; tên service và số liệu lịch sử cần đối chiếu code |
 | ETA/serving | [SPEC-15](15_PHYSICAL_KINEMATICS_AND_SERVING_SPEC.md), [SPEC-16](16_REFACTOR_SPEC_STEP_3_4_SERVING_AND_3_5_WEB_DEMO.md), [SPEC-24](24_CONSERVATIVE_ETA_MODES_AND_ARRIVING_NOW_REMOVAL_SPEC.md) | Giữ nghiệp vụ/interface/quyết định Passenger-Debug; SPEC-24 ưu tiên khi xung đột, không xác nhận tiến độ |

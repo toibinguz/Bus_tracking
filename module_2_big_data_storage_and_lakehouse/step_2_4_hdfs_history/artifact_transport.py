@@ -29,9 +29,12 @@ class PrivateWebHdfs:
                 return False
             raise
 
-    def read(self,path):
+    def read(self,path,max_bytes=None):
         with build_opener().open(self.url(path,'OPEN'),timeout=20) as response:
-            return response.read()
+            content = response.read() if max_bytes is None else response.read(max_bytes+1)
+        if max_bytes is not None and len(content)>max_bytes:
+            raise ValueError('remote object exceeds configured byte limit')
+        return content
 
     def create(self,path,content):
         temporary=path+'.upload-'+str(uuid4())

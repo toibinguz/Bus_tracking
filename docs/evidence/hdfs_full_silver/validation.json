@@ -1,0 +1,11 @@
+{
+  "related": {
+    "passed": 67,
+    "seconds": 13.23
+  },
+  "live_http": {
+    "passed": 11,
+    "seconds": 12.36
+  },
+  "scope": "related storage/history/cache/projection tests plus external live HTTP tests; no skipped tests in these selected suites"
+}

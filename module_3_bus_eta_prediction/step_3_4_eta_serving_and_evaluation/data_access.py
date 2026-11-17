@@ -13,6 +13,7 @@ import os
 import sqlite3
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
+from urllib.parse import quote
 
 from config.system_config import (
     CONFIG_FILE,
@@ -20,6 +21,7 @@ from config.system_config import (
     DAY_TYPE_SUNDAY,
     DEFAULT_DB_PATH,
     DEFAULT_LAKEHOUSE_ROOT,
+    DEFAULT_TIMBUS_DB_PATH,
     DEFAULT_URBAN_BUS_SPEED_KMPH,
     EXCLUDE_TERMINAL_BOUNDARY_STATIONS,
 )
@@ -99,9 +101,10 @@ class IncidentsProvider:
 class DataAccess:
     """Nạp catalog + shape + stations + baseline matrix vào RAM; phục vụ tra cứu O(1)/O(seg)."""
 
-    def __init__(self, db_path: Optional[str] = None, config_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, config_path: Optional[str] = None, timbus_db_path: Optional[str] = None):
         self._db_path = os.path.abspath(db_path) if db_path else os.path.join(BASE_DIR, DEFAULT_DB_PATH)
         self._config_path = os.path.abspath(config_path) if config_path else os.path.join(BASE_DIR, CONFIG_FILE)
+        self._timbus_db_path = os.path.abspath(timbus_db_path) if timbus_db_path else os.path.join(BASE_DIR, DEFAULT_TIMBUS_DB_PATH)
 
         self._routes_cache: List[RouteItemDTO] = []
         self._routes_by_id: Dict[int, RouteItemDTO] = {}
@@ -118,19 +121,61 @@ class DataAccess:
         self._bm_agg: Dict[Tuple[str, int], List[float]] = {}
         # route_code -> idx (theo danh mục sort của agg_segment_travel_times)
         self.route_idx_by_code: Dict[str, int] = {}
+        # (route_id, dir_int) -> (timbus_enabled, [primary_sid, backup_sid])
+        self._timbus_anchors: Dict[Tuple[int, int], Tuple[bool, List[int]]] = {}
 
         self.load_catalog()
         self.load_baseline_matrix()
+        self.load_timbus_anchors()
 
     # ------------------------------------------------------------------ IO
     @contextmanager
-    def _connect(self):
-        """Kết nối SQLite read-only, đóng chắc chắn trong finally."""
-        conn = sqlite3.connect(str(self._db_path))
+    def _connect_ro(self, path: str):
+        """Kết nối SQLite chỉ đọc (URI ?mode=ro), đóng chắc chắn trong finally."""
+        uri = "file:" + quote(path.replace("\\", "/"), safe="/:") + "?mode=ro"
+        conn = sqlite3.connect(uri, uri=True)
         try:
             yield conn
         finally:
             conn.close()
+
+    @contextmanager
+    def _connect(self):
+        """Kết nối SQLite chính chỉ đọc (URI ?mode=ro)."""
+        with self._connect_ro(self._db_path) as conn:
+            yield conn
+
+    def load_timbus_anchors(self) -> Dict[Tuple[int, int], Tuple[bool, List[int]]]:
+        """Nạp bảng timbus_route_anchors (dự phòng timbus_verified_anchors) vào RAM 1 lần."""
+        self._timbus_anchors.clear()
+        if not os.path.exists(self._timbus_db_path):
+            return self._timbus_anchors
+        try:
+            with self._connect_ro(self._timbus_db_path) as conn:
+                tables = {
+                    str(r[0])
+                    for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+                }
+                tbl = "timbus_route_anchors" if "timbus_route_anchors" in tables else (
+                    "timbus_verified_anchors" if "timbus_verified_anchors" in tables else None
+                )
+                if tbl is None:
+                    return self._timbus_anchors
+                rows = conn.execute(
+                    f"SELECT route_id, direction, timbus_enabled, primary_anchor_sid, backup_anchor_sid FROM {tbl}"
+                ).fetchall()
+            for rid, d_int, en, pri, bak in rows:
+                enabled = bool(int(en) == 1 and pri)
+                anchors = [int(x) for x in (pri, bak) if x] if enabled else []
+                self._timbus_anchors[(int(rid), int(d_int))] = (bool(enabled and anchors), anchors)
+            logger.info("Loaded %d timbus anchor entries từ %s", len(self._timbus_anchors), tbl)
+        except Exception as e:
+            logger.warning("Không đọc được bảng anchor TimBus từ %s: %s", self._timbus_db_path, e)
+        return self._timbus_anchors
+
+    def get_timbus_anchors(self, route_id: int, direction: int) -> Tuple[bool, List[int]]:
+        """Trả (timbus_enabled, [primary_anchor_sid, backup_anchor_sid]) cho cặp (route_id, direction)."""
+        return self._timbus_anchors.get((int(route_id), int(direction)), (False, []))
 
     def load_catalog(self) -> Tuple[List[RouteItemDTO], Dict[int, RouteItemDTO], Dict[str, RouteItemDTO]]:
         """Tải danh mục tuyến từ canonical_route_master; dự phòng JSON config. Trả (list, by_id, by_code)."""

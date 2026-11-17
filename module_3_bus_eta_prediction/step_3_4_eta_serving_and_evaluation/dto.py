@@ -28,6 +28,15 @@ class BusVehicleDTO(BaseModel):
     updated_at: str = Field(..., description="Mốc thời gian cập nhật của xe (ISO 8601)")
     current_station_id: Optional[int] = Field(default=None, description="ID trạm hiện tại")
     next_station_id: Optional[int] = Field(default=None, description="ID trạm kế tiếp")
+    telemetry_source: Literal["busmap", "timbus"] = Field(
+        default="busmap", description="Nguồn tọa độ trực tiếp: busmap hoặc timbus"
+    )
+    raw_speed_kmh: Optional[float] = Field(
+        default=None, description="Vận tốc tức thời hộp đen gốc trước khi tổng quát hóa (km/h)"
+    )
+    speed_window_sec: Optional[float] = Field(
+        default=None, description="Độ dài cửa sổ delta_t (giây) dùng ước lượng vận tốc vĩ mô"
+    )
 
 
 class RouteItemDTO(BaseModel):
@@ -45,6 +54,8 @@ class RouteLiveResponse(BaseModel):
     direction: int
     count: int
     timestamp: str
+    timbus_supported: bool = Field(default=False, description="Tuyến/chiều có hỗ trợ tăng tốc TimBus 5s")
+    poll_interval_sec: int = Field(default=15, description="Chu kỳ làm mới bản đồ khuyến nghị (5s hoặc 15s)")
     vehicles: List[BusVehicleDTO]
 
 
@@ -91,12 +102,16 @@ class SafeWindowDTO(BaseModel):
     p90_seconds: float = Field(..., description="Phân vị ETA P90 (chậm nhất) tính bằng giây")
     p10_minutes: int = Field(default=0, description="Phút an toàn P10: ceil(p10_seconds / 60.0)")
     p90_minutes: int = Field(default=0, description="Phút an toàn P90: ceil(p90_seconds / 60.0)")
-    conservative_eta_seconds: float = Field(..., description="Thời gian ETA bảo vệ hành khách (giây)")
+    conservative_eta_seconds: float = Field(..., description="Thời gian ETA P50+buffer tham chiếu (giây)")
     buffer_seconds: float = Field(..., description="Độ đệm an toàn thực delta_buffer (giây), không hardcode 0")
-    display_eta_minutes: int = Field(default=0, description="Số phút nguyên lượng tử hóa trần M = ceil(conservative_eta_seconds/60)")
+    display_eta_minutes: int = Field(default=0, description="Số phút nguyên lượng tử hóa trần M = ceil(p50_seconds/60)")
+    optimistic_eta_seconds: float = Field(default=0.0, description="Ước tính lạc quan chống trễ: max(0, p50_seconds - buffer_seconds)")
+    optimistic_minutes: int = Field(default=0, description="Phút nguyên ước tính lạc quan: ceil(optimistic_eta_seconds/60)")
+    optimistic_display_text: str = Field(default="", description="Chuỗi nhãn lạc quan UI")
+    optimistic_arrival_time: str = Field(default="", description="Mốc thời gian đến lạc quan (now + optimistic_eta_seconds, HH:MM:SS)")
     is_delayed: bool = Field(default=False, description="Cờ cảnh báo trễ: delta_delay >= REALTIME_DELAY_ALERT_SEC")
     delay_seconds: float = Field(default=0.0, description="Độ trễ thực đo so với baseline (giây)")
-    recommended_arrival_time: str = Field(..., description="Giờ khuyến nghị có mặt tại trạm (HH:MM:SS)")
+    recommended_arrival_time: str = Field(..., description="Giờ khuyến nghị có mặt tại trạm theo mốc lạc quan (HH:MM:SS)")
 
 
 class ApproachingBusDTO(BaseModel):
@@ -106,11 +121,14 @@ class ApproachingBusDTO(BaseModel):
     plate: str = Field(..., description="Biển số xe")
     distance_to_station_m: float = Field(..., description="Khoảng cách lý trình tới trạm đích (m)")
     stops_remaining: int = Field(..., description="Số trạm dừng còn lại trước khi tới đích")
-    eta_seconds: float = Field(..., description="Thời gian ETA hiển thị (conservative, giây)")
-    eta_minutes: int = Field(..., description="Phút nguyên lượng tử hóa M = ceil(conservative_eta_seconds/60)")
+    eta_seconds: float = Field(..., description="Thời gian ETA dự kiến P50/eta_core (bỏ +delta_buffer, giây)")
+    eta_minutes: int = Field(..., description="Phút nguyên lượng tử hóa M = ceil(eta_seconds/60)")
     eta_minutes_precise: float = Field(..., description="Phút thập phân (1 chữ số) — chỉ hiển thị song song ở demo")
     display_eta_minutes: int = Field(default=0, description="Số phút nguyên lượng tử hóa trần hiển thị")
     display_text: str = Field(default="", description="Chuỗi nhãn hiển thị UI: '0 phút' / '~1 phút' / 'M phút'")
+    optimistic_eta_seconds: float = Field(default=0.0, description="Ước tính lạc quan chống trễ max(0, p50 - delta_buffer) (giây)")
+    optimistic_display_text: str = Field(default="", description="Nhãn thời gian còn lại lạc quan")
+    optimistic_arrival_time: str = Field(default="", description="Mốc thời gian đến lạc quan theo giờ Hà Nội HH:MM:SS (now + optimistic_eta_seconds)")
     prediction_source: Literal["ml_calibrated", "baseline_fallback"] = Field(
         ..., description="Nguồn ETA runtime: ml_calibrated hoặc baseline_fallback"
     )
@@ -119,7 +137,19 @@ class ApproachingBusDTO(BaseModel):
     traffic_status: str = Field(default="BINH_THUONG", description="Điều kiện giao thông: THONG_THOANG, BINH_THUONG, UN_TAC")
     ping_time: Optional[str] = Field(default=None, description="Mốc thời gian GPS thực tế của xe (ISO 8601)")
     ping_age_seconds: Optional[float] = Field(default=0.0, description="Độ trôi tuổi gói tin GPS tính bằng giây")
-    arrival_time_epoch: Optional[float] = Field(default=None, description="Thời điểm xe cập bến dự kiến (Unix epoch seconds)")
+    arrival_time_epoch: Optional[float] = Field(default=None, description="Thời điểm xe cập bến dự kiến P50 (Unix epoch seconds)")
+    estimated_arrival_time: str = Field(
+        default="", description="Thời điểm xe dự kiến đến trạm theo giờ Hà Nội HH:MM:SS (time now + P50/eta_core)"
+    )
+    telemetry_source: Literal["busmap", "timbus"] = Field(
+        default="busmap", description="Nguồn tọa độ dùng để dự báo ETA: busmap hoặc timbus"
+    )
+    raw_speed_kmh: Optional[float] = Field(
+        default=None, description="Vận tốc tức thời hộp đen gốc trước tổng quát hóa (km/h)"
+    )
+    speed_window_sec: Optional[float] = Field(
+        default=None, description="Cửa sổ delta_t (giây) ước lượng vận tốc vĩ mô"
+    )
 
 
 class StationEtaResponse(BaseModel):
@@ -137,6 +167,8 @@ class StationEtaResponse(BaseModel):
     approaching_count: int = Field(..., description="Số lượng xe đang tiếp cận trạm")
     buses: List[ApproachingBusDTO] = Field(default_factory=list, description="Danh sách các xe đang chạy về trạm")
     message: str = Field(..., description="Thông điệp hiển thị cho người dùng")
+    timbus_supported: bool = Field(default=False, description="Tuyến/chiều có hỗ trợ tăng tốc TimBus 5s")
+    poll_interval_sec: int = Field(default=15, description="Chu kỳ làm mới khuyến nghị (5s hoặc 15s)")
 
 
 def normalize_direction(direction_val: Union[int, str, None]) -> Tuple[int, str]:

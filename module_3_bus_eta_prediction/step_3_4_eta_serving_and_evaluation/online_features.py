@@ -12,6 +12,7 @@ Các hằng số mô phỏng FROZEN builder không có trong SSOT được đặ
 """
 
 import math
+import threading
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -25,6 +26,7 @@ from config.system_config import (
     DAY_TYPE_WEEKDAY,
     FLEET_ACTIVE_WINDOW_SEC,
     GPS_DRIFT_MAX_SPEED_KMPH,
+    MACRO_SPEED_MIN_SAMPLE_DT_SEC,
     PHYS_DECAY_M,
     PHYS_INC_DELAY_CAP,
     PHYS_INC_DELAY_FACTOR,
@@ -38,11 +40,15 @@ from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.data_access
 )
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.dto import BusVehicleDTO
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.frenet import ShapeProjectionModel
+from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.live_feed import parse_ping_epoch
 
-# ---- Hằng số mô phỏng FROZEN feature_store_builder.py (không có tương đương trong SSOT) ----
-_ROLL3_MIN_DT_SEC = 10.0
-_ROLL5_MIN_DT_SEC = 15.0
-_ACCEL_MIN_DT_MIN = 0.5
+# ---- Hằng số mô phỏng FROZEN feature_store_builder.py + nâng cấp cửa sổ vĩ mô ----
+# Cửa sổ thời gian khớp tập train (trung vị đo trên Silver: lùi 1/3/5 ping BusMap ~ 75s/240s/405s)
+_INST_WIN_SEC = 75.0
+_ROLL3_WIN_SEC = 240.0
+_ROLL5_WIN_SEC = 405.0
+_OBS_RETENTION_SEC = 600.0
+_ACCEL_MAX_ABS_KMPH_PER_MIN = 30.0
 _RATIO_MIN_KMPH = 3.0
 _RATIO_MIN = 0.1
 _RATIO_MAX = 3.0
@@ -62,7 +68,23 @@ _PHYS_KIN_MAX_SEC = 7200.0
 _INC_NEAR_DEFAULT_M = 25000.0
 _INC_MIN_SPAN_M = 20.0
 _INC_FRAC_MIN = 0.1
-_RING_SIZE = 8
+_OBS_MAX_LEN = 160
+
+
+def _window_speed(ring, s_cur: float, win_sec: float, min_dt: float) -> Tuple[Optional[float], float]:
+    """Tốc độ dịch chuyển Δs/Δt so với điểm mới nhất cách >= win_sec (thiếu lịch sử -> điểm cũ nhất, như train)."""
+    if not ring:
+        return None, 0.0
+    t_cur = ring[-1][0]
+    ref = ring[0]
+    for pt in reversed(ring):
+        if t_cur - pt[0] >= win_sec:
+            ref = pt
+            break
+    dt = t_cur - ref[0]
+    if dt < min_dt:
+        return None, dt
+    return min(GPS_DRIFT_MAX_SPEED_KMPH, max(0.0, (s_cur - ref[1]) / dt * 3.6)), dt
 
 FAMILY_A: List[str] = [
     "route_id_idx", "direction_id", "current_station_order", "target_station_order", "day_type",
@@ -111,7 +133,8 @@ class OnlineFeatureExtractor:
     def __init__(self, data_access: DataAccess, incidents_provider: Optional[IncidentsProvider] = None):
         self._da = data_access
         self._incidents = incidents_provider or IncidentsProvider()
-        # (route_id, dir_int, vehicle_id) -> [(epoch, s_bus, speed_kmh), ...] (ring buffer)
+        self._obs_lock = threading.Lock()
+        # (route_id, dir_int, vehicle_id) -> [(epoch, s_bus, speed_kmh), ...] (lịch sử theo cửa sổ thời gian 360s)
         self._obs: Dict[Tuple[int, int, int], List[Tuple[float, float, float]]] = {}
         # (route_id, dir_int) -> {vehicle_id: (epoch, s_bus, speed_kmh, ratio)}
         self._fleet: Dict[Tuple[int, int], Dict[int, Tuple[float, float, float, float]]] = {}
@@ -128,36 +151,63 @@ class OnlineFeatureExtractor:
     def update_observation(
         self, route_id: int, dir_int: int, vehicles: List[BusVehicleDTO], now_epoch: float
     ) -> None:
-        """Cập nhật state nội bộ: RingBuffer(≤8) mỗi xe + snapshot fleet theo tuyến/chiều."""
+        """Cập nhật state nội bộ: lịch sử cửa sổ 360s chống trùng mẫu + snapshot fleet theo tuyến/chiều."""
         dir_str = "go" if dir_int == 0 else "re"
         shape_model = self._get_shape_model(route_id, dir_str)
         corridor = self._da.get_corridor_stations(route_id, dir_str)
         route_base_spd = self._da.get_route_profile(route_id, dir_str)[0]
 
         fleet: Dict[int, Tuple[float, float, float, float]] = {}
-        if shape_model is not None and len(corridor) >= 2:
-            st_s = [st[3] for st in corridor]
-            day_type, hour_slot, _, _, _ = self._calendar(now_epoch)
-            seg_p50 = self._segment_array(route_id, dir_int, corridor, day_type, hour_slot, route_base_spd, index=1)
+        with self._obs_lock:
+            if shape_model is not None and len(corridor) >= 2:
+                st_s = [st[3] for st in corridor]
+                day_type, hour_slot, _, _, _ = self._calendar(now_epoch)
+                seg_p50 = self._segment_array(route_id, dir_int, corridor, day_type, hour_slot, route_base_spd, index=1)
 
-            for v in vehicles:
-                s_bus, _, _ = shape_model.project_point(v.lat, v.lng)
-                ring_key = (route_id, dir_int, v.id)
-                ring = self._obs.setdefault(ring_key, [])
-                ring.append((now_epoch, s_bus, max(0.0, float(v.speed_kmh))))
-                if len(ring) > _RING_SIZE:
-                    del ring[: len(ring) - _RING_SIZE]
+                for v in vehicles:
+                    s_bus, _, _ = shape_model.project_point(v.lat, v.lng)
+                    raw_spd = v.raw_speed_kmh if v.raw_speed_kmh is not None else v.speed_kmh
+                    spd = max(0.0, float(raw_spd))
+                    t_ping, _ = parse_ping_epoch(v.updated_at, now_epoch)
+                    t_obs = min(now_epoch, t_ping)
+                    ring_key = (route_id, dir_int, v.id)
+                    ring = self._obs.setdefault(ring_key, [])
+                    if ring:
+                        last_t, last_s, _ = ring[-1]
+                        if t_obs < last_t:
+                            s_bus, spd = last_s, ring[-1][2]
+                        elif s_bus < last_s - 50.0:
+                            ring.clear()
+                            ring.append((t_obs, s_bus, spd))
+                        elif (t_obs - last_t) >= MACRO_SPEED_MIN_SAMPLE_DT_SEC:
+                            ring.append((t_obs, s_bus, spd))
+                        else:
+                            ring[-1] = (last_t, max(last_s, s_bus), spd)
+                    else:
+                        ring.append((t_obs, s_bus, spd))
 
-                k_curr = self._current_segment_index(st_s, s_bus)
-                cur_base_spd = (max(1.0, st_s[k_curr + 1] - st_s[k_curr]) / max(1.0, seg_p50[k_curr])) * 3.6
-                ratio = _clip(max(0.0, v.speed_kmh) / max(_RATIO_MIN_KMPH, cur_base_spd), _RATIO_MIN, _RATIO_MAX)
-                fleet[v.id] = (now_epoch, s_bus, max(0.0, float(v.speed_kmh)), ratio)
+                    # Cắt các mẫu cũ vượt quá cửa sổ lưu giữ và giới hạn tổng số điểm
+                    cutoff = now_epoch - _OBS_RETENTION_SEC
+                    while len(ring) > 1 and ring[0][0] < cutoff:
+                        ring.pop(0)
+                    if len(ring) > _OBS_MAX_LEN:
+                        del ring[: len(ring) - _OBS_MAX_LEN]
 
-        # Dọn fleet cũ theo cửa sổ hoạt động
-        for v_id, (o_t, _, _, _) in list(fleet.items()):
-            if now_epoch - o_t > FLEET_ACTIVE_WINDOW_SEC:
-                del fleet[v_id]
-        self._fleet[(route_id, dir_int)] = fleet
+                    # Fleet lưu v_roll3 như tập train (feature_store_builder: active_fleet = v_roll3, ratio)
+                    v_i, _ = _window_speed(ring, s_bus, _INST_WIN_SEC, 10.0)
+                    v_r3, _ = _window_speed(ring, s_bus, _ROLL3_WIN_SEC, 10.0)
+                    spd = v_r3 if v_r3 is not None else (v_i if v_i is not None else spd)
+
+                    k_curr = self._current_segment_index(st_s, s_bus)
+                    cur_base_spd = (max(1.0, st_s[k_curr + 1] - st_s[k_curr]) / max(1.0, seg_p50[k_curr])) * 3.6
+                    ratio = _clip(spd / max(_RATIO_MIN_KMPH, cur_base_spd), _RATIO_MIN, _RATIO_MAX)
+                    fleet[v.id] = (now_epoch, s_bus, spd, ratio)
+
+            # Dọn fleet cũ theo cửa sổ hoạt động
+            for v_id, (o_t, _, _, _) in list(fleet.items()):
+                if now_epoch - o_t > FLEET_ACTIVE_WINDOW_SEC:
+                    del fleet[v_id]
+            self._fleet[(route_id, dir_int)] = fleet
 
     # ---------------------------------------------------------------- helpers
     @staticmethod
@@ -196,30 +246,19 @@ class OnlineFeatureExtractor:
             values.append(arr[index])
         return values
 
-    def _roll_speeds(self, route_id: int, dir_int: int, vehicle_id: int, s_bus: float, v_inst: float, now_epoch: float):
-        """Trả (v_roll3, v_roll5, accel) theo feature_store; tự nhiên suy biến về cold-start khi thiếu ping."""
-        ring = self._obs.get((route_id, dir_int, vehicle_id), [])
-        if not ring:
-            return v_inst, v_inst, 0.0
-        s_cur = s_bus
-        i_3 = ring[max(0, len(ring) - 4)]
-        i_5 = ring[max(0, len(ring) - 6)]
-        dt_3 = now_epoch - i_3[0]
-        dt_5 = now_epoch - i_5[0]
-
-        if dt_3 >= _ROLL3_MIN_DT_SEC:
-            v_roll3 = min(GPS_DRIFT_MAX_SPEED_KMPH, max(0.0, ((s_cur - i_3[1]) / dt_3) * 3.6))
-        else:
-            v_roll3 = v_inst
-
-        if dt_5 >= _ROLL5_MIN_DT_SEC:
-            v_roll5 = min(GPS_DRIFT_MAX_SPEED_KMPH, max(0.0, ((s_cur - i_5[1]) / dt_5) * 3.6))
-        else:
-            v_roll5 = v_roll3
-
-        dt_accel_min = max(_ACCEL_MIN_DT_MIN, dt_5 / 60.0) if dt_5 >= _ROLL5_MIN_DT_SEC else 1.0
-        accel = (v_roll3 - v_roll5) / dt_accel_min
-        return v_roll3, v_roll5, accel
+    def _speed_features(self, route_id: int, dir_int: int, vehicle_id: int, s_bus: float, box_speed: float):
+        """(v_inst, v_roll3, v_roll5, accel) theo đúng định nghĩa train: Δs/Δt lùi ~1/3/5 ping BusMap."""
+        with self._obs_lock:
+            ring = list(self._obs.get((route_id, dir_int, vehicle_id), []))
+        v_i, _ = _window_speed(ring, s_bus, _INST_WIN_SEC, 10.0)
+        v_inst = v_i if v_i is not None else box_speed
+        v_r3, _ = _window_speed(ring, s_bus, _ROLL3_WIN_SEC, 10.0)
+        v_roll3 = v_r3 if v_r3 is not None else v_inst
+        v_r5, dt_5 = _window_speed(ring, s_bus, _ROLL5_WIN_SEC, 15.0)
+        v_roll5 = v_r5 if v_r5 is not None else v_roll3
+        dt_accel_min = max(0.5, dt_5 / 60.0) if v_r5 is not None else 1.0
+        accel = _clip((v_roll3 - v_roll5) / dt_accel_min, -_ACCEL_MAX_ABS_KMPH_PER_MIN, _ACCEL_MAX_ABS_KMPH_PER_MIN)
+        return v_inst, v_roll3, v_roll5, accel
 
     # ------------------------------------------------------------- build (54)
     def build_features(
@@ -269,9 +308,11 @@ class OnlineFeatureExtractor:
         rho = min(1.0, max(0.0, rem_in_seg / max(1.0, a_len[k_curr])))
         dist_to_next_st = max(0.0, st_s_vals[k_curr + 1] - s_bus_m)
 
-        # (a) Ego state & kinematics
-        v_inst = max(0.0, float(vehicle.speed_kmh))
-        v_roll3, v_roll5, ego_accel = self._roll_speeds(route_id, dir_int, vehicle.id, s_bus_m, v_inst, now_epoch)
+        # (a) Ego state & kinematics: Δs/Δt theo cửa sổ train (hộp đen chỉ dùng khi thiếu lịch sử)
+        raw_spd = vehicle.raw_speed_kmh if vehicle.raw_speed_kmh is not None else vehicle.speed_kmh
+        v_inst, v_roll3, v_roll5, ego_accel = self._speed_features(
+            route_id, dir_int, vehicle.id, s_bus_m, max(0.0, float(raw_spd))
+        )
         cur_seg_base_spd = (a_len[k_curr] / max(1.0, a_p50[k_curr])) * 3.6
         ego_spd_ratio = _clip(v_roll3 / max(_RATIO_MIN_KMPH, cur_seg_base_spd), _RATIO_MIN, _RATIO_MAX)
 

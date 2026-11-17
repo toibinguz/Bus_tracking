@@ -1,6 +1,12 @@
 ﻿# PowerShell Launcher for Hanoi Bus Live ETA Web App Demo
 # Requires UTF-8 BOM for Windows PowerShell 5.1 compatibility
 
+param(
+    [ValidateRange(1, 65535)]
+    [int]$Port = 8000,
+    [switch]$NoBrowser
+)
+
 # 1. Force UTF-8 Encoding for Console
 chcp 65001 >$null
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($true)
@@ -27,7 +33,7 @@ Write-Host "====================================================================
 Write-Host ""
 
 # 4. Check if port 8000 is already in use
-$targetPort = 8000
+$targetPort = $Port
 $tcpConn = Get-NetTCPConnection -LocalPort $targetPort -State Listen -ErrorAction SilentlyContinue
 if ($tcpConn) {
     $ownerPid = $tcpConn.OwningProcess
@@ -39,7 +45,7 @@ if ($tcpConn) {
         if ($check.status -eq "healthy") {
             Write-Host "[+] Máy chủ Demo đã đang chạy sẵn tại http://127.0.0.1:$targetPort!" -ForegroundColor Green
             Write-Host "[*] Đang tự động mở trình duyệt..." -ForegroundColor Cyan
-            Start-Process "http://127.0.0.1:$targetPort"
+            if (-not $NoBrowser) { Start-Process "http://127.0.0.1:$targetPort" }
             Write-Host "[!] Bạn có thể mở giao diện tại: http://127.0.0.1:$targetPort" -ForegroundColor Green
             Write-Host "[*] Để khởi động lại từ đầu, hãy đóng cửa sổ terminal cũ hoặc chạy: Stop-Process -Id $ownerPid -Force" -ForegroundColor DarkGray
             exit 0
@@ -62,11 +68,11 @@ Write-Host "[!] Nhấn Ctrl+C để dừng máy chủ bất kỳ lúc nào." -Fo
 Write-Host "--------------------------------------------------------------------------" -ForegroundColor DarkGray
 
 # Launch browser in background after 2 seconds
-Start-Job -ScriptBlock {
+if (-not $NoBrowser) { Start-Job -ScriptBlock {
     param($port)
     Start-Sleep -Seconds 2
     Start-Process "http://127.0.0.1:$port"
-} -ArgumentList $targetPort | Out-Null
+} -ArgumentList $targetPort | Out-Null }
 
 # Start Uvicorn
 & $pythonExe -m uvicorn module_3_bus_eta_prediction.step_3_5_web_demo.app:app --host 127.0.0.1 --port $targetPort
