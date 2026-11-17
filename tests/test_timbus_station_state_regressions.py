@@ -9,6 +9,7 @@ from experiments.timbus.timbus_tracker import TimBusClient
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.dto import BusVehicleDTO, RouteLiveResponse
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.online_features import OnlineFeatureExtractor
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.serving_service import BusMapServingService
+from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.serving_service import MacroSpeedTracker
 
 NOW = 1000.0
 
@@ -92,7 +93,8 @@ def test_off_corridor_position_does_not_poison_pass_guard(service):
     assert service._passed_station_plates == {}
 
 
-def test_station_requests_preserve_full_fleet_and_leading_bus(service):
+@pytest.fixture
+def extractor():
     extractor = OnlineFeatureExtractor.__new__(OnlineFeatureExtractor)
     extractor._obs_lock = threading.Lock()
     extractor._obs = {}
@@ -103,6 +105,10 @@ def test_station_requests_preserve_full_fleet_and_leading_bus(service):
     )
     extractor._get_shape_model = lambda *args: Shape()
     extractor._segment_array = lambda *args, **kwargs: [36]
+    return extractor
+
+
+def test_station_requests_preserve_full_fleet_and_leading_bus(service, extractor):
     service._extractor = extractor
     buses = [vehicle(1, 90), vehicle(2, 110)]
     for bus in buses:
@@ -121,3 +127,48 @@ def test_station_requests_preserve_full_fleet_and_leading_bus(service):
         assert set(fleet) == {1, 2}
         assert fleet[2][1] - fleet[1][1] == pytest.approx(20)
         assert set(extractor._obs) == {(1, 0, 1), (1, 0, 2)}
+
+
+def test_cache_does_not_override_newer_busmap_position(service):
+    cached = vehicle(1, 90)
+    busmap = vehicle(1, 95).model_copy(update={
+        "updated_at": datetime.fromtimestamp(NOW, timezone.utc).isoformat(),
+    })
+    service._tb_last_valid[(1, 0, cached.plate)] = (NOW - 1, 90, cached)
+    assert merge(service, busmap, True)[0].lat == busmap.lat
+
+
+def test_older_timbus_response_cannot_replace_newer_cache(service, monkeypatch):
+    newest = vehicle(1, 95)
+    service._tb_last_valid[(1, 0, newest.plate)] = (NOW, 95, newest)
+    stale = SimpleNamespace(latitude=.03, longitude=0, speed_kmh=20, fetch_timestamp=NOW - 5)
+    monkeypatch.setattr(TimBusClient, "query_central_vehicles", lambda **kwargs: {newest.plate: stale})
+    assert merge(service, vehicle(1, 90), False)[0].lat == newest.lat
+    assert service._tb_last_valid[(1, 0, newest.plate)][0] == NOW
+
+
+def test_out_of_order_packet_does_not_reset_macro_history():
+    tracker = MacroSpeedTracker()
+    args = dict(route_id=1, dir_int=0, plate_norm="29A00001",
+                raw_speed_kmh=20, bm_speed_kmh=20, route_base_spd_kmh=20)
+    tracker.observe_and_estimate(**args, t_sample=1000, s_bus=100)
+    previous = tracker.observe_and_estimate(**args, t_sample=1130, s_bus=800)
+    history = list(tracker._history[(1, 0, "29A00001")])
+    assert tracker.observe_and_estimate(**args, t_sample=1005, s_bus=125) == previous
+    assert tracker._history[(1, 0, "29A00001")] == history
+
+
+def test_out_of_order_packet_does_not_reset_ml_observations(extractor):
+    first = vehicle(1, 90)
+    latest = vehicle(1, 110).model_copy(update={
+        "updated_at": datetime.fromtimestamp(NOW, timezone.utc).isoformat(),
+    })
+    extractor.update_observation(1, 0, [first], NOW)
+    extractor.update_observation(1, 0, [latest], NOW)
+    history = list(extractor._obs[(1, 0, 1)])
+    stale = vehicle(1, 10).model_copy(update={
+        "updated_at": datetime.fromtimestamp(NOW - 5, timezone.utc).isoformat(),
+    })
+    extractor.update_observation(1, 0, [stale], NOW + 1)
+    assert extractor._obs[(1, 0, 1)] == history
+    assert extractor._fleet[(1, 0)][1][1] == pytest.approx(110)

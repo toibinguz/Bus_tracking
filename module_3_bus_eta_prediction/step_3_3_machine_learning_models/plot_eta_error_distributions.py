@@ -61,7 +61,7 @@ TEST_PARTITION_PATTERN = os.path.join(
     "part-00000.snappy.parquet",
 )
 FIGURES_OUT_DIR = os.path.join(BASE_DIR, "docs", "figures", "ml_evaluation")
-REPORTS_OUT_DIR = os.path.join(BASE_DIR, "reports", "evaluation", "ml_error_distribution")
+REPORTS_OUT_DIR = os.path.join(BASE_DIR, "data", "evaluation", "ml_error_distribution")
 
 TARGET_HORIZONS: List[int] = [1, 2, 5, 10]
 CATEGORICAL_FEATURES: List[str] = ["route_id_idx", "direction_id", "day_type", "hour_slot"]

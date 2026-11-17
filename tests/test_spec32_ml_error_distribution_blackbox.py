@@ -21,7 +21,7 @@ from PIL import Image
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FIGURES_DIR = PROJECT_ROOT / "docs" / "figures" / "ml_evaluation"
-REPORTS_DIR = PROJECT_ROOT / "reports" / "evaluation" / "ml_error_distribution"
+REPORTS_DIR = PROJECT_ROOT / "data" / "evaluation" / "ml_error_distribution"
 
 EXPECTED_SINGLE_FIGURES = [
     "fig_error_dist_k01_time_sec.png",

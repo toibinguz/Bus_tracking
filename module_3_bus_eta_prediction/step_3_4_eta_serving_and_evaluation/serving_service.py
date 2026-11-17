@@ -122,6 +122,8 @@ class MacroSpeedTracker:
             hist = self._history.setdefault(key, [])
             if hist:
                 last_t, last_s = hist[-1]
+                if t_sample < last_t:
+                    return round(self._ema.get(key, fallback_seed), 1), round(self._last_win_dt.get(key, 0.0), 1)
                 if s_bus < last_s - 50.0:
                     # Xe quay đầu bến / bắt đầu lượt mới
                     hist.clear()
@@ -400,7 +402,13 @@ class BusMapServingService:
                 for p_norm in target_plates:
                     cached = self._tb_last_valid.get((route_id, dir_int, p_norm))
                     if cached is not None and (now_epoch - cached[0]) <= TIMBUS_LIVE_CACHE_TTL_SEC:
-                        _, _, last_dto = cached
+                        cached_ts, cached_s, last_dto = cached
+                        bm_entry = bm_proj.get(p_norm)
+                        if bm_entry is not None:
+                            bm_v, s_bm, ct_bm = bm_entry
+                            bm_ts, _ = parse_ping_epoch(bm_v.updated_at, 0.0)
+                            if bm_ts > cached_ts and s_bm > cached_s and ct_bm <= MAX_CORRIDOR_CROSS_TRACK_M:
+                                continue
                         tb_valid_by_plate[p_norm] = last_dto
                     else:
                         plates_to_query.append(p_norm)
@@ -448,9 +456,12 @@ class BusMapServingService:
                             }
                         )
                         # Luôn giữ bản ghi TimBus mới nhất trong _tb_last_valid (kể cả khi đã qua trạm để bản đồ live chạy tiếp)
-                        bm_ahead_newer = bm_ping_epoch > tb_ts and s_bm > s_tb and ct_bm <= MAX_CORRIDOR_CROSS_TRACK_M
-                        if not bm_ahead_newer:
-                            with self._tb_lock:
+                        with self._tb_lock:
+                            cached = self._tb_last_valid.get(cache_key)
+                            if cached is not None and cached[0] > tb_ts:
+                                tb_ts, s_tb, tb_dto = cached
+                            bm_ahead_newer = bm_ping_epoch > tb_ts and s_bm > s_tb and ct_bm <= MAX_CORRIDOR_CROSS_TRACK_M
+                            if not bm_ahead_newer:
                                 self._tb_last_valid[cache_key] = (tb_ts, s_tb, tb_dto)
 
                         if not bm_ahead_newer:

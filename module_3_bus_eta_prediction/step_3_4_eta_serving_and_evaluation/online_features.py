@@ -174,7 +174,9 @@ class OnlineFeatureExtractor:
                     ring = self._obs.setdefault(ring_key, [])
                     if ring:
                         last_t, last_s, _ = ring[-1]
-                        if s_bus < last_s - 50.0:
+                        if t_obs < last_t:
+                            s_bus, spd = last_s, ring[-1][2]
+                        elif s_bus < last_s - 50.0:
                             ring.clear()
                             ring.append((t_obs, s_bus, spd))
                         elif (t_obs - last_t) >= MACRO_SPEED_MIN_SAMPLE_DT_SEC:
