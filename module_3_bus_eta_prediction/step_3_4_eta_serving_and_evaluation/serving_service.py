@@ -11,7 +11,7 @@ import logging
 import math
 import threading
 from datetime import datetime
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from config.system_config import (
     CONGESTION_SPEED_THRESHOLD_KMPH,
@@ -320,13 +320,15 @@ class BusMapServingService:
             raw_vehicles=live_resp.vehicles,
             shape_model=shape_model,
             now_epoch=now_epoch,
-            station_order=station_order,
-            s_target=s_target,
+            station_order=None,
+            s_target=None,
             use_live_cache=True,
         )
-        # Chỉ đưa các xe chưa bị loại theo trạm vào lịch sử quan sát (hợp nhất live đã giữ đủ xe)
+        # Fleet describes the whole route, independently of the requested station.
         self._extractor.update_observation(route_id, dir_int, merged, now_epoch)
-        return timbus_ok, merged
+        return timbus_ok, self._filter_station_vehicles(
+            route_id, dir_int, merged, shape_model, now_epoch, s_target, station_order
+        )
 
     def _sync_route_both_directions(
         self,
@@ -390,7 +392,6 @@ class BusMapServingService:
         if not target_plates:
             return self._apply_macro_speeds(route_id, dir_int, dir_str, bm_proj, raw_vehicles, shape_model, now_epoch)
 
-        passed_on_tb: Set[str] = set()
         tb_valid_by_plate: Dict[str, BusVehicleDTO] = {}
         plates_to_query: List[str] = []
 
@@ -399,14 +400,7 @@ class BusMapServingService:
                 for p_norm in target_plates:
                     cached = self._tb_last_valid.get((route_id, dir_int, p_norm))
                     if cached is not None and (now_epoch - cached[0]) <= TIMBUS_LIVE_CACHE_TTL_SEC:
-                        _, last_s_tb, last_dto = cached
-                        if s_target is not None and last_s_tb > s_target:
-                            passed_on_tb.add(p_norm)
-                            if station_order is not None:
-                                self._passed_station_plates[(route_id, dir_int, station_order, p_norm)] = now_epoch
-                            continue
-                        if station_order is not None:
-                            self._passed_station_plates.pop((route_id, dir_int, station_order, p_norm), None)
+                        _, _, last_dto = cached
                         tb_valid_by_plate[p_norm] = last_dto
                     else:
                         plates_to_query.append(p_norm)
@@ -433,7 +427,6 @@ class BusMapServingService:
                 bm_v, s_bm, ct_bm = bm_entry
                 bm_ping_epoch, _ = parse_ping_epoch(bm_v.updated_at, 0.0)
                 cache_key = (route_id, dir_int, p_norm)
-                passed_key = (route_id, dir_int, station_order, p_norm) if station_order is not None else None
 
                 tb_rec = tb_map.get(p_norm)
                 if tb_rec is not None:
@@ -460,30 +453,9 @@ class BusMapServingService:
                             with self._tb_lock:
                                 self._tb_last_valid[cache_key] = (tb_ts, s_tb, tb_dto)
 
-                        if s_target is not None:
-                            s_eff = s_bm if bm_ahead_newer else s_tb
-                            if s_eff > s_target:
-                                passed_on_tb.add(p_norm)
-                                if passed_key is not None:
-                                    with self._tb_lock:
-                                        self._passed_station_plates[passed_key] = now_epoch
-                                continue
-                            if passed_key is not None and self._is_recently_passed_locked(
-                                passed_key, s_eff, s_target, now_epoch
-                            ):
-                                passed_on_tb.add(p_norm)
-                                continue
-
                         if not bm_ahead_newer:
                             tb_valid_by_plate[p_norm] = tb_dto
                         continue
-
-                # Xe vừa được TimBus xác nhận vượt trạm gần đây -> không để gói BusMap 15s hồi sinh xe trước trạm
-                if s_target is not None and passed_key is not None and self._is_recently_passed_locked(
-                    passed_key, s_bm, s_target, now_epoch
-                ):
-                    passed_on_tb.add(p_norm)
-                    continue
 
                 # Tầng 2 (missing_tb) + Monotonicity Guard khi gói BusMap 15s làm mới: không kéo lùi xe vừa có TimBus tươi
                 with self._tb_lock:
@@ -491,21 +463,45 @@ class BusMapServingService:
                 if last_cached is not None:
                     last_ts, last_s_tb, last_dto = last_cached
                     within_limit = (now_epoch - last_ts) <= TIMBUS_HOLD_FRESH_SEC
-                    not_passed = s_target is None or last_s_tb <= s_target
-                    if within_limit and not_passed and s_bm < last_s_tb:
+                    if within_limit and s_bm < last_s_tb:
                         tb_valid_by_plate[p_norm] = last_dto
 
         merged: List[BusVehicleDTO] = []
         for v in raw_vehicles:
             p_norm = TimBusClient.normalize_plate(v.plate)
-            if p_norm in passed_on_tb:
-                continue
             if p_norm in tb_valid_by_plate:
                 merged.append(tb_valid_by_plate[p_norm])
             else:
                 merged.append(v)
 
-        return self._apply_macro_speeds(route_id, dir_int, dir_str, bm_proj, merged, shape_model, now_epoch)
+        merged = self._apply_macro_speeds(route_id, dir_int, dir_str, bm_proj, merged, shape_model, now_epoch)
+        return self._filter_station_vehicles(
+            route_id, dir_int, merged, shape_model, now_epoch, s_target, station_order
+        )
+
+    def _filter_station_vehicles(
+        self, route_id: int, dir_int: int, vehicles: List[BusVehicleDTO],
+        shape_model: ShapeProjectionModel, now_epoch: float,
+        s_target: Optional[float], station_order: Optional[int],
+    ) -> List[BusVehicleDTO]:
+        if s_target is None:
+            return vehicles
+        approaching = []
+        for vehicle in vehicles:
+            s_cur, cross_track, _ = shape_model.project_point(vehicle.lat, vehicle.lng)
+            if cross_track > MAX_CORRIDOR_CROSS_TRACK_M:
+                continue
+            plate = TimBusClient.normalize_plate(vehicle.plate)
+            key = (route_id, dir_int, station_order, plate) if station_order is not None else None
+            if s_cur > s_target:
+                if key is not None:
+                    with self._tb_lock:
+                        self._passed_station_plates[key] = now_epoch
+                continue
+            if key is not None and self._is_recently_passed_locked(key, s_cur, s_target, now_epoch):
+                continue
+            approaching.append(vehicle)
+        return approaching
 
     def _is_recently_passed_locked(
         self,
