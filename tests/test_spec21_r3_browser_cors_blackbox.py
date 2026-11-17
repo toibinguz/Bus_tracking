@@ -49,7 +49,7 @@ def public_demo():
         port = probe.getsockname()[1]
     APP_URL = f"http://127.0.0.1:{port}"
     process = subprocess.Popen(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "run_demo.ps1", "-Port", str(port), "-NoBrowser"],
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "run_demo.ps1", "-Port", str(port), "-NoBrowser", "-LocalData"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,

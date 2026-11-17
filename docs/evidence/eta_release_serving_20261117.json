@@ -1,0 +1,30 @@
+{
+  "started_at": "2026-11-17T11:18:00.299139+00:00",
+  "elapsed_sec": 3.484,
+  "stdin_closed": true,
+  "forced_cleanup": false,
+  "graceful_shutdown": true,
+  "artifact_unchanged": true,
+  "limitation": "catalog/geometry HTTP and lifecycle only; no live ETA accuracy claim; Docker left untouched",
+  "health": {
+    "status": "healthy",
+    "healthy": true,
+    "provider": "busmap_timbus",
+    "mode": "hybrid_live_local_storage",
+    "upstream": "https://api.busmap.city/v2/public/busmap/route_bus_gps",
+    "upstream_checked": false,
+    "serving": {
+      "mode": "release",
+      "artifact_id": "b117f55365bfc3709a667aa19f88969d2a38c2ce50e41af69b5ec77530fa252e",
+      "snapshot_id": "c331ba5f2fb26cdd33744047b4cf28eeb586924e05479302e546af325d048058",
+      "baseline_routes": [
+        "02",
+        "27"
+      ],
+      "model_status": "disabled_release_compatibility_unverified"
+    }
+  },
+  "catalog_route_count": 176,
+  "route_02_shape_points": 325,
+  "route_02_stations": 36
+}

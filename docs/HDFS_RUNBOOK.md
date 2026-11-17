@@ -56,6 +56,30 @@ Lệnh tải đúng partition từ Silver → baseline/incidents/features local 
 
 Hai lệnh không cần Docker. `inspect` verify release và trả snapshot/artifact ID. Có thể tra SQLite hiện hữu bằng `--source local --database data/hanoi_bus_system.db` thay nguồn release; không có chuyển nguồn ngầm.
 
+Chạy web từ release đã tải (không query HDFS trong request):
+
+```powershell
+.\run_demo.ps1 -ReleasePointer runtime/eta_demo_active.json -NoBrowser
+```
+
+Web kiểm tra manifest/hash và so geometry/station/route ID với catalog local trước
+khi dùng baseline. Incidents cũng đọc từ release; không lấy Parquet mặc định để
+bù ngầm. Các release hiện chưa pin mapping/model/calibrator đã nghiệm thu nên chế
+độ này chỉ dùng baseline ETA; `/api/health` công bố artifact/snapshot, các tuyến
+có baseline và lý do chưa bật ML. Các tuyến ngoài danh sách ấy không có baseline
+quan sát từ release. Chuyển pointer chỉ có hiệu lực ở lần khởi động web tiếp theo.
+Release hỏng hoặc geometry khác thì khởi động thất bại, không đổi sang DB khác.
+
+Test nhanh bằng nguồn local hiện hữu, bỏ lựa chọn release từ biến môi trường:
+
+```powershell
+.\run_demo.ps1 -LocalData -NoBrowser
+```
+
+Model ở chế độ local vẫn là ứng viên chưa nghiệm thu; không coi health `healthy`
+là upstream đang tốt hay model đã chính xác. Cả hai chế độ chỉ đọc dữ liệu khi
+khởi động/phục vụ, không hỏi xuất dữ liệu lúc dừng.
+
 Các bước riêng xem `scripts/eta_snapshot_pipeline.py --help`. `build` từ cache đã tải chạy local; publish/download cần HDFS. Lỗi refresh không đổi pointer tốt trước.
 
 ## 5. Query lịch sử

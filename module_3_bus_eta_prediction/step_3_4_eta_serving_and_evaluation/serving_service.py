@@ -10,12 +10,14 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 import math
 import threading
+from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Union
 
 from config.system_config import (
     CONGESTION_SPEED_THRESHOLD_KMPH,
     DEFAULT_ETA_POLL_SEC,
+    DEFAULT_DB_PATH,
     FREEFLOW_SPEED_THRESHOLD_KMPH,
     GPS_DRIFT_MAX_SPEED_KMPH,
     MACRO_SPEED_EMA_ALPHA,
@@ -193,10 +195,25 @@ class MacroSpeedTracker:
 class BusMapServingService:
     """Service phục vụ danh mục tuyến, vị trí xe trực tiếp và dự báo ETA trạm (ML + baseline)."""
 
-    def __init__(self, db_path: Optional[str] = None, timbus_db_path: Optional[str] = None):
-        self._da = DataAccess(db_path, timbus_db_path=timbus_db_path)
-        self._runtime = ModelRuntime.load()
-        self._incidents = IncidentsProvider()
+    def __init__(self, db_path: Optional[str] = None, timbus_db_path: Optional[str] = None, release_pointer: Optional[str] = None):
+        if release_pointer:
+            from .release_source import load_release_source
+            catalog = db_path or Path(__file__).resolve().parents[2] / DEFAULT_DB_PATH
+            source = load_release_source(release_pointer, catalog)
+            self._da = DataAccess(db_path, timbus_db_path=timbus_db_path, baseline_db_path=source['baseline_database'])
+            self._incidents = IncidentsProvider(source['release'])
+            # Do not pair a subset baseline with a separately trained category/calibrator mapping.
+            self._runtime = ModelRuntime()
+            self.source_info = dict(mode='release', artifact_id=source['artifact_id'],
+                                    snapshot_id=source['snapshot_id'], baseline_routes=source['baseline_routes'],
+                                    model_status='disabled_release_compatibility_unverified')
+        else:
+            self._da = DataAccess(db_path, timbus_db_path=timbus_db_path)
+            self._runtime = ModelRuntime.load()
+            self._incidents = IncidentsProvider()
+            self.source_info = dict(mode='local', artifact_id=None, snapshot_id=None,
+                                    baseline_routes=sorted(self._da.route_idx_by_code),
+                                    model_status='candidate_unverified' if self._runtime.available else 'unavailable')
         self._extractor = OnlineFeatureExtractor(self._da, self._incidents)
         self._shape_models: Dict[Tuple[int, str], Optional[ShapeProjectionModel]] = {}
         # Cache Monotonicity, danh sách xe vượt trạm theo từng trạm & vận tốc vĩ mô cho luồng hybrid TimBus 5s
