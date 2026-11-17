@@ -1,0 +1,48 @@
+{
+  "fresh_project": "bus_eta_bootstrap_20261117",
+  "two_live_datanodes": true,
+  "permissions": [
+    "root:supergroup 755 hf_raw",
+    "spark:supergroup 755 history",
+    "spark:supergroup 755 history_snapshots",
+    "root:supergroup 755 eta_artifacts"
+  ],
+  "restore": {
+    "project": "bus_eta_bootstrap_20261117",
+    "bytes": 1990612,
+    "content_sha256": "fc0d7ee1b9eca673ef4d02cd22a2f8c00ac2400b6079f479d1354728d5f8766e",
+    "old_receipt_did_not_hide_missing_remote": true,
+    "retry_idempotent": true
+  },
+  "cold_baseline": {
+    "source": "release",
+    "identity": {
+      "activated_at": "2026-11-17T05:14:45.594435+00:00",
+      "artifact_id": "b117f55365bfc3709a667aa19f88969d2a38c2ce50e41af69b5ec77530fa252e",
+      "release": "Z:\\Desktop\\Bus_tracking\\runtime\\eta_releases\\b117f55365bfc3709a667aa19f88969d2a38c2ce50e41af69b5ec77530fa252e",
+      "snapshot_id": "c331ba5f2fb26cdd33744047b4cf28eeb586924e05479302e546af325d048058"
+    },
+    "row": {
+      "route_code": "02",
+      "direction": "go",
+      "from_station_order": 24,
+      "to_station_order": 25,
+      "from_station_id": 666,
+      "to_station_id": 519,
+      "from_station_name": "Đại học Công Đoàn",
+      "to_station_name": "83 Nguyễn Lương Bằng",
+      "segment_length_m": 838.4,
+      "day_type": 0,
+      "hour_slot": 19,
+      "sample_count": 9,
+      "quality_tier": 1,
+      "tt_p10_sec": 132.7,
+      "tt_p50_sec": 186.77,
+      "tt_p90_sec": 222.21,
+      "tt_mean_sec": 182.55,
+      "tt_std_sec": 32.4
+    }
+  },
+  "test_volumes_removed": true,
+  "primary_cluster_restarted": true
+}

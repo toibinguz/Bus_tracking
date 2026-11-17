@@ -54,7 +54,7 @@ def upload(index,workers):
     print('UPLOAD_STATS='+json.dumps(dict(batches=len(sources),elapsed_seconds=round(time.monotonic()-started,2))),flush=True)
 
 
-def run(plan_path,workers,chunk_size):
+def run(plan_path,workers,chunk_size,recheck=False):
     from huggingface_hub import hf_hub_download
     from config import get_hf_token
     root=Path(plan_path).resolve().parent
@@ -85,7 +85,7 @@ def run(plan_path,workers,chunk_size):
         index=root/'chunks'/('%05d.json'%chunk_id)
         atomic_write(index,encoded(sources))
         receipts=[root/'stage'/m['batch_id']/'receipts'/(inventory['revision']+'.json') for m in metadata]
-        if not all(path.exists() for path in receipts):
+        if recheck or not all(path.exists() for path in receipts):
             command=['docker','compose','-f',str(ROOT/'docker-compose.hdfs.yml'),'--profile','import','run','--rm','--no-deps','history-import','python3','/workspace/scripts/hdfs_import_history.py','upload','--index','/import/chunks/'+index.name,'--workers',str(workers)]
             result=subprocess.run(command,capture_output=True,text=True,timeout=600)
             atomic_write(root/'logs'/('%05d.txt'%chunk_id),(result.stdout+result.stderr).encode())
@@ -115,6 +115,7 @@ if __name__=='__main__':
     execute.add_argument('--plan',type=Path,required=True)
     execute.add_argument('--workers',type=int,default=4)
     execute.add_argument('--chunk-size',type=int,default=128)
+    execute.add_argument('--recheck',action='store_true',help='verify/upload every chunk again, including local receipts; use after restoring or replacing HDFS volumes')
     uploader=sub.add_parser('upload')
     uploader.add_argument('--index',type=Path,required=True)
     uploader.add_argument('--workers',type=int,default=4)
@@ -126,4 +127,4 @@ if __name__=='__main__':
     elif args.command=='upload':
         upload(args.index,args.workers)
     else:
-        run(args.plan,args.workers,args.chunk_size)
+        run(args.plan,args.workers,args.chunk_size,args.recheck)

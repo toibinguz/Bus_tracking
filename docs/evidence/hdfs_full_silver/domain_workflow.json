@@ -1,0 +1,44 @@
+{
+  "artifact_id": "b117f55365bfc3709a667aa19f88969d2a38c2ce50e41af69b5ec77530fa252e",
+  "snapshot_id": "c331ba5f2fb26cdd33744047b4cf28eeb586924e05479302e546af325d048058",
+  "release": "Z:\\Desktop\\Bus_tracking\\runtime\\eta_releases\\b117f55365bfc3709a667aa19f88969d2a38c2ce50e41af69b5ec77530fa252e",
+  "activated_at": "2026-11-17T05:14:45.594435+00:00",
+  "baseline_result": {
+    "total_cells": 7599,
+    "tier_counts": {
+      "0": 0,
+      "1": 2328,
+      "2": 5271,
+      "3": 0
+    },
+    "train_trips": 387,
+    "test_trips": 411,
+    "rejected_slow_or_fast": 0,
+    "unbracketed_pairs": 6269,
+    "route_eda_stats": {
+      "02": {
+        "train_pings": 10213,
+        "test_pings": 10345,
+        "train_trips": 208,
+        "test_trips": 215,
+        "train_seg_samples": 5754,
+        "test_seg_samples": 5661
+      },
+      "27": {
+        "train_pings": 9569,
+        "test_pings": 10542,
+        "train_trips": 179,
+        "test_trips": 196,
+        "train_seg_samples": 5573,
+        "test_seg_samples": 6200
+      }
+    },
+    "elapsed_sec": 13.62
+  },
+  "feature_result": {
+    "train_rows": 56196,
+    "test_rows": 57373,
+    "n_columns": 60,
+    "elapsed_sec": 19.04
+  }
+}

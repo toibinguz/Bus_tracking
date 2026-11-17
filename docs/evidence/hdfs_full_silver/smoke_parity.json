@@ -1,0 +1,31 @@
+{
+  "snapshot_id": "978ee8411b0c43d01c75d139cdee7717ad4352835562cbed2eb4380e1dd0bf93",
+  "accepted_bus_rows": 3324,
+  "exact_local_projection_parity": true,
+  "unique_events": 4145,
+  "cross_batch_duplicate_events": 0,
+  "query": {
+    "route_code": "08A",
+    "date_from": "2026-11-12",
+    "date_to": "2026-11-12",
+    "rows": [
+      {
+        "dt": "2026-11-12",
+        "ping_count": 70,
+        "speed_sample_count": 58,
+        "avg_speed_kmh": 11.618275862068963
+      }
+    ],
+    "storage": "hdfs-silver",
+    "provenance": "observed",
+    "snapshot_id": "978ee8411b0c43d01c75d139cdee7717ad4352835562cbed2eb4380e1dd0bf93"
+  },
+  "independent_sql": [
+    {
+      "dt": "2026-11-12",
+      "ping_count": 70,
+      "speed_sample_count": 58,
+      "avg_speed_kmh": 11.618275862068963
+    }
+  ]
+}

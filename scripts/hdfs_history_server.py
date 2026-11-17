@@ -76,8 +76,12 @@ def main():
              .config('spark.hadoop.ipc.client.connect.max.retries.on.timeouts', '1')
              .config('spark.hadoop.dfs.client.socket-timeout', '5000')
              .config('spark.executor.memory', '512m')
+             .config('spark.sql.shuffle.partitions', '2')
              .config('spark.cores.max', '2').getOrCreate())
     try:
+        # Initialize the SQL runtime before accepting deadline-bound HTTP requests.
+        spark.sparkContext.setLogLevel('WARN')
+        spark.range(1).count()
         HTTPServer(("0.0.0.0", 8090), handler_for(spark)).serve_forever()
     finally:
         spark.stop()

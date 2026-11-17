@@ -9,9 +9,9 @@ Chạy tại root repository; Docker Desktop Linux containers, Python `.venv` c�
 .\scripts\hdfs_demo.ps1 health
 ```
 
-Report cần **2 live DataNode**. NameNode UI `http://127.0.0.1:9870`; Spark UI `http://127.0.0.1:8080`. Tắt bằng `docker compose -f docker-compose.hdfs.yml down`, giữ named volumes.
+Report cần **2 live DataNode**. Kiểm tra cụm bằng health/CLI; API trên host ở cổng 8090 (phần 5). Trên Docker Desktop đã kiểm chứng, cổng UI của core trong mạng private không forward ra host. Tắt bằng `.\scripts\hdfs_demo.ps1 down`: dừng cả profile API và giữ named volumes.
 
-Hướng dẫn dùng namespace/reference đã có trên cụm đã kiểm chứng, chưa là bootstrap cụm trắng. Script provision P2 cũ không tạo đầy đủ namespace history hiện hành.
+`up` đợi health của cụm, safemode kết thúc rồi chạy `hdfs_provision_namespace.sh`: Bronze/reference/receipt thuộc root, Silver/history publication thuộc spark, mode 755. Script chỉ chỉnh các root được liệt kê, không xóa dữ liệu. Reference canonical vẫn cần được export trước lượt xử lý đầu tiên.
 
 ## 2. Resume nhập raw history và kiểm tra
 
@@ -22,22 +22,30 @@ docker compose -f docker-compose.hdfs.yml --profile import run --rm --no-deps hi
 docker compose -f docker-compose.hdfs.yml exec -T namenode hdfs fsck /bus-eta/v1/bronze/hf_raw
 ```
 
-Plan chốt revision. Resume dùng receipt local; verifier mới đọc lại toàn bộ remote bytes/lineage. Cache/staging/checkpoint dưới `runtime/hf_full_history/` được ignore.
+Plan chốt revision. Resume dùng receipt local; verifier mới đọc lại toàn bộ remote bytes/lineage. Nếu đã thay/mất volume HDFS, thêm `--recheck` vào lệnh `run` để không bỏ qua batch chỉ vì còn receipt local. Cache/staging/checkpoint dưới `runtime/hf_full_history/` được ignore.
 
 Muốn revision khác: dùng `scripts/hdfs_import_history.py plan --plan <tên_mới_trong_cùng_thư_mục> --revision <commit_HF>`. Không ghi đè plan cũ. Nhập thêm raw không tự cập nhật Silver/Gold.
 
-## 3. Chạy tập mẫu đến release
+## 3. Silver và release
+
+Xuất reference từ canonical SQLite (read-only), rồi chạy Silver. Đây là cấu hình đã chạy toàn kho trên laptop; lưu log và lấy `snapshot_id` từ dòng `U3_RESULT`.
+
+```powershell
+$reference = .\.venv\Scripts\python.exe scripts/export_hdfs_history_reference.py data/hanoi_bus_system.db runtime/history_reference_current.json
+docker compose -f docker-compose.hdfs.yml exec -T spark-master /opt/spark/bin/spark-submit --master spark://spark-master:7077 --conf spark.cores.max=4 --conf spark.executor.cores=2 --conf spark.executor.memory=768m --conf spark.python.worker.memory=256m --conf spark.executorEnv.PYTHONPATH=/workspace /workspace/scripts/hdfs_build_history_snapshot.py --reference $reference --all-received --partitions 32 --max-session-events 50000
+```
+
+Muốn xử lý tập nhỏ, thay `--all-received` bằng `--batch-id ID1 ID2 ...`. Builder giữ trajectory qua nửa đêm; chỉ tách khi gap vượt ngưỡng stale. Lỗi hoặc vượt giới hạn không được công bố. Cùng input/reference/code trả `noop`.
+
+Từ snapshot đã công bố, chọn ngày/tuyến để tạo dữ liệu ETA. Thay `<snapshot_id>` bằng ID builder trả về; dùng workspace mới khi đổi input/code hoặc còn output dở.
 
 ```powershell
 docker compose -f docker-compose.hdfs.yml --profile eta build eta-artifacts
-.\.venv\Scripts\python.exe scripts/run_hdfs_eta_workflow.py --source-window docs/evidence/hdfs_u456/source_window.json --workspace runtime/eta_window_next --dates 2026-10-27 2026-11-01 --routes 02 27 --pointer runtime/eta_demo_active.json
+$snapshotId = 'ID_builder_tra_ve'
+.\.venv\Scripts\python.exe scripts/run_hdfs_eta_workflow.py --snapshot $snapshotId --workspace runtime/eta_window_next --dates 2026-10-27 2026-11-01 --routes 02 27 --pointer runtime/eta_demo_active.json
 ```
 
-Source window pin revision/bốn batch và reference URI. Reference phải có trong HDFS. Nếu reference đổi, export bằng `scripts/export_hdfs_history_reference.py <canonical.db> <output.json>` và dùng URI trả về trong bản source window riêng.
-
-Luồng chạy: HF → Bronze → Spark Silver → cache → baseline/incidents/features local → HDFS Gold → download/verify → activate **pointer demo**. Dùng workspace mới khi input/reference/code đổi hoặc output cũ còn dở. Không lấy snapshot ID của lượt cũ; dùng `ETA_SOURCE_SNAPSHOT` từ output.
-
-Workflow chỉ truyền batch IDs trong source window. Builder riêng bắt buộc `--batch-id ...` hoặc `--all-received`; chưa dùng lựa chọn toàn kho khi chưa kiểm chứng RAM.
+Lệnh tải đúng partition từ Silver → baseline/incidents/features local → HDFS Gold → download/verify → activate **pointer demo**. Không thay DB/model ứng dụng. Đường `--source-window` vẫn có trong CLI nếu muốn nạp một cửa sổ HF rồi xử lý, thay vì dùng snapshot đã có.
 
 ## 4. Offline
 
@@ -53,7 +61,7 @@ Các bước riêng xem `scripts/eta_snapshot_pipeline.py --help`. `build` từ 
 ## 5. Query lịch sử
 
 ```powershell
-docker compose -f docker-compose.hdfs.yml --profile history up -d history-api
+docker compose -f docker-compose.hdfs.yml --profile history up -d --force-recreate --no-deps history-api
 ```
 
-Gọi `GET http://127.0.0.1:8090/api/history/route-speed` với `route_code`, `date_from`, `date_to`, **snapshot_id của lượt chạy cần đọc**. Bỏ snapshot ID sẽ đọc fixture legacy, không tự chọn snapshot mới nhất. API chỉ đọc publication; mất HDFS/deadline trả lỗi, không chuyển sang SQLite.
+Đợi API khởi tạo Spark rồi gọi `GET http://127.0.0.1:8090/api/history/route-speed` với `route_code`, `date_from`, `date_to`, **snapshot_id cần đọc**. Bỏ snapshot ID sẽ đọc fixture legacy, không tự chọn snapshot mới nhất. API chỉ đọc publication và partition được chọn; mất HDFS/deadline trả lỗi, không chuyển sang SQLite.

@@ -36,14 +36,29 @@ def verify_files(root, manifest):
             raise ValueError('file missing/corrupted/outside release: '+relative)
 
 
-def parquet_table(store,path):
+def parquet_table(store,path,dates=None,routes=None,allow_empty=False):
     import pyarrow as pa
     import pyarrow.parquet as pq
     listing = store.call('-ls','-R',path).decode()
     paths = sorted(line.split()[-1] for line in listing.splitlines() if line.split() and line.split()[-1].endswith('.parquet'))
     if not paths:
         raise ValueError('no Parquet parts: '+path)
-    tables = [pq.read_table(io.BytesIO(store.read(part))) for part in paths]
+    def selected(part):
+        partitions=dict(re.findall(r'/(dt|route_code)=([^/]+)',part))
+        return (not dates or 'dt' not in partitions or partitions['dt'] in dates) and (not routes or 'route_code' not in partitions or partitions['route_code'] in routes)
+    tables=[]
+    for part in paths:
+        if not selected(part):
+            continue
+        table=pq.read_table(io.BytesIO(store.read(part)))
+        for key,value in re.findall(r'/(dt|route_code)=([^/]+)',part):
+            if key not in table.column_names:
+                table=table.append_column(key,pa.array([value]*len(table),type=pa.string()))
+        tables.append(table)
+    if not tables:
+        if allow_empty:
+            return pa.table({'raw_json':pa.array([],type=pa.string())})
+        raise ValueError('no Parquet parts in selected dates/routes')
     return pa.concat_tables(tables)
 
 
@@ -66,10 +81,16 @@ def materialize(snapshot_id, cache, dates, routes=None, store=None):
     reference_raw = store.read(source['reference_path'])
     if digest(reference_raw)!=source['reference_sha256']:
         raise ValueError('reference hash mismatch')
-    frame = parquet_table(store,source['silver_path']).to_pandas()
-    if len(frame)!=source['accepted_bus_rows']:
+    partition_index=source.get('silver_partitions')
+    if partition_index is not None and sum(row['rows'] for row in partition_index)!=source['accepted_bus_rows']:
+        raise ValueError('snapshot partition index count mismatch')
+    frame = parquet_table(store,source['silver_path'],dates if partition_index is not None else None,routes if partition_index is not None else None).to_pandas()
+    expected_rows=(sum(row['rows'] for row in partition_index if row['dt'] in dates and (not routes or row['route_code'] in routes))
+                   if partition_index is not None else source['accepted_bus_rows'])
+    if len(frame)!=expected_rows:
         raise ValueError('snapshot count mismatch')
-    frame['dt'] = frame['device_update_time'].str[:10]
+    import pandas as pd
+    frame['dt'] = pd.to_datetime(frame['device_epoch_s'],unit='s',utc=True).dt.tz_convert('Asia/Ho_Chi_Minh').dt.strftime('%Y-%m-%d')
     frame = frame[frame['dt'].isin(dates)]
     if routes:
         frame = frame[frame['route_code'].isin(routes)]
@@ -85,11 +106,11 @@ def materialize(snapshot_id, cache, dates, routes=None, store=None):
         group.drop(columns=['route_code','dt']).to_parquet(target/'part.parquet',index=False)
     incident_count = 0
     if source['incident_observations']:
-        incidents = parquet_table(store,source['snapshot_path']+'/incident_observations').to_pylist()
+        incidents = parquet_table(store,source['snapshot_path']+'/incident_observations',dates,allow_empty=True).to_pylist()
         by_day = {}
         for row in incidents:
             incident = json.loads(row['raw_json'])
-            day = incident['timestamp'][:10]
+            day = pd.Timestamp(incident['timestamp']).tz_convert('Asia/Ho_Chi_Minh').strftime('%Y-%m-%d')
             if day in dates:
                 by_day.setdefault(day,[]).append(incident)
         for day, rows in by_day.items():

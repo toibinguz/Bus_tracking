@@ -1,0 +1,28 @@
+{
+  "artifact_id": "b117f55365bfc3709a667aa19f88969d2a38c2ce50e41af69b5ec77530fa252e",
+  "snapshot_id": "c331ba5f2fb26cdd33744047b4cf28eeb586924e05479302e546af325d048058",
+  "offline_external_calls": 0,
+  "baseline_lookup": {
+    "route_code": "02",
+    "direction": "go",
+    "from_station_order": 24,
+    "to_station_order": 25,
+    "from_station_id": 666,
+    "to_station_id": 519,
+    "from_station_name": "Đại học Công Đoàn",
+    "to_station_name": "83 Nguyễn Lương Bằng",
+    "segment_length_m": 838.4,
+    "day_type": 0,
+    "hour_slot": 19,
+    "sample_count": 9,
+    "quality_tier": 1,
+    "tt_p10_sec": 132.7,
+    "tt_p50_sec": 186.77,
+    "tt_p90_sec": 222.21,
+    "tt_mean_sec": 182.55,
+    "tt_std_sec": 32.4
+  },
+  "corrupted_release_rejected": true,
+  "failed_refresh_kept_active": true,
+  "docker_was_not_stopped": "external calls were blocked; other running services were left intact"
+}

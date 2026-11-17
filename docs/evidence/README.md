@@ -4,6 +4,7 @@ Mỗi thư mục ghi kết quả tại dữ liệu/revision/thời điểm của
 
 | Nội dung | Bằng chứng |
 | --- | --- |
+| Silver toàn lịch sử, ETA, offline và restart — 17/11 | [Kết quả hiện hành](hdfs_full_silver/README.md) |
 | Toàn bộ raw của revision cố định | [Full history](hdfs_full_history/README.md) |
 | Bronze/retry/outage | [Bronze](hdfs_u2/README.md) |
 | Silver/late data/publication | [Silver](hdfs_u3/README.md) |
