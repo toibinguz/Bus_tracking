@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 
 import pytest
+import requests
 from fastapi.testclient import TestClient
 
 
@@ -99,16 +100,11 @@ def test_f04_declared_http_surface_exposes_existing_busmap_routes(client: TestCl
         assert {"route_id", "route_code", "direction", "target_station", "approaching_count", "buses"} <= set(eta.json())
 
 
-def _port_is_open(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        probe.settimeout(0.2)
-        return probe.connect_ex(("127.0.0.1", port)) == 0
-
-
 def test_f05_launcher_accepts_existing_server_health() -> None:
-    """Run the public launcher while a compatible server is already on port 8000."""
-    if _port_is_open(8000):
-        pytest.skip("port 8000 is already in use; launcher must be tested in an isolated run")
+    """Reuse a healthy server on an isolated port without replacing its process."""
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
 
     server = subprocess.Popen(
         [
@@ -119,7 +115,7 @@ def test_f05_launcher_accepts_existing_server_health() -> None:
             "--host",
             "127.0.0.1",
             "--port",
-            "8000",
+            str(port),
         ],
         cwd=ROOT,
         stdout=subprocess.DEVNULL,
@@ -128,14 +124,17 @@ def test_f05_launcher_accepts_existing_server_health() -> None:
     try:
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
-            if _port_is_open(8000):
-                break
+            try:
+                if requests.get(f"http://127.0.0.1:{port}/api/v1/health", timeout=1).json() == EXPECTED_HEALTH:
+                    break
+            except (requests.RequestException, ValueError):
+                pass
             time.sleep(0.2)
         else:
-            pytest.fail("server did not start within 30 seconds")
+            pytest.fail("server did not become healthy within 30 seconds")
 
         result = subprocess.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "run_demo.ps1"],
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "run_demo.ps1", "-Port", str(port), "-NoBrowser"],
             cwd=ROOT,
             capture_output=True,
             text=True,

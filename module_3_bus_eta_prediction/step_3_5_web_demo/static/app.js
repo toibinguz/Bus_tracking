@@ -23,6 +23,9 @@
   let pollTimer = null;
   let countdownTimer = null;
   let isPolling = false;
+  let routeGeneration = 0;
+  let focusRequestId = 0;
+  let popupRequestId = 0;
   let latestLiveVehicles = [];
 
   // Active markers map: vehicleId -> Leaflet Marker
@@ -485,12 +488,15 @@
   async function refreshOpenPopupEta() {
     if (!latestPopupStationRef || !latestPopupContainer || !latestPopupContainer.isConnected) return;
     const ref = latestPopupStationRef;
+    const container = latestPopupContainer;
+    const requestId = ++popupRequestId;
     if (ref.routeId !== currentRouteId || ref.direction !== currentDirection) return;
     try {
       const res = await fetch(`/api/station-eta?route_id=${ref.routeId}&direction=${ref.direction}&station_order=${ref.stationOrder}`);
       if (!res.ok) return;
       const data = await res.json();
-      if (!latestPopupContainer || !latestPopupContainer.isConnected) return;
+      if (requestId !== popupRequestId || latestPopupStationRef !== ref ||
+          latestPopupContainer !== container || !container.isConnected) return;
       latestPopupEtaData = data;
       renderStationPopupEta(latestPopupContainer, data);
     } catch (err) {
@@ -539,10 +545,13 @@
       return;
     }
 
+    const ref = pinnedStation;
+    const requestId = ++focusRequestId;
     try {
-      const res = await fetch(`/api/station-eta?route_id=${pinnedStation.routeId}&direction=${pinnedStation.direction}&station_order=${pinnedStation.stationOrder}`);
+      const res = await fetch(`/api/station-eta?route_id=${ref.routeId}&direction=${ref.direction}&station_order=${ref.stationOrder}`);
       if (!res.ok) return;
       const data = await res.json();
+      if (pinnedStation !== ref || requestId !== focusRequestId) return;
       renderStationFocusCard(data);
       syncStationFastPolling(data);
     } catch (err) {
@@ -742,21 +751,32 @@
 
     if (!container) return;
 
+    const ref = { routeId: currentRouteId, direction, stationOrder: station.station_order };
+    const requestId = ++popupRequestId;
+    latestPopupStationRef = ref;
+    latestPopupContainer = container;
+    latestPopupEtaData = null;
+    const isCurrent = () => requestId === popupRequestId && latestPopupStationRef === ref &&
+      latestPopupContainer === container && container.isConnected &&
+      ref.routeId === currentRouteId && direction === currentDirection;
+
     try {
-      const res = await fetch(`/api/station-eta?route_id=${currentRouteId}&direction=${direction}&station_order=${station.station_order}`);
+      const res = await fetch(`/api/station-eta?route_id=${ref.routeId}&direction=${direction}&station_order=${station.station_order}`);
       if (!res.ok) {
+        if (!isCurrent()) return;
         container.innerHTML = '<div class="popup-eta-loading">Không có dữ liệu ETA trạm này</div>';
         return;
       }
       const data = await res.json();
+      if (!isCurrent()) return;
       latestPopupEtaData = data;
       latestPopupStationOrder = station.station_order;
       latestPopupContainer = container;
-      latestPopupStationRef = { routeId: currentRouteId, direction: direction, stationOrder: station.station_order };
       renderStationPopupEta(container, data);
       syncStationFastPolling(data);
       return;
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('[Station Popup ETA] Lỗi nạp ETA:', err);
       container.innerHTML = '<div class="popup-eta-loading">Lỗi kết nối khi tính ETA</div>';
     }
@@ -767,6 +787,7 @@
    */
   async function fetchRouteShape(routeId, direction) {
     if (!routeId) return;
+    const generation = routeGeneration;
     try {
       const res = await fetch(`/api/route-shape?route_id=${routeId}&direction=${direction}`);
       if (!res.ok) {
@@ -774,6 +795,7 @@
         return;
       }
       const data = await res.json();
+      if (generation !== routeGeneration || routeId !== currentRouteId || direction !== currentDirection) return;
       const coords = data.coordinates;
       if (!coords || coords.length === 0) return;
 
@@ -810,6 +832,7 @@
    */
   async function fetchRouteStations(routeId, direction) {
     if (!routeId) return;
+    const generation = routeGeneration;
     try {
       const res = await fetch(`/api/route-stations?route_id=${routeId}&direction=${direction}`);
       if (!res.ok) {
@@ -817,6 +840,7 @@
         return;
       }
       const data = await res.json();
+      if (generation !== routeGeneration || routeId !== currentRouteId || direction !== currentDirection) return;
       const stations = data.stations;
       if (!stations || stations.length === 0) return;
 
@@ -845,14 +869,18 @@
   async function pollVehicles() {
     if (!currentRouteId || isPolling) return;
     isPolling = true;
+    const generation = routeGeneration;
+    const routeId = currentRouteId;
+    const direction = currentDirection;
 
     try {
-      const response = await fetch(`/api/live-vehicles?route_id=${currentRouteId}&direction=${currentDirection}`);
+      const response = await fetch(`/api/live-vehicles?route_id=${routeId}&direction=${direction}`);
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
       }
 
       const data = await response.json();
+      if (generation !== routeGeneration) return;
       const vehicles = data.vehicles || [];
       latestLiveVehicles = vehicles;
 
@@ -874,11 +902,14 @@
         refreshOpenPopupEta();
       }
     } catch (err) {
+      if (generation !== routeGeneration) return;
       console.error('[Hanoi Bus Live] Lỗi lấy dữ liệu xe trực tiếp:', err);
       vehicleCountEl.textContent = 'Mất kết nối GPS';
     } finally {
-      isPolling = false;
-      resetCountdown();
+      if (generation === routeGeneration) {
+        isPolling = false;
+        resetCountdown();
+      }
     }
   }
 
@@ -930,6 +961,9 @@
    * Xóa sạch các lớp hình học tim tuyến và trạm dừng
    */
   function clearRouteLayers() {
+    routeGeneration += 1;
+    isPolling = false;
+    latestLiveVehicles = [];
     if (routePolyline) {
       routePolyline.remove();
       routePolyline = null;

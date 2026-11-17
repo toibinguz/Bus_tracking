@@ -9,6 +9,8 @@ import os
 import shutil
 import subprocess
 import threading
+import tempfile
+import socket
 import time
 from contextlib import contextmanager
 
@@ -33,24 +35,28 @@ def _wait_for_public_app() -> None:
     pytest.fail("documented demo launcher did not expose /api/health within 30 seconds")
 
 
-def _listener_pid() -> int | None:
+def _listener_pid(port: int = 8000) -> int | None:
     output = subprocess.run(["netstat", "-ano"], capture_output=True, text=True, check=True).stdout
-    match = re.search(r"127\.0\.0\.1:8000\s+0\.0\.0\.0:0\s+LISTENING\s+(\d+)", output)
+    match = re.search(rf"127\.0\.0\.1:{port}\s+0\.0\.0\.0:0\s+LISTENING\s+(\d+)", output)
     return int(match.group(1)) if match else None
 
 
 @pytest.fixture(scope="module")
 def public_demo():
-    assert _listener_pid() is None, "port 8000 must be free before the public-launcher test"
+    global APP_URL
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    APP_URL = f"http://127.0.0.1:{port}"
     process = subprocess.Popen(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "run_demo.ps1"],
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "run_demo.ps1", "-Port", str(port), "-NoBrowser"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
     )
     try:
         _wait_for_public_app()
-        listener_pid = _listener_pid()
+        listener_pid = _listener_pid(port)
         assert listener_pid is not None, "launcher health responded without a local listener"
         yield
     finally:
@@ -110,12 +116,13 @@ def test_r3_hostile_provider_text_renders_as_literal_dom_text(public_demo):
     if not shutil.which("chrome") and not os.path.exists(chrome):
         pytest.skip("No executable browser is available for the required R3 DOM check")
 
-    with hostile_routes_proxy() as proxy_url:
+    with hostile_routes_proxy() as proxy_url, tempfile.TemporaryDirectory(prefix="bus-dom-") as profile:
         result = subprocess.run(
             [
                 chrome,
                 "--headless=new",
                 "--no-first-run",
+                f"--user-data-dir={profile}",
                 "--no-sandbox",
                 "--disable-gpu-sandbox",
                 "--disable-gpu-watchdog",
