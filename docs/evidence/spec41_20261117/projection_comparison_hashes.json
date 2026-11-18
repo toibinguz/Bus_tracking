@@ -1,0 +1,22 @@
+{
+  "runtime\\projection_methods_20261118_v3\\report.json": {
+    "sha256": "14bd6845603ea76e7307926708adb8b533f0b23e7680828742477c6b4f5761f2",
+    "bytes": 9881
+  },
+  "runtime\\projection_methods_20261118_v3\\compare_live_projection_methods.py": {
+    "sha256": "f2a32694f42c413d3247ab378a9cb5263f1c3a2e76b078e992e51e49b8edb014",
+    "bytes": 14446
+  },
+  "runtime\\projection_methods_20261118_v3\\route_projection_candidates.py": {
+    "sha256": "d09e6f8dcf9acbbe03f10b24d4f2265d1846e4e075bd3342fdef117a200fa887",
+    "bytes": 5144
+  },
+  "runtime\\projection_scope_checks_20261118.log": {
+    "sha256": "a5164428be32d71bb7cb9f127e9c881815d3fd5f8f5bd6a4970417d4923c3ab9",
+    "bytes": 5424
+  },
+  "scripts\\plot_live_projection_comparison.py": {
+    "sha256": "e6082fb42745c2b8389a466f671dcc11f3559cec70406e4f580b60539584d20d",
+    "bytes": 4421
+  }
+}

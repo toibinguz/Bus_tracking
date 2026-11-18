@@ -1,0 +1,97 @@
+{
+  "artifact_id": "4ee4031b0330c244267f0a249eaa8b49f3151bd664c277945c1179045e500e8a",
+  "baseline_result": {
+    "elapsed_sec": 0.73,
+    "rejected_slow_or_fast": 0,
+    "route_eda_stats": {
+      "27": {
+        "test_pings": 98,
+        "test_seg_samples": 42,
+        "test_trips": 12,
+        "train_pings": 79,
+        "train_seg_samples": 24,
+        "train_trips": 7
+      },
+      "02": {
+        "test_pings": 94,
+        "test_seg_samples": 32,
+        "test_trips": 11,
+        "train_pings": 87,
+        "train_seg_samples": 30,
+        "train_trips": 12
+      }
+    },
+    "test_trips": 23,
+    "tier_counts": {
+      "0": 0,
+      "1": 0,
+      "2": 2448,
+      "3": 5151
+    },
+    "total_cells": 7599,
+    "train_trips": 19,
+    "unbracketed_pairs": 1382
+  },
+  "cache_id": "bb2da13b442f86778c7b76350f0dfa90fce31db15d5e65537ac092e7bca6e599",
+  "code": {
+    "module_3_bus_eta_prediction\\step_3_1_historical_baseline_model\\baseline_matrix_builder.py": "29e84adb3fa99f40b3712ad3ffa7ade2885a22cdccd5507775c87a8093d27893",
+    "module_3_bus_eta_prediction\\step_3_2_feature_store_extractor\\feature_store_builder.py": "e378411f290a33a8ce4f772202faf7a25a2cae1c54eb286bcbf1dfc2dc3ae19f"
+  },
+  "domain_policy": {
+    "BASELINE_MAX_HOUR_SLOT": 21,
+    "BASELINE_MIN_HOUR_SLOT": 5,
+    "BASELINE_SAT_SUN_KERNEL_MIN_DIRECT": 8,
+    "BASELINE_TIER0_MIN_SAMPLES": 10,
+    "BASELINE_TIER0_MIN_SAMPLES_WEEKEND": 5,
+    "BASELINE_TIER1_MIN_SAMPLES": 3,
+    "BRACKET_MAX_DS_M": 1000,
+    "BRACKET_MAX_DT_SEC": 150,
+    "BRACKET_SEG_LEN_FACTOR": 1.35,
+    "DAY_TYPE_SATURDAY": 1,
+    "DAY_TYPE_SUNDAY": 2,
+    "DAY_TYPE_WEEKDAY": 0,
+    "EXCLUDE_TERMINAL_BOUNDARY_STATIONS": true,
+    "FLEET_ACTIVE_WINDOW_SEC": 300,
+    "MIN_EGO_SAMPLE_ADVANCE_M": 150,
+    "RECENT_PROBE_WINDOW_SEC": 1800,
+    "SEGMENT_MAX_SPEED_KMPH": 65,
+    "SEGMENT_MIN_SPEED_KMPH": 1.5
+  },
+  "execution": "local existing domain algorithms; Silver was processed by distributed Spark",
+  "feature_result": {
+    "elapsed_sec": 2.09,
+    "n_columns": 60,
+    "test_rows": 234,
+    "train_rows": 180
+  },
+  "files": {
+    "baseline.db": "4417eaf3e3331537ca800db6ca22b753bc307b814e2a681be8744432cf329a65",
+    "gold/agg_segment_travel_times/part-00000.snappy.parquet": "3828fc8280b638264ca7170e1b36dd8629d24254cda0ae00779578e40cb5b2df",
+    "gold/eta_feature_store/split=test/route_code=02/part-00000.snappy.parquet": "e263dc10a5238f67c3ef12b23e8bfedce4be64647cd9654957441c6e24957a58",
+    "gold/eta_feature_store/split=test/route_code=27/part-00000.snappy.parquet": "be328449b25bbca01b482e3f17cfaaae38c9106c36022651f8c693a8cc66b802",
+    "gold/eta_feature_store/split=train/route_code=02/part-00000.snappy.parquet": "2aba6d4678985a3e351e99ab395760a7b660d0a58bcd483f359bb5fe5291900d",
+    "gold/eta_feature_store/split=train/route_code=27/part-00000.snappy.parquet": "3175a512efa239e6ac8a48da064069d93a8318372d09094a28954970c4afc9d2",
+    "silver/fact_route_tomtom_incidents/route_code=02/part.parquet": "16b857ec8317c0bc92713ad34838134cef43f54f2021183103034f18cb0d8319",
+    "silver/fact_route_tomtom_incidents/route_code=27/part.parquet": "24e44be649a0c2c6deb6016d21962f51b67300a77a745a9cc0b6d66e7116f7e3",
+    "source_snapshot.json": "d6fa50ebd450180d213a4337eedd369b1389de2db018b7483b844d8d65063364"
+  },
+  "incident_fact_rows": 14,
+  "incident_projector_sha256": "19b170efa51ccf848e065b07509924bfa94c0bd21861a380e15006456042a85c",
+  "pipeline_sha256": "7a7bc3a8399f6a72813161820fbe71c9ee3afa97ab7cbe82905fcdbb219e38ac",
+  "schema_version": "eta-artifact.v1",
+  "selection": {
+    "dates": [
+      "2026-10-27",
+      "2026-11-01"
+    ],
+    "routes": [
+      "02",
+      "27"
+    ]
+  },
+  "snapshot_id": "fcd8fdaa7f7717b00cf4282f3f9d1a0b7c54981e46b4238b7ae392a89e9ba1f9",
+  "split": {
+    "test_start": "2026-11-01",
+    "train_end": "2026-10-31"
+  }
+}

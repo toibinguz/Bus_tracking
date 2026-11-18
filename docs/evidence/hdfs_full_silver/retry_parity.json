@@ -1,0 +1,28 @@
+{
+  "snapshot_id": "838146efc5ea73d4ed47c7d0c0634b92e30676b8e4d7180a49153381a2bcb11b",
+  "accepted_bus_rows": 6596,
+  "raw_bus_rows": 10220,
+  "unique_bus_events": 8103,
+  "partition_count": 54,
+  "accounting": true,
+  "unique_events": true,
+  "lineage": true,
+  "partition_index": true,
+  "execution": {
+    "elapsed_seconds": 207.83,
+    "executor_hosts": [
+      "5407f71fa9d3",
+      "6890e81945f0"
+    ],
+    "largest_session_events": 14,
+    "max_batch_bytes": 16777216,
+    "max_session_events": 20000,
+    "partitions": 4,
+    "peak_worker_rss_kib": 107764,
+    "vehicle_sessions": 737,
+    "verified_batches": 3,
+    "verified_raw_bytes": 4168162
+  },
+  "baseline": "f02a3bbf522eadf3bae1347ba63f0e50fcf54bf1c806e43dedb4c7e16223b57f",
+  "exact_silver_and_lineage_parity": true
+}

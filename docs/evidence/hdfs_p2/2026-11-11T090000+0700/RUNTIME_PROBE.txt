@@ -1,0 +1,4 @@
+spark
+python=3.8.10
+numpy=1.24.4
+projection-import=ok

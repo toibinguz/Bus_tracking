@@ -1,0 +1,52 @@
+Connecting to namenode via http://namenode:9870/fsck?ugi=root&files=1&blocks=1&locations=1&path=%2Fbus-eta%2Fv1%2Fexperiments%2Fp3b%2Fscale_20261112_01%2Fprovenance%3Dsynthetic_scale%2Fbronze
+FSCK started by root (auth:SIMPLE) from /172.19.0.5 for path /bus-eta/v1/experiments/p3b/scale_20261112_01/provenance=synthetic_scale/bronze at Thu Nov 12 08:53:13 UTC 2026
+
+/bus-eta/v1/experiments/p3b/scale_20261112_01/provenance=synthetic_scale/bronze <dir>
+/bus-eta/v1/experiments/p3b/scale_20261112_01/provenance=synthetic_scale/bronze/_SUCCESS 0 bytes, replicated: replication=2, 0 block(s):  OK
+
+/bus-eta/v1/experiments/p3b/scale_20261112_01/provenance=synthetic_scale/bronze/part-00000 4815560 bytes, replicated: replication=2, 5 block(s):  OK
+0. BP-495447096-172.19.0.5-1794470918239:blk_1073741855_1031 len=1048576 Live_repl=2  [DatanodeInfoWithStorage[172.19.0.7:9866,DS-79c8208b-114d-4714-8a18-e64ff29df0a5,DISK], DatanodeInfoWithStorage[172.19.0.6:9866,DS-229c809b-2802-4b18-b1d1-22aa3a0a508e,DISK]]
+1. BP-495447096-172.19.0.5-1794470918239:blk_1073741856_1032 len=1048576 Live_repl=2  [DatanodeInfoWithStorage[172.19.0.6:9866,DS-229c809b-2802-4b18-b1d1-22aa3a0a508e,DISK], DatanodeInfoWithStorage[172.19.0.7:9866,DS-79c8208b-114d-4714-8a18-e64ff29df0a5,DISK]]
+2. BP-495447096-172.19.0.5-1794470918239:blk_1073741857_1033 len=1048576 Live_repl=2  [DatanodeInfoWithStorage[172.19.0.6:9866,DS-229c809b-2802-4b18-b1d1-22aa3a0a508e,DISK], DatanodeInfoWithStorage[172.19.0.7:9866,DS-79c8208b-114d-4714-8a18-e64ff29df0a5,DISK]]
+3. BP-495447096-172.19.0.5-1794470918239:blk_1073741858_1034 len=1048576 Live_repl=2  [DatanodeInfoWithStorage[172.19.0.6:9866,DS-229c809b-2802-4b18-b1d1-22aa3a0a508e,DISK], DatanodeInfoWithStorage[172.19.0.7:9866,DS-79c8208b-114d-4714-8a18-e64ff29df0a5,DISK]]
+4. BP-495447096-172.19.0.5-1794470918239:blk_1073741859_1035 len=621256 Live_repl=2  [DatanodeInfoWithStorage[172.19.0.7:9866,DS-79c8208b-114d-4714-8a18-e64ff29df0a5,DISK], DatanodeInfoWithStorage[172.19.0.6:9866,DS-229c809b-2802-4b18-b1d1-22aa3a0a508e,DISK]]
+
+
+Status: HEALTHY
+ Number of data-nodes:	2
+ Number of racks:		1
+ Total dirs:			1
+ Total symlinks:		0
+
+Replicated Blocks:
+ Total size:	4815560 B
+ Total files:	2
+ Total blocks (validated):	5 (avg. block size 963112 B)
+ Minimally replicated blocks:	5 (100.0 %)
+ Over-replicated blocks:	0 (0.0 %)
+ Under-replicated blocks:	0 (0.0 %)
+ Mis-replicated blocks:		0 (0.0 %)
+ Default replication factor:	2
+ Average block replication:	2.0
+ Missing blocks:		0
+ Corrupt blocks:		0
+ Missing replicas:		0 (0.0 %)
+ Blocks queued for replication:	0
+
+Erasure Coded Block Groups:
+ Total size:	0 B
+ Total files:	0
+ Total block groups (validated):	0
+ Minimally erasure-coded block groups:	0
+ Over-erasure-coded block groups:	0
+ Under-erasure-coded block groups:	0
+ Unsatisfactory placement block groups:	0
+ Average block group size:	0.0
+ Missing block groups:		0
+ Corrupt block groups:		0
+ Missing internal blocks:	0
+ Blocks queued for replication:	0
+FSCK ended at Thu Nov 12 08:53:13 UTC 2026 in 25 milliseconds
+
+
+The filesystem under path '/bus-eta/v1/experiments/p3b/scale_20261112_01/provenance=synthetic_scale/bronze' is HEALTHY

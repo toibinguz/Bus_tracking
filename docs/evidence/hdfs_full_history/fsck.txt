@@ -1,0 +1,54 @@
+Connecting to namenode via http://namenode:9870/fsck?ugi=root&path=%2Fbus-eta%2Fv1%2Fbronze%2Fhf_raw
+FSCK started by root (auth:SIMPLE) from /172.19.0.5 for path /bus-eta/v1/bronze/hf_raw at Thu Nov 12 15:01:06 UTC 2026
+
+....
+.....
+.....
+.....
+.....
+.....
+.....
+.....
+.....
+.....
+.....
+.....
+.
+Status: HEALTHY
+ Number of data-nodes:	2
+ Number of racks:		1
+ Total dirs:			6080
+ Total symlinks:		0
+
+Replicated Blocks:
+ Total size:	5433831020 B
+ Total files:	6076
+ Total blocks (validated):	6076 (avg. block size 894310 B)
+ Minimally replicated blocks:	6076 (100.0 %)
+ Over-replicated blocks:	0 (0.0 %)
+ Under-replicated blocks:	0 (0.0 %)
+ Mis-replicated blocks:		0 (0.0 %)
+ Default replication factor:	2
+ Average block replication:	2.0
+ Missing blocks:		0
+ Corrupt blocks:		0
+ Missing replicas:		0 (0.0 %)
+ Blocks queued for replication:	0
+
+Erasure Coded Block Groups:
+ Total size:	0 B
+ Total files:	0
+ Total block groups (validated):	0
+ Minimally erasure-coded block groups:	0
+ Over-erasure-coded block groups:	0
+ Under-erasure-coded block groups:	0
+ Unsatisfactory placement block groups:	0
+ Average block group size:	0.0
+ Missing block groups:		0
+ Corrupt block groups:		0
+ Missing internal blocks:	0
+ Blocks queued for replication:	0
+FSCK ended at Thu Nov 12 15:01:07 UTC 2026 in 474 milliseconds
+
+
+The filesystem under path '/bus-eta/v1/bronze/hf_raw' is HEALTHY

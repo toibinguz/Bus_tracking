@@ -1,0 +1,7 @@
+root:supergroup 755 bronze
+root:supergroup 755 reference
+spark:supergroup 755 silver
+spark:supergroup 755 gold
+spark:supergroup 755 bronze_to_silver
+spark:supergroup 755 bronze_to_silver
+{"denied_roots":["/bus-eta/v1/bronze","/bus-eta/v1/reference"],"spark_writable_roots":["/bus-eta/v1/silver","/bus-eta/v1/gold","/bus-eta/v1/_checkpoints/bronze_to_silver","/bus-eta/v1/_published/bronze_to_silver"]}

@@ -1,0 +1,28 @@
+{
+  "artifact_id": "4ee4031b0330c244267f0a249eaa8b49f3151bd664c277945c1179045e500e8a",
+  "snapshot_id": "fcd8fdaa7f7717b00cf4282f3f9d1a0b7c54981e46b4238b7ae392a89e9ba1f9",
+  "offline_external_calls": 0,
+  "baseline_lookup": {
+    "route_code": "02",
+    "direction": "go",
+    "from_station_order": 7,
+    "to_station_order": 8,
+    "from_station_id": 5766,
+    "to_station_id": 656,
+    "from_station_name": "Công ty CPLH Thực Phẩm",
+    "to_station_name": "Ga Hà Đông - đình Cầu Đơ",
+    "segment_length_m": 543.1,
+    "day_type": 0,
+    "hour_slot": 13,
+    "sample_count": 2,
+    "quality_tier": 2,
+    "tt_p10_sec": 87.51,
+    "tt_p50_sec": 92.9,
+    "tt_p90_sec": 98.3,
+    "tt_mean_sec": 92.9,
+    "tt_std_sec": 6.75
+  },
+  "corrupted_release_rejected": true,
+  "failed_refresh_kept_active": true,
+  "docker_was_not_stopped": "external calls were blocked; other running services were left intact"
+}

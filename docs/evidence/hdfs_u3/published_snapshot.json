@@ -1,0 +1,80 @@
+{
+  "accepted_bus_rows": 6596,
+  "batches": [
+    [
+      "9a369ce3ed0e6c6203a71f3d8752c4c7854d69931cdc975082de3a7edbc58781",
+      "9529bff97b7b455ee3b8cc052b37363fb018c2cbb05a1abf90534fd740421e8d"
+    ],
+    [
+      "d07d5f90bf97085533a9dee5458b01a3c886aea3151a5132ea535a7903ad5678",
+      "b4c7da945be2d73614f122ce91caa0c09fd98cb92fe39c08fb9c93f7253307db"
+    ],
+    [
+      "d31126bc150d10c2f4c45504ce5fd15583df641dc5d070cd126fe9ea62285e6b",
+      "fc0d7ee1b9eca673ef4d02cd22a2f8c00ac2400b6079f479d1354728d5f8766e"
+    ]
+  ],
+  "code_sha256": "4982bbfa994a4bf579c09b876ec3d16a392a53d0f7631b3711803b9c4b1cce0b",
+  "duplicate_bus_observations": 1907,
+  "incident_observations": 192,
+  "policy": {
+    "FRENET_MAX_SPEED_MPS": 22.22222222222222,
+    "FRENET_MIN_FORWARD_WINDOW_M": 1500,
+    "GPS_DRIFT_MAX_SPEED_KMPH": 80,
+    "MAX_CORRIDOR_CROSS_TRACK_M": 35,
+    "MAX_GPS_BACKWARD_JITTER_M": 20,
+    "METERS_PER_DEG_LAT": 110540,
+    "METERS_PER_DEG_LON_EQUATOR": 111320,
+    "STALE_DELTA_T_MAX_SEC": 300,
+    "TERMINAL_RESET_ZONE_M": 800
+  },
+  "published_at": "2026-11-12T09:51:27.311338+00:00",
+  "raw_bus_rows": 10220,
+  "reference_path": "hdfs://namenode:8020/bus-eta/v1/reference/history/sha256=7e1664bb57315eb23875421de7d3b7de7b9982e0fe6cfd6d04037729df24a2aa/reference.json",
+  "reference_sha256": "7e1664bb57315eb23875421de7d3b7de7b9982e0fe6cfd6d04037729df24a2aa",
+  "rejected_incidents": 0,
+  "rejected_rows": 1717,
+  "schema_version": "history-snapshot.v1",
+  "silver_path": "hdfs://namenode:8020/bus-eta/v1/silver/history/_runs/snapshot=f02a3bbf522eadf3bae1347ba63f0e50fcf54bf1c806e43dedb4c7e16223b57f/attempt=80cce908-ba13-4a15-957c-2d2ae8d9bc7b/route_projected_telemetry",
+  "snapshot_id": "f02a3bbf522eadf3bae1347ba63f0e50fcf54bf1c806e43dedb4c7e16223b57f",
+  "snapshot_path": "hdfs://namenode:8020/bus-eta/v1/silver/history/_runs/snapshot=f02a3bbf522eadf3bae1347ba63f0e50fcf54bf1c806e43dedb4c7e16223b57f/attempt=80cce908-ba13-4a15-957c-2d2ae8d9bc7b",
+  "source_manifests": [
+    {
+      "batch_id": "9a369ce3ed0e6c6203a71f3d8752c4c7854d69931cdc975082de3a7edbc58781",
+      "bytes": 186839,
+      "category": "incidents",
+      "content_sha256": "9529bff97b7b455ee3b8cc052b37363fb018c2cbb05a1abf90534fd740421e8d",
+      "dataset": "Toibinguz/hust-bus-data",
+      "hdfs_raw_path": "/bus-eta/v1/bronze/hf_raw/category=incidents/sha256=9529bff97b7b455ee3b8cc052b37363fb018c2cbb05a1abf90534fd740421e8d/batch.jsonl",
+      "path": "raw_data/2026-11-12/incidents/batch_161350.jsonl",
+      "received_at_utc": "2026-11-12T09:32:25.876397+00:00",
+      "revision": "f2e7378002113cb548e194f2e8bd11c97a1b94d9",
+      "schema_version": "hf-batch.v1"
+    },
+    {
+      "batch_id": "d07d5f90bf97085533a9dee5458b01a3c886aea3151a5132ea535a7903ad5678",
+      "bytes": 1990711,
+      "category": "bus",
+      "content_sha256": "b4c7da945be2d73614f122ce91caa0c09fd98cb92fe39c08fb9c93f7253307db",
+      "dataset": "Toibinguz/hust-bus-data",
+      "hdfs_raw_path": "/bus-eta/v1/bronze/hf_raw/category=bus/sha256=b4c7da945be2d73614f122ce91caa0c09fd98cb92fe39c08fb9c93f7253307db/batch.jsonl",
+      "path": "raw_data/2026-11-12/bus/batch_160515.jsonl",
+      "received_at_utc": "2026-11-12T09:49:08.307849+00:00",
+      "revision": "f2e7378002113cb548e194f2e8bd11c97a1b94d9",
+      "schema_version": "hf-batch.v1"
+    },
+    {
+      "batch_id": "d31126bc150d10c2f4c45504ce5fd15583df641dc5d070cd126fe9ea62285e6b",
+      "bytes": 1990612,
+      "category": "bus",
+      "content_sha256": "fc0d7ee1b9eca673ef4d02cd22a2f8c00ac2400b6079f479d1354728d5f8766e",
+      "dataset": "Toibinguz/hust-bus-data",
+      "hdfs_raw_path": "/bus-eta/v1/bronze/hf_raw/category=bus/sha256=fc0d7ee1b9eca673ef4d02cd22a2f8c00ac2400b6079f479d1354728d5f8766e/batch.jsonl",
+      "path": "raw_data/2026-11-12/bus/batch_161350.jsonl",
+      "received_at_utc": "2026-11-12T09:33:37.491663+00:00",
+      "revision": "f2e7378002113cb548e194f2e8bd11c97a1b94d9",
+      "schema_version": "hf-batch.v1"
+    }
+  ],
+  "unique_bus_events": 8103
+}

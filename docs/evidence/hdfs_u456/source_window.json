@@ -1,0 +1,11 @@
+{
+  "dataset": "Toibinguz/hust-bus-data",
+  "revision": "f2e7378002113cb548e194f2e8bd11c97a1b94d9",
+  "paths": [
+    "raw_data/2026-10-27/bus/batch_132656.jsonl",
+    "raw_data/2026-10-27/incidents/batch_133514.jsonl",
+    "raw_data/2026-11-01/bus/batch_133248.jsonl",
+    "raw_data/2026-11-01/incidents/batch_130735.jsonl"
+  ],
+  "reference": "hdfs://namenode:8020/bus-eta/v1/reference/history/sha256=7e1664bb57315eb23875421de7d3b7de7b9982e0fe6cfd6d04037729df24a2aa/reference.json"
+}

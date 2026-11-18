@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "Z:\Desktop\Bus_tracking\scripts\hf_hdfs_ingest.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "Z:\Desktop\Bus_tracking\scripts\hf_hdfs_ingest.py", line 54, in main
+    print(json.dumps(receive_batch(args.stage_dir, source, store, args.failpoint)), flush=True)
+                     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "Z:\Desktop\Bus_tracking\module_2_big_data_storage_and_lakehouse\step_2_4_hdfs_history\hf_bronze.py", line 118, in receive_batch
+    ensure_object(store, metadata['hdfs_raw_path'], content)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "Z:\Desktop\Bus_tracking\module_2_big_data_storage_and_lakehouse\step_2_4_hdfs_history\hf_bronze.py", line 97, in ensure_object
+    if not store.exists(path):
+           ~~~~~~~~~~~~^^^^^^
+  File "Z:\Desktop\Bus_tracking\module_2_big_data_storage_and_lakehouse\step_2_4_hdfs_history\hf_bronze.py", line 77, in exists
+    self.call('-stat', '%b', path)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "Z:\Desktop\Bus_tracking\module_2_big_data_storage_and_lakehouse\step_2_4_hdfs_history\hf_bronze.py", line 71, in call
+    raise RuntimeError(result.stderr.decode('utf-8', errors='replace').strip())
+RuntimeError: service "namenode" is not running

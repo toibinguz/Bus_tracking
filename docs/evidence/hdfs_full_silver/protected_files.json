@@ -1,0 +1,8 @@
+{
+  "unchanged": [
+    "runtime/eta_active.json",
+    "data/hanoi_bus_system.db",
+    "data/models/eta_xgb_global_full_54feat.json"
+  ],
+  "method": "size/mtime; SHA-256 additionally for pointer/model"
+}

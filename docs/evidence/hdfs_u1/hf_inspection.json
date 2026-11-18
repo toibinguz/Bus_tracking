@@ -1,0 +1,230 @@
+{
+  "dataset": "Toibinguz/hust-bus-data",
+  "revision": "f2e7378002113cb548e194f2e8bd11c97a1b94d9",
+  "files_total": 6027,
+  "categories": {
+    "bus": {
+      "path": "raw_data/2026-11-12/bus/batch_161350.jsonl",
+      "available_files": 3616,
+      "rows": 5110,
+      "bytes": 1990612,
+      "sha256": "fc0d7ee1b9eca673ef4d02cd22a2f8c00ac2400b6079f479d1354728d5f8766e",
+      "keys": {
+        "vehicle_id": 5110,
+        "plate": 5110,
+        "route_id": 5110,
+        "lat": 5110,
+        "lon": 5110,
+        "speed": 5110,
+        "raw_speed": 5110,
+        "calculated_speed": 5110,
+        "direction": 5110,
+        "heading_deg": 5110,
+        "current_station_id": 5110,
+        "next_station_id": 5110,
+        "device_update_time": 5110,
+        "crawled_at": 5110,
+        "quality_status": 5110
+      },
+      "directions": {
+        "0": 2224,
+        "1": 1966,
+        "-1": 920
+      },
+      "quality_status": {
+        "ACTIVE_VALID": 3869,
+        "IDLE_DEPOT": 590,
+        "STALE_PING": 651
+      },
+      "timestamps": {
+        "device_update_time": {
+          "offset_present": 5110
+        },
+        "crawled_at": {
+          "offset_present": 5110
+        },
+        "timestamp": {
+          "missing": 5110
+        },
+        "start_time": {
+          "missing": 5110
+        },
+        "end_time": {
+          "missing": 5110
+        }
+      },
+      "samples": [
+        {
+          "vehicle_id": 231968,
+          "plate": "29B20547",
+          "route_id": 2,
+          "lat": 20.978382,
+          "lon": 105.784866,
+          "speed": 24,
+          "raw_speed": 24,
+          "calculated_speed": 24,
+          "direction": 1,
+          "heading_deg": 230.24994582301233,
+          "current_station_id": 799,
+          "next_station_id": 800,
+          "device_update_time": "2026-11-12T16:13:10+07:00",
+          "crawled_at": "2026-11-12T16:13:52.149519+07:00",
+          "quality_status": "ACTIVE_VALID"
+        },
+        {
+          "vehicle_id": 231966,
+          "plate": "29B20540",
+          "route_id": 2,
+          "lat": 20.959446,
+          "lon": 105.761314,
+          "speed": 0,
+          "raw_speed": 0,
+          "calculated_speed": 0,
+          "direction": 0,
+          "heading_deg": 51.601339202943166,
+          "current_station_id": 651,
+          "next_station_id": 652,
+          "device_update_time": "2026-11-12T16:12:55+07:00",
+          "crawled_at": "2026-11-12T16:13:52.149159+07:00",
+          "quality_status": "IDLE_DEPOT"
+        }
+      ]
+    },
+    "incidents": {
+      "path": "raw_data/2026-11-12/incidents/batch_161350.jsonl",
+      "available_files": 2262,
+      "rows": 192,
+      "bytes": 186839,
+      "sha256": "9529bff97b7b455ee3b8cc052b37363fb018c2cbb05a1abf90534fd740421e8d",
+      "keys": {
+        "timestamp": 192,
+        "incident_id": 192,
+        "icon_category": 192,
+        "magnitude_of_delay": 192,
+        "delay_seconds": 192,
+        "length_meters": 192,
+        "description": 192,
+        "geometry_type": 192,
+        "coordinates": 192
+      },
+      "directions": {
+        "None": 192
+      },
+      "quality_status": {
+        "None": 192
+      },
+      "timestamps": {
+        "device_update_time": {
+          "missing": 192
+        },
+        "crawled_at": {
+          "missing": 192
+        },
+        "timestamp": {
+          "offset_present": 192
+        },
+        "start_time": {
+          "missing": 192
+        },
+        "end_time": {
+          "missing": 192
+        }
+      },
+      "samples": [
+        {
+          "timestamp": "2026-11-12T16:13:50.802088+07:00",
+          "incident_id": "TTI-795f86b7-2662-47c5-a7cd-3a8de455a517-TTR85677214236044000",
+          "icon_category": 8,
+          "magnitude_of_delay": 4,
+          "delay_seconds": null,
+          "length_meters": 531.74,
+          "description": "Closed",
+          "geometry_type": "LineString",
+          "coordinates": [
+            [
+              105.7303498512,
+              21.0100409389
+            ],
+            [
+              105.7304799384,
+              21.0099511119
+            ],
+            [
+              105.7305577224,
+              21.0098759951
+            ],
+            [
+              105.7306140488,
+              21.0097888283
+            ],
+            [
+              105.7306328243,
+              21.0097499397
+            ],
+            [
+              105.7306650108,
+              21.0096842125
+            ],
+            [
+              105.7311209863,
+              21.0081862496
+            ],
+            [
+              105.7313892072,
+              21.0073037715
+            ],
+            [
+              105.7319283312,
+              21.0055388779
+            ]
+          ]
+        },
+        {
+          "timestamp": "2026-11-12T16:13:50.802088+07:00",
+          "incident_id": "TTI-795f86b7-2662-47c5-a7cd-3a8de455a517-TTL85682985112023000",
+          "icon_category": 6,
+          "magnitude_of_delay": 3,
+          "delay_seconds": 245,
+          "length_meters": 408.46,
+          "description": "Stationary traffic",
+          "geometry_type": "LineString",
+          "coordinates": [
+            [
+              105.7326860553,
+              21.0042206128
+            ],
+            [
+              105.7322434908,
+              21.0056341068
+            ],
+            [
+              105.7319444245,
+              21.0065406953
+            ],
+            [
+              105.7316091484,
+              21.0077530707
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "reference_profile": {
+    "database": "Z:\\Desktop\\Bus_tracking\\data\\hanoi_bus_system.db",
+    "route_counts": {
+      "known_route": 5005,
+      "unknown_route": 105
+    },
+    "raw_direction_vs_station": {
+      "-1 -> missing": 920,
+      "0 -> ambiguous": 293,
+      "0 -> go": 1916,
+      "0 -> missing": 15,
+      "1 -> ambiguous": 185,
+      "1 -> missing": 15,
+      "1 -> re": 1766
+    },
+    "reference_rows_sha256": "5cf15ad2466aeed669fe507296f98842cef3d51e13464a08ed06086288e2e08a"
+  }
+}
