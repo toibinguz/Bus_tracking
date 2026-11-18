@@ -1,8 +1,0 @@
-{
-  "snapshot_id": "838146efc5ea73d4ed47c7d0c0634b92e30676b8e4d7180a49153381a2bcb11b",
-  "publication_absent_at_failpoint": true,
-  "old_attempt": "hdfs://namenode:8020/bus-eta/v1/silver/history/_runs/snapshot=838146efc5ea73d4ed47c7d0c0634b92e30676b8e4d7180a49153381a2bcb11b/attempt=58e185ac-11af-4197-b5a0-9c1274b98f64",
-  "retry_attempt": "hdfs://namenode:8020/bus-eta/v1/silver/history/_runs/snapshot=838146efc5ea73d4ed47c7d0c0634b92e30676b8e4d7180a49153381a2bcb11b/attempt=c4f4d499-bebe-42e4-8fe9-226568863d57",
-  "accepted_bus_rows": 6596,
-  "retry_published": true
-}
