@@ -14,8 +14,8 @@ import pyarrow.parquet as pq
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from module_3_bus_eta_prediction.causal_eta import MAX_POSITION_AGE, CausalFeatures, Observation
-from module_3_bus_eta_prediction.causal_eta_training import TrainingReplay, baseline_cutoff_epoch, digest, epoch, fit_bundle
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import MAX_POSITION_AGE, CausalFeatures, Observation
+from module_3_bus_eta_prediction.step_3_3_machine_learning_models.causal_eta_training import TrainingReplay, baseline_cutoff_epoch, digest, epoch, fit_bundle
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.data_access import DataAccess
 
 

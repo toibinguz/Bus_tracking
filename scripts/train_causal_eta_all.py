@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.train_causal_eta import replay_silver, select_partitions
-from module_3_bus_eta_prediction.causal_eta import CATEGORICAL, FEATURES, CausalFeatures
-from module_3_bus_eta_prediction.causal_eta_training import (
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CATEGORICAL, FEATURES, CausalFeatures
+from module_3_bus_eta_prediction.step_3_3_machine_learning_models.causal_eta_training import (
     BASE, ResidualETA, TrainingReplay, baseline_cutoff_epoch, digest, epoch,
 )
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.data_access import DataAccess
@@ -169,4 +169,6 @@ if __name__ == '__main__':
     parser.add_argument('--forecast-every', type=float, default=120)
     parser.add_argument('--rounds', type=int, default=300)
     arguments = parser.parse_args()
-    train(arguments, build_routes(arguments))
+    build_routes(arguments)
+    from scripts.fit_causal_eta_partitions import run as fit_partitions
+    fit_partitions(arguments.output, arguments.rounds)

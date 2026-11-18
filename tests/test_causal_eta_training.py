@@ -4,8 +4,13 @@ from copy import deepcopy
 import pytest
 
 from config.system_config import METERS_PER_DEG_LON_EQUATOR
-from module_3_bus_eta_prediction.causal_eta import CausalFeatures, FEATURES, Observation
-from module_3_bus_eta_prediction.causal_eta_training import TrainingReplay
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CausalFeatures, FEATURES, Observation
+from module_3_bus_eta_prediction.step_3_3_machine_learning_models.causal_eta_training import (
+    MONOTONE_SPEED_FEATURES,
+    ResidualETA,
+    TrainingReplay,
+    build_xgb_regressor,
+)
 
 
 class StraightRoute:
@@ -104,3 +109,30 @@ def test_complete_windows_and_tier_three_uncertainty():
     assert row['baseline_eta_p50_sec'] > 0
     assert row['baseline_tier0_frac'] == 0
     assert row['baseline_eta_p90_sec'] is None
+
+
+def test_xgb_monotone_and_unknown_route_fallback():
+    reg = build_xgb_regressor(rounds=50, early_stopping_rounds=10)
+    assert reg.early_stopping_rounds == 10
+    for idx, feat in enumerate(FEATURES):
+        expected = -1 if feat in MONOTONE_SPEED_FEATURES else 0
+        assert reg.monotone_constraints[idx] == expected
+
+    class _DummyModel:
+        def predict(self, frame, iteration_range=None):
+            return frame['baseline_eta_p50_sec'].to_numpy() * 0.0 + 15.0
+
+    runner = ResidualETA(
+        _DummyModel(),
+        {'route_id_idx': [0], 'direction_id': [0, 1], 'day_type': [0, 1, 2], 'hour_slot': list(range(5, 22))},
+        best_iteration=5,
+    )
+    row_unknown = {f: 0.0 for f in FEATURES}
+    row_unknown.update({'route_id_idx': 999, 'direction_id': 0, 'day_type': 0, 'hour_slot': 8, 'baseline_eta_p50_sec': 120.0})
+
+    with pytest.raises(ValueError, match='no training examples'):
+        runner.predict([row_unknown], allow_unknown_routes=False)
+
+    assert runner.predict_one(row_unknown) == pytest.approx(120.0)
+    row_known = dict(row_unknown, route_id_idx=0)
+    assert runner.predict_one(row_known) == pytest.approx(135.0)

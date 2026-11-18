@@ -14,8 +14,8 @@ import xgboost as xgb
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from module_3_bus_eta_prediction.causal_eta import CATEGORICAL, FEATURES
-from module_3_bus_eta_prediction.causal_eta_training import BASE, ResidualETA, digest
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CATEGORICAL, FEATURES
+from module_3_bus_eta_prediction.step_3_3_machine_learning_models.causal_eta_training import BASE, ResidualETA, build_xgb_regressor, digest
 
 
 def load_split(files, split):
@@ -40,7 +40,7 @@ def weights(frame):
 
 def encode(frame, domains):
     for column in CATEGORICAL:
-        frame[column] = pd.Categorical(frame[column], categories=domains[column])
+        frame[column] = pd.Categorical(frame[column].astype('int32'), categories=domains[column])
 
 
 def score(frame):
@@ -55,14 +55,15 @@ def score(frame):
     return result
 
 
-def run(root, rounds):
+def run(root, rounds, max_depth=4, features_dir=None):
     if (root/'model.json').exists():
         raise FileExistsError(root/'model.json')
-    files = sorted((root/'features').glob('*.parquet'))
+    feat_root = Path(features_dir) if features_dir else (root/'features')
+    files = sorted(feat_root.glob('*.parquet'))
     if len(files) != 48 or any(not path.with_suffix('.json').exists() for path in files):
         raise ValueError('all 48 route checkpoints must be complete')
     train = load_split(files, 'train')
-    domains = {'route_id_idx': sorted(train.route_id_idx.unique().tolist()), 'direction_id': [0, 1],
+    domains = {'route_id_idx': sorted(int(x) for x in train.route_id_idx.unique()), 'direction_id': [0, 1],
                'day_type': [0, 1, 2], 'hour_slot': list(range(5, 22))}
     encode(train, domains)
     validation = load_split(files, 'validation')
@@ -71,14 +72,12 @@ def run(root, rounds):
     encode(validation, domains)
     counts = {'train': len(train), 'validation': len(validation)}
     print(f'global training rows {counts}', flush=True)
-    model = xgb.XGBRegressor(objective='reg:absoluteerror', eval_metric='mae', n_estimators=rounds,
-                             max_depth=4, learning_rate=.05, tree_method='hist', enable_categorical=True,
-                             random_state=42, n_jobs=2)
+    model = build_xgb_regressor(rounds, max_depth=max_depth)
     model.fit(train.loc[:, FEATURES], train.eta_seconds - train[BASE], sample_weight=weights(train),
               eval_set=[(validation.loc[:, FEATURES], validation.eta_seconds - validation[BASE])],
               sample_weight_eval_set=[weights(validation)], verbose=25)
     history = model.evals_result()
-    best = int(np.argmin(history['validation_0']['mae']))
+    best = int(getattr(model, 'best_iteration', int(np.argmin(history['validation_0']['mae']))))
     model.get_booster().set_attr(best_iteration=str(best), best_score=str(history['validation_0']['mae'][best]))
     del train, validation
     gc.collect()
@@ -94,7 +93,9 @@ def run(root, rounds):
         if not frame.route_id_idx.isin(domains['route_id_idx']).all():
             raise ValueError('test contains routes absent from training')
         encode(frame, domains)
-        frame['prediction'] = np.maximum(5, model.predict(frame.loc[:, FEATURES])+frame[BASE].to_numpy())
+        frame['prediction'] = np.maximum(
+            5, model.predict(frame.loc[:, FEATURES], iteration_range=(0, best + 1)) + frame[BASE].to_numpy()
+        )
         retained = frame[['route', 'vehicle', 'journey', 'target', 'as_of', 'eta_seconds', BASE,
                           'prediction', 'n_stations_ahead', 'history_seconds', 'bracket_before', 'bracket_after']]
         retained.to_parquet(output/path.name, index=False)
@@ -122,8 +123,8 @@ def run(root, rounds):
             continue
         rows = sample[list(FEATURES)].replace({np.nan: None}).to_dict('records')
         original = np.maximum(5, model.predict(pd.DataFrame({
-            col: pd.Categorical(sample[col], categories=domains[col]) if col in domains else sample[col]
-            for col in FEATURES}))+sample[BASE].to_numpy())
+            col: pd.Categorical(sample[col].astype('int32'), categories=domains[col]) if col in domains else sample[col]
+            for col in FEATURES}), iteration_range=(0, best + 1))+sample[BASE].to_numpy())
         np.testing.assert_allclose(restored.predict(rows), original, rtol=1e-5, atol=.001)
     print(json.dumps(evaluation['overall'], indent=2), flush=True)
     print(f'completed {rounds} rounds, selected {best+1}, test routes {len(evaluation["per_route"])}', flush=True)
@@ -133,5 +134,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('root', type=Path)
     parser.add_argument('--rounds', type=int, default=300)
+    parser.add_argument('--max-depth', type=int, default=4)
+    parser.add_argument('--features-dir', type=Path, default=None)
     args = parser.parse_args()
-    run(args.root, args.rounds)
+    run(args.root, args.rounds, max_depth=args.max_depth, features_dir=args.features_dir)

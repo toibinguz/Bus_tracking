@@ -15,12 +15,39 @@ import pandas as pd
 import xgboost as xgb
 
 from config.system_config import BASELINE_MAX_HOUR_SLOT, BASELINE_MIN_HOUR_SLOT, TZ_HANOI
-from module_3_bus_eta_prediction.causal_eta import CATEGORICAL, FEATURES
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CATEGORICAL, FEATURES
 
 
 BASE = 'baseline_eta_p50_sec'
 MAX_LABEL_BRACKET_SEC = 90.0
 MAX_LABEL_BRACKET_M = 600.0
+MONOTONE_SPEED_FEATURES = frozenset({
+    'ego_speed_avg_3min_kmh',
+    'ego_speed_avg_5min_kmh',
+    'lead_bus_speed_kmh',
+})
+
+
+def build_xgb_regressor(
+    rounds: int,
+    early_stopping_rounds: int = 30,
+    max_depth: int = 4,
+) -> xgb.XGBRegressor:
+    """XGBRegressor với early stopping và ràng buộc đơn điệu âm cho nhóm tốc độ."""
+    constraints = tuple(-1 if f in MONOTONE_SPEED_FEATURES else 0 for f in FEATURES)
+    return xgb.XGBRegressor(
+        objective='reg:absoluteerror',
+        eval_metric='mae',
+        n_estimators=rounds,
+        early_stopping_rounds=early_stopping_rounds,
+        max_depth=max_depth,
+        learning_rate=0.05,
+        tree_method='hist',
+        enable_categorical=True,
+        monotone_constraints=constraints,
+        random_state=42,
+        n_jobs=4,
+    )
 
 
 def digest(path):
@@ -123,21 +150,35 @@ def feature_frame(rows, domains):
 
 
 class ResidualETA:
-    def __init__(self, model, domains):
+    def __init__(self, model, domains, best_iteration=None):
         self.model = model
         self.domains = domains
+        self.best_iteration = best_iteration
 
-    def predict(self, rows):
+    def _predict_raw(self, frame):
+        if self.best_iteration is not None:
+            return self.model.predict(frame, iteration_range=(0, int(self.best_iteration) + 1))
+        return self.model.predict(frame)
+
+    def predict(self, rows, allow_unknown_routes=False):
         rows = list(rows)
         if not rows:
             return np.empty(0)
         if any(set(row) != set(FEATURES) or row[BASE] is None or not math.isfinite(row[BASE]) for row in rows):
             raise ValueError('features do not conform to ETA schema')
         frame = feature_frame(rows, self.domains)
-        if frame['route_id_idx'].isna().any():
+        unknown_mask = frame['route_id_idx'].isna().to_numpy()
+        if unknown_mask.any() and not allow_unknown_routes:
             raise ValueError('model has no training examples for at least one route')
-        remaining = self.model.predict(frame) + frame[BASE].to_numpy()
+        base_vals = frame[BASE].to_numpy()
+        if unknown_mask.all():
+            return np.maximum(5.0, base_vals)
+        residual = self._predict_raw(frame)
+        remaining = np.where(unknown_mask, base_vals, residual + base_vals)
         return np.maximum(5.0, remaining)
+
+    def predict_one(self, row) -> float:
+        return float(self.predict([row], allow_unknown_routes=True)[0])
 
     @classmethod
     def load(cls, root):
@@ -150,7 +191,7 @@ class ResidualETA:
         model.load_model(root / 'model.json')
         if tuple(model.get_booster().feature_names) != FEATURES:
             raise ValueError('ETA model feature order is invalid')
-        return cls(model, metadata['category_domains'])
+        return cls(model, metadata['category_domains'], best_iteration=metadata.get('best_iteration'))
 
 
 def metrics(actual, prediction, groups):
@@ -192,16 +233,14 @@ def fit_bundle(rows, output, provenance, rounds):
 
     x, y, weights = input_data(train)
     xv, yv, wv = input_data(validation)
-    model = xgb.XGBRegressor(objective='reg:absoluteerror', eval_metric='mae', n_estimators=rounds,
-                             max_depth=4, learning_rate=.05,
-                             tree_method='hist', enable_categorical=True, random_state=42, n_jobs=2)
+    model = build_xgb_regressor(rounds)
     model.fit(x, y, sample_weight=weights, eval_set=[(x, y), (xv, yv)],
               sample_weight_eval_set=[weights, wv], verbose=50)
     history = model.evals_result()
-    best_iteration = int(np.argmin(history['validation_1']['mae']))
+    best_iteration = int(getattr(model, 'best_iteration', int(np.argmin(history['validation_1']['mae']))))
     model.get_booster().set_attr(best_iteration=str(best_iteration),
                                  best_score=str(history['validation_1']['mae'][best_iteration]))
-    runner = ResidualETA(model, domains)
+    runner = ResidualETA(model, domains, best_iteration=best_iteration)
     test_predictions = runner.predict(row['features'] for row in test)
     actual = np.array([row['eta_seconds'] for row in test])
     baseline = np.array([row['features'][BASE] for row in test])

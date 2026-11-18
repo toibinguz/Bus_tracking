@@ -56,6 +56,7 @@ from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.live_feed i
     now_hanoi_iso,
     parse_ping_epoch,
 )
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CausalFeatures, Observation
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.model_runtime import ModelRuntime
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.online_features import OnlineFeatureExtractor
 
@@ -230,6 +231,8 @@ class BusMapServingService:
                                     baseline_routes=sorted(self._da.route_idx_by_code),
                                     model_status='candidate_unverified' if self._runtime.available else 'unavailable')
         self._extractor = OnlineFeatureExtractor(self._da, self._incidents)
+        self._causal = CausalFeatures(self._da)
+        self._causal_lock = threading.Lock()
         self.source_info['model'] = self._runtime.identity
         self._shape_models: Dict[Tuple[int, str], Optional[ShapeProjectionModel]] = {}
         # Cache Monotonicity, danh sách xe vượt trạm theo từng trạm & vận tốc vĩ mô cho luồng hybrid TimBus 5s
@@ -255,6 +258,41 @@ class BusMapServingService:
                        generation=vehicle.projection_generation,reason=vehicle.projection_status)
             self._projection_generations[key]=vehicle.projection_generation
         return vehicle
+
+    def _observe_causal_snapshot(
+        self,
+        route_id: int,
+        dir_int: int,
+        vehicles: List[BusVehicleDTO],
+        now_epoch: float,
+    ) -> None:
+        """Cập nhật CausalFeatures (36 biến) đồng bộ với snapshot xe hiện hành."""
+        with self._causal_lock:
+            members: List[str] = []
+            for v in vehicles:
+                plate_key = TimBusClient.normalize_plate(v.plate) or f"id:{v.id}"
+                members.append(plate_key)
+                t_ping, _ = parse_ping_epoch(v.updated_at, now_epoch)
+                t_obs = min(now_epoch, t_ping)
+                raw_spd = float(v.raw_speed_kmh if v.raw_speed_kmh is not None else v.speed_kmh)
+                sig = f"{v.lat:.5f},{v.lng:.5f},{round(raw_spd, 1)}"
+                src = v.telemetry_source if v.telemetry_source in ("busmap", "timbus") else "busmap"
+                self._causal.observe(
+                    Observation(
+                        route_id=route_id,
+                        direction=dir_int,
+                        vehicle=plate_key,
+                        source=src,
+                        epoch=t_obs,
+                        received=now_epoch,
+                        lat=float(v.lat),
+                        lng=float(v.lng),
+                        signature=sig,
+                        context="live",
+                    )
+                )
+            if vehicles:
+                self._causal.observe_snapshot(route_id, dir_int, now_epoch, members, valid=True)
 
     # ---------------------------------------------------------------- catalog
     def get_routes(self) -> List[RouteItemDTO]:
@@ -290,6 +328,8 @@ class BusMapServingService:
         resp = fetch_live_vehicles_for_route(route_id=route_id, direction=dir_int)
 
         if not timbus_ok or not anchor_sids:
+            if resp.vehicles:
+                self._observe_causal_snapshot(route_id, dir_int, resp.vehicles, datetime.now(TZ_HANOI).timestamp())
             return resp.model_copy(update={"timbus_supported": timbus_ok, "poll_interval_sec": poll_sec})
 
         now_epoch = datetime.now(TZ_HANOI).timestamp()
@@ -382,6 +422,7 @@ class BusMapServingService:
         )
         # Fleet describes the whole route, independently of the requested station.
         self._extractor.update_observation(route_id, dir_int, merged, now_epoch)
+        self._observe_causal_snapshot(route_id, dir_int, merged, now_epoch)
         from .request_trace import record
         record('route_observation',route_id=route_id,direction=dir_int,query_epoch=now_epoch,
                vehicles=[vehicle.model_dump() for vehicle in merged])
@@ -727,6 +768,7 @@ class BusMapServingService:
             vehicles = [self._prepare_vehicle(route_id,dir_int,v,now_epoch) for v in live_resp.vehicles]
             vehicles = [v for v in vehicles if v.matched_projection is not None]
             self._extractor.update_observation(route_id, dir_int, vehicles, now_epoch)
+            self._observe_causal_snapshot(route_id, dir_int, vehicles, now_epoch)
             from .request_trace import record
             record('route_observation',route_id=route_id,direction=dir_int,query_epoch=now_epoch,
                    vehicles=[vehicle.model_dump() for vehicle in vehicles])
@@ -744,16 +786,11 @@ class BusMapServingService:
                        vehicle=v.model_dump(), reason='projection_stale_heading_or_passed')
                 continue
 
-            features = self._extractor.build_features(
-                route_id=route_id,
-                dir_int=dir_int,
-                vehicle=v,
-                target_order=station_order,
-                s_target_m=s_target,
-                s_bus_m=bus_state.s_now,
-                now_epoch=now_epoch,
-            )
-            ml_supported = self._runtime.available and self._da.get_route_idx(route_id) is not None
+            plate_key = TimBusClient.normalize_plate(v.plate) or f"id:{v.id}"
+            with self._causal_lock:
+                causal_res = self._causal.features(route_id, dir_int, plate_key, station_order, now_epoch)
+            features = causal_res[0] if causal_res is not None else None
+            ml_supported = features is not None and self._runtime.available and self._da.get_route_idx(route_id) is not None
             ml_p50 = self._runtime.predict_p50(features) if ml_supported else None
             prediction_source = "ml_calibrated" if ml_p50 is not None else "baseline_fallback"
 
@@ -774,7 +811,7 @@ class BusMapServingService:
             from .request_trace import record
             record('eta_result', route_id=route_id, direction=dir_int, station_order=station_order,
                    query_epoch=now_epoch, s_bus_m=bus_state.s_now, s_target_m=s_target,
-                   vehicle=v.model_dump(), features=features, result=dto.model_dump(), serving=self.source_info)
+                   vehicle=v.model_dump(), features=features or {}, result=dto.model_dump(), serving=self.source_info)
             approaching.append(dto)
             speeds.append(v.speed_kmh)
 

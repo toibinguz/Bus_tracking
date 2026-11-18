@@ -74,3 +74,49 @@ Model full SHA256: `eb524de9e2838880bc9d4cc4ce0bf8f8d77024665e36bbc70b99ebf0d303
 - Working tree đang có nhiều thay đổi/untracked từ các giai đoạn trước. **Chưa commit/push lần kiểm kê này.** Kiểm tra `git status` trước khi sửa; không reset/clean, không gộp mọi thay đổi thành công việc của phiên mới.
 - Ba file kiểm kê mới: `docs/ML_FEATURE_AUDIT.md`, `docs/evidence/spec41_20261117/ml_feature_importance.json`, `scripts/audit_ml_feature_importance.py`. File handover này và mục 13 là phần bổ sung cuối. Chưa sửa producer hay train mới trong bước bàn giao.
 - Người dùng muốn ít nghi lễ, không tự sinh architect/auditor/tester; chỉ delegate khi được yêu cầu. Báo rõ bằng chứng, phần chưa biết và quyết định cần chốt, tránh lặp giải thích để che việc chưa có kết quả.
+
+---
+
+## 8. Cập nhật áp dụng `causal-eta.v1` (`New48 D6`) — 18/11/2026
+
+Đã huấn luyện và đóng gói thành công mô hình rút gọn `causal-eta.v1` (`36` feature, `max_depth=6`, `rounds=600`, `early_stopping_rounds=30`, `selected=592`, `monotone_constraints=-1` cho `ego_speed_avg_3min_kmh`, `ego_speed_avg_5min_kmh`, `lead_bus_speed_kmh`) vào `data/models/causal_eta_v1/` và nối trực tiếp qua `CausalFeatures` + `ModelRuntime` trong `serving_service.py` (giữ `MAX_POSITION_AGE = 90.0s` theo timestamp thiết bị, tuyến ngoài 48 tuyến Silver fallback sang baseline).
+
+### 8.1. Kết quả đối chiếu toàn mạng 47 tuyến (`4.000.961` mẫu held-out test `2026-11-02..07`, tuyến `40` không có test)
+
+| Mô hình | MAE | MedAE | P90 AE | CB_MAE | Bias |
+|---|---:|---:|---:|---:|---:|
+| `Baseline P50` | 161.06s | 96.25s | 373.73s | 122.25s | -8.45s |
+| `Old 54-feat (Calibrated)` | 146.45s | 92.44s | **333.83s** | 114.57s | +4.52s |
+| **`New48 D6 36-feat`** | **141.26s** | **84.68s** | 336.82s | **105.77s** | **-3.26s** |
+
+- `H=1` (`182.777`): `39.95s` (`Med=21.34s`) vs Old54 `50.75s` (`32.61s`)
+- `H=2–5` (`958.689`): `70.09s` (`Med=43.98s`) vs Old54 `82.40s` (`60.61s`)
+- `H=6–15` (`1.696.640`): `135.26s` (`Med=91.88s`) vs Old54 `138.90s` (`96.56s`)
+- `H=16+` (`1.162.855`): `224.63s` (`Med=164.06s`) vs Old54 `225.33s` (`162.46s`)
+
+### 8.2. Bảng đóng góp 36 feature (`Total gain = 20.135.316,7`, `37.568` splits)
+
+| Hạng | Feature | Gain (%) | Splits | Hạng | Feature | Gain (%) | Splits |
+|---:|---|---:|---:|---:|---|---:|---:|
+| 1 | `route_id_idx` | 16.96% | 9.416 | 19 | `baseline_eta_p90_sec` | 1.30% | 262 |
+| 2 | `baseline_eta_p50_sec` | 12.44% | 606 | 20 | `baseline_eta_p10_sec` | 1.04% | 375 |
+| 3 | `hour_slot` | 10.17% | 5.067 | 21 | `s_bus_m` | 1.00% | 1.191 |
+| 4 | `baseline_eta_mean_minus_p50_sec` | 6.96% | 1.054 | 22 | `ego_speed_avg_3min_kmh` | 0.95% | 636 |
+| 5 | `n_buses_in_corridor_ahead` | 6.34% | 265 | 23 | `progress_ratio` | 0.95% | 1.012 |
+| 6 | `lead_bus_dist_ahead_m` | 5.75% | 1.152 | 24 | `dist_to_next_station_m` | 0.94% | 875 |
+| 7 | `sin_time` | 5.52% | 2.020 | 25 | `baseline_tier0_frac` | 0.62% | 288 |
+| 8 | `day_of_week` | 3.53% | 1.377 | 26 | `current_station_order` | 0.50% | 555 |
+| 9 | `baseline_eta_rss_std_sec` | 2.90% | 1.227 | 27 | `route_base_speed_kmh` | 0.47% | 408 |
+| 10 | `cos_time` | 2.79% | 1.465 | 28 | `direction_id` | 0.41% | 322 |
+| 11 | `baseline_max_seg_p90_sec` | 2.76% | 1.869 | 29 | `ego_speed_avg_5min_kmh` | 0.39% | 336 |
+| 12 | `n_stations_ahead` | 2.56% | 271 | 30 | `route_station_spacing_m` | 0.35% | 302 |
+| 13 | `lead_bus_speed_ratio` | 2.43% | 740 | 31 | `target_progress_ratio` | 0.31% | 366 |
+| 14 | `follow_bus_dist_behind_m` | 2.24% | 533 | 32 | `s_target_m` | 0.28% | 343 |
+| 15 | `day_type` | 2.07% | 675 | 33 | `lead_bus_speed_kmh` | 0.24% | 193 |
+| 16 | `n_active_buses_on_route` | 1.55% | 506 | 34 | `baseline_eta_mean_sec` | 0.19% | 171 |
+| 17 | `baseline_eta_p90_minus_p10_sec` | 1.41% | 608 | 35 | `follow_bus_speed_kmh` | 0.18% | 225 |
+| 18 | `remaining_distance_m` | 1.35% | 593 | 36 | `target_station_order` | 0.16% | 264 |
+
+### 8.3. Ghi chú việc làm sau
+- **Tăng cường dữ liệu bản production:** Gộp `train + validation` cũ (`8.607.577` dòng) làm `train` và tuần `2026-11-02..07` (`4.000.961` dòng) làm `validation` để fit lại bản nâng cấp (hoãn thực hiện sau khi hoàn tất refactor/pipeline).
+- **Pruning (tùy chọn sau):** 7–8 biến cuối có tổng gain ~`1.7%`; chỉ bỏ kèm retrain + ablation kiểm chứng trên tập test.

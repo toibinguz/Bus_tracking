@@ -7,38 +7,60 @@ import pandas as pd
 import pytest
 import xgboost as xgb
 
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CATEGORICAL, FEATURES
+from module_3_bus_eta_prediction.step_3_3_machine_learning_models.causal_eta_training import ResidualETA
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.model_runtime import ModelRuntime
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation import request_trace
-from module_3_bus_eta_prediction.step_3_3_machine_learning_models.eta_model_trainer import predict_eta_with_residual_model, apply_per_route_calibrator
 
 
-def test_model_runtime_matches_batch_and_calibration_with_category_subsets():
-    frame=pd.DataFrame(dict(route_id_idx=np.array([0,1]*8,dtype='int32'),
-                            direction_id=np.array([0,0,1,1]*4,dtype='int32'),
-                            day_type=np.array([0,1,2,0]*4,dtype='int32'),
-                            hour_slot=np.array([5,8,15,21]*4,dtype='int32'),
-                            baseline_eta_p50_sec=np.arange(16,dtype='float32')+100,
-                            n_stations_ahead=np.array([1,2,6,16]*4,dtype='int32')))
-    features=list(frame)
-    X=frame.copy()
-    for col in ('route_id_idx','direction_id','day_type','hour_slot'): X[col]=X[col].astype('category')
-    model=xgb.XGBRegressor(n_estimators=4,max_depth=2,n_jobs=1,enable_categorical=True,tree_method='hist')
-    model.fit(X,np.arange(16,dtype='float32')*2-8)
-    calibration={(1,1,3):(1.1,-5)}
-    expected=apply_per_route_calibrator(frame,predict_eta_with_residual_model(model,frame,features),calibration)
-    runtime=ModelRuntime(model=model,booster_feature_names=features,calibrator={'1_1_3':(1.1,-5)})
-    actual=[runtime.predict_p50(row) for row in frame.to_dict('records')]
-    assert actual==pytest.approx(expected,abs=1e-4)
+def test_model_runtime_matches_causal_batch_and_rejects_unknown_route():
+    domains = {
+        'route_id_idx': [0, 1],
+        'direction_id': [0, 1],
+        'day_type': [0, 1, 2],
+        'hour_slot': list(range(5, 22)),
+    }
+    rows = []
+    for i in range(16):
+        row = {f: float(i) for f in FEATURES}
+        row.update({
+            'route_id_idx': i % 2,
+            'direction_id': (i // 2) % 2,
+            'day_type': i % 3,
+            'hour_slot': 5 + (i % 4),
+            'baseline_eta_p50_sec': 100.0 + i,
+            'n_stations_ahead': [1, 2, 6, 16][i % 4],
+        })
+        rows.append(row)
+    frame = pd.DataFrame(rows, columns=FEATURES, dtype=float)
+    for col in CATEGORICAL:
+        frame[col] = pd.Categorical(frame[col], categories=domains[col])
+    model = xgb.XGBRegressor(n_estimators=4, max_depth=2, n_jobs=1, enable_categorical=True, tree_method='hist')
+    model.fit(frame, np.arange(16, dtype='float32') * 2 - 8)
+    residual = ResidualETA(model, domains, best_iteration=2)
+    expected = residual.predict(rows, allow_unknown_routes=False)
+    runtime = ModelRuntime(residual_eta=residual)
+    actual = [runtime.predict_p50(row) for row in rows]
+    assert actual == pytest.approx(expected, abs=1e-4)
+
+    unknown = dict(rows[0], route_id_idx=999)
+    assert runtime.predict_p50(unknown) is None
 
 
-def test_trace_io_failure_does_not_change_prediction(tmp_path,monkeypatch):
-    blocker=tmp_path/'file-not-directory';blocker.write_text('occupied')
-    monkeypatch.setenv('ETA_TRACE_DIR',str(blocker))
+def test_trace_io_failure_does_not_change_prediction(tmp_path, monkeypatch):
+    blocker = tmp_path / 'file-not-directory'
+    blocker.write_text('occupied')
+    monkeypatch.setenv('ETA_TRACE_DIR', str(blocker))
+
     class Constant:
-        def predict(self,frame):return [10.]
-    runtime=ModelRuntime(model=Constant(),booster_feature_names=['baseline_eta_p50_sec'])
-    row=dict(route_id_idx=0,direction_id=0,n_stations_ahead=1,baseline_eta_p50_sec=100.)
-    assert runtime.predict_p50(row)==110.
+        def predict(self, frame):
+            return np.array([10.0])
+
+    domains = {'route_id_idx': [0], 'direction_id': [0, 1], 'day_type': [0, 1, 2], 'hour_slot': list(range(5, 22))}
+    runtime = ModelRuntime(residual_eta=ResidualETA(Constant(), domains))
+    row = {f: 0.0 for f in FEATURES}
+    row.update(dict(route_id_idx=0, direction_id=0, day_type=0, hour_slot=8, n_stations_ahead=1, baseline_eta_p50_sec=100.0))
+    assert runtime.predict_p50(row) == pytest.approx(110.0)
 
 
 def test_request_ids_correlate_http_and_trace_and_reset_between_requests(tmp_path,monkeypatch):
