@@ -50,6 +50,7 @@ class RouteItemDTO(BaseModel):
     route_id: int = Field(..., description="Mã tuyến ID BusMap")
     route_no: str = Field(..., description="Số hiệu tuyến (ví dụ: 27, 01, E01)")
     name: str = Field(..., description="Tên tuyến chi tiết (Đầu bến - Cuối bến)")
+    timbus_supported: bool = Field(False, description="Tuyến có hỗ trợ đồng bộ TimBus 5s")
 
 
 class RouteLiveResponse(BaseModel):

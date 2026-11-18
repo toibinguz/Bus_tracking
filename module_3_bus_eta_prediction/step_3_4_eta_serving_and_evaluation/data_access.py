@@ -190,7 +190,12 @@ class DataAccess:
                 for row in rows:
                     r_id = int(row[0])
                     r_no = str(row[1]).strip()
-                    dto = RouteItemDTO(route_id=r_id, route_no=r_no, name=str(row[2]).strip())
+                    dto = RouteItemDTO(
+                        route_id=r_id,
+                        route_no=r_no,
+                        name=str(row[2]).strip(),
+                        timbus_supported=bool(self.get_timbus_anchors(r_id, 0)[0] or self.get_timbus_anchors(r_id, 1)[0]),
+                    )
                     self._routes_cache.append(dto)
                     self._routes_by_id[r_id] = dto
                     self._routes_by_code[r_no.upper()] = dto
@@ -209,7 +214,12 @@ class DataAccess:
                     r_no = str(item.get("route_no", str(r_id))).strip()
                     if r_id in self._routes_by_id:
                         continue
-                    dto = RouteItemDTO(route_id=r_id, route_no=r_no, name=str(item.get("name", f"Tuyến {r_no}")).strip())
+                    dto = RouteItemDTO(
+                        route_id=r_id,
+                        route_no=r_no,
+                        name=str(item.get("name", f"Tuyến {r_no}")).strip(),
+                        timbus_supported=bool(self.get_timbus_anchors(r_id, 0)[0] or self.get_timbus_anchors(r_id, 1)[0]),
+                    )
                     self._routes_cache.append(dto)
                     self._routes_by_id[r_id] = dto
                     self._routes_by_code[r_no.upper()] = dto
