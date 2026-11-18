@@ -123,3 +123,23 @@ def test_mismatched_pointer_is_rejected(source):
     source['pointer'].write_text(json.dumps(pointer))
     with pytest.raises(ValueError, match='pointer/release mismatch'):
         create_service(source)
+
+
+def test_proximity_sanity_cap_caps_overpenalized_trailing_bus_and_fades_smoothly():
+    from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.serving_service import (
+        compute_proximity_capped_etas,
+    )
+
+    # Input unsorted by distance: behind at +20.6m is heavily over-penalized (768.5 vs 619.8)
+    overrides = compute_proximity_capped_etas([(1020.6, 768.5), (1000.0, 619.8)])
+    assert overrides[1] is None
+    assert overrides[0] == pytest.approx(619.8 + 20.6 / 2.5 + 15.0)
+
+    # At 100m (midpoint of 80m..120m fade): alpha=0.5 -> halfway between raw_cap and original
+    fade = compute_proximity_capped_etas([(1000.0, 500.0), (1100.0, 655.0)])
+    raw_cap = 500.0 + 100.0 / 2.5 + 15.0  # 555.0
+    assert fade[1] == pytest.approx(0.5 * raw_cap + 0.5 * 655.0)
+
+    # Above 120m: untouched; overtaking (behind < ahead): untouched
+    assert compute_proximity_capped_etas([(1000.0, 500.0), (1130.0, 700.0)]) == [None, None]
+    assert compute_proximity_capped_etas([(1000.0, 500.0), (1030.0, 480.0)]) == [None, None]

@@ -62,6 +62,45 @@ from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.online_feat
 
 logger = logging.getLogger(__name__)
 
+PROXIMITY_CAP_FULL_M = 80.0
+PROXIMITY_CAP_FADE_M = 120.0
+PROXIMITY_CAP_SPEED_MPS = 2.5
+PROXIMITY_CAP_MARGIN_SEC = 15.0
+
+
+def compute_proximity_capped_etas(
+    distances_and_etas: List[Tuple[float, float]],
+    full_m: float = PROXIMITY_CAP_FULL_M,
+    fade_m: float = PROXIMITY_CAP_FADE_M,
+    speed_mps: float = PROXIMITY_CAP_SPEED_MPS,
+    margin_sec: float = PROXIMITY_CAP_MARGIN_SEC,
+) -> List[Optional[float]]:
+    """
+    Chặn trần ETA bất hợp lý khi hai xe kế tiếp cách nhau dưới fade_m (Giai đoạn 1).
+    Trả về danh sách giá trị p50 mới (hoặc None nếu giữ nguyên) theo đúng thứ tự đầu vào.
+    """
+    n = len(distances_and_etas)
+    if n < 2:
+        return [None] * n
+    order = sorted(range(n), key=lambda idx: distances_and_etas[idx][0])
+    effective = [distances_and_etas[idx][1] for idx in range(n)]
+    overrides: List[Optional[float]] = [None] * n
+    fade_span = max(1e-6, fade_m - full_m)
+    for pos in range(1, n):
+        ahead_idx = order[pos - 1]
+        behind_idx = order[pos]
+        gap = distances_and_etas[behind_idx][0] - distances_and_etas[ahead_idx][0]
+        if not (0.0 <= gap < fade_m):
+            continue
+        raw_cap = effective[ahead_idx] + gap / speed_mps + margin_sec
+        if effective[behind_idx] <= raw_cap:
+            continue
+        alpha = 1.0 if gap <= full_m else (fade_m - gap) / fade_span
+        capped = raw_cap + (1.0 - alpha) * (effective[behind_idx] - raw_cap)
+        effective[behind_idx] = capped
+        overrides[behind_idx] = capped
+    return overrides
+
 PASSED_STATION_TTL_SEC = 180.0
 PASSED_NEW_TRIP_RESET_M = 150.0
 _DWELL_TRIM_MIN_SEC = 30.0
@@ -774,7 +813,7 @@ class BusMapServingService:
                    vehicles=[vehicle.model_dump() for vehicle in vehicles])
 
         station_s = [st.cum_distance_m for st in stations_resp.stations]
-        approaching: List[ApproachingBusDTO] = []
+        candidates = []
         speeds: List[float] = []
 
         for v in vehicles:
@@ -807,13 +846,34 @@ class BusMapServingService:
                 ml_p50=ml_p50,
                 prediction_source=prediction_source,
             )
+            candidates.append((v, bus_state, features, prediction_source, dto))
+            speeds.append(v.speed_kmh)
+
+        overrides = compute_proximity_capped_etas(
+            [(item[4].distance_to_station_m, item[4].eta_seconds) for item in candidates]
+        )
+        approaching: List[ApproachingBusDTO] = []
+        for (v, bus_state, features, prediction_source, dto), capped_p50 in zip(candidates, overrides):
+            if capped_p50 is not None:
+                dto = compute_station_eta(
+                    bus_state=bus_state,
+                    route_id=route_id,
+                    dir_int=dir_int,
+                    target_st=target_st,
+                    station_s=station_s,
+                    now_epoch=now_epoch,
+                    data_access=self._da,
+                    day_type=day_type,
+                    hour_slot=hour_slot,
+                    ml_p50=capped_p50,
+                    prediction_source=prediction_source,
+                )
             dto = dto.model_copy(update={"telemetry_source": v.telemetry_source})
             from .request_trace import record
             record('eta_result', route_id=route_id, direction=dir_int, station_order=station_order,
                    query_epoch=now_epoch, s_bus_m=bus_state.s_now, s_target_m=s_target,
                    vehicle=v.model_dump(), features=features or {}, result=dto.model_dump(), serving=self.source_info)
             approaching.append(dto)
-            speeds.append(v.speed_kmh)
 
         approaching.sort(key=lambda b: (b.eta_seconds, b.distance_to_station_m))
 
