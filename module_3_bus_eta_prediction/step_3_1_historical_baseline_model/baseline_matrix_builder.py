@@ -23,6 +23,7 @@ import sys
 import time
 from collections import defaultdict
 from datetime import datetime
+from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -70,6 +71,7 @@ from module_1_data_ingestion_and_preprocessing.step_1_3_telemetry_kinematic_sani
 DB_PATH = os.path.join(BASE_DIR, DEFAULT_DB_PATH)
 SILVER_TEL_DIR = os.path.join(BASE_DIR, DEFAULT_LAKEHOUSE_ROOT, "silver", "route_projected_telemetry")
 GOLD_BASELINE_DIR = os.path.join(BASE_DIR, DEFAULT_LAKEHOUSE_ROOT, "gold", "agg_segment_travel_times")
+from module_3_bus_eta_prediction.temporal_contract import split_at_dates
 
 
 def get_active_corridor_stations(
@@ -170,8 +172,12 @@ def extract_bracketed_station_arrivals(
     return arrivals
 
 
-def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
+def build_and_evaluate_baseline_matrix(fit_end_date: Optional[str] = None) -> Dict[str, Any]:
     t0 = time.time()
+    fit_end_date = fit_end_date or TRAIN_SPLIT_END_DATE
+    date.fromisoformat(fit_end_date)
+    if fit_end_date > TRAIN_SPLIT_END_DATE:
+        raise ValueError('baseline fit cutoff must not extend into test')
     print("=" * 88, flush=True)
     print("STEP 3.1 & 3.2: TEMPORAL SPLIT, TRIP SEGMENTATION & LEAK-FREE BASELINE MATRIX", flush=True)
     print(f"Train Window: [{CANONICAL_START_DATE} .. {TRAIN_SPLIT_END_DATE}] | Test Window: [{TEST_SPLIT_START_DATE} .. 2026-11-07]", flush=True)
@@ -204,7 +210,7 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
         columns=["route_code", "vehicle_id", "device_update_time", "device_epoch", "direction", "s_bus_m", "derived_speed_kmh"]
     )
     df_all = tbl.to_pandas()
-    df_all["dt"] = df_all["device_update_time"].str.slice(0, 10)
+    df_all["dt"] = pd.to_datetime(df_all["device_epoch"],unit='s',utc=True).dt.tz_convert('Asia/Ho_Chi_Minh').dt.strftime('%Y-%m-%d')
     df_all = df_all.sort_values(["route_code", "vehicle_id", "direction", "device_epoch"]).reset_index(drop=True)
 
     train_pings = int((df_all["dt"] <= TRAIN_SPLIT_END_DATE).sum())
@@ -213,6 +219,7 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
 
     # 3. Segment trajectories into clean trips & extract bracketed station arrivals
     train_trip_count = 0
+    fit_trip_count = 0
     test_trip_count = 0
 
     # Key for segment samples: (route_code, direction, from_order, to_order, is_weekend, hour_slot) -> list of travel_time_sec
@@ -256,13 +263,18 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
             else:
                 route_eda_stats[r_code]["test_pings"] += 1
 
-        trips = segment_trajectory_into_trips(
-            pings_tuples, epoch_idx=1, s_idx=2, shape_len_m=r_len, trim_terminals=True
-        )
+        trips = []
+        for window in split_at_dates(pings_tuples,[fit_end_date,TRAIN_SPLIT_END_DATE]):
+            trips.extend(segment_trajectory_into_trips(
+                window, epoch_idx=1, s_idx=2, shape_len_m=r_len, trim_terminals=True
+            ))
 
         for tr in trips:
             tr_dt = tr[0][0]
             is_train = tr_dt <= TRAIN_SPLIT_END_DATE
+            is_fit = tr[-1][0] <= fit_end_date
+            if is_fit:
+                fit_trip_count += 1
             if is_train:
                 train_trip_count += 1
                 route_eda_stats[r_code]["train_trips"] += 1
@@ -294,7 +306,7 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
                         rejected_slow_Or_fast += 1
                         continue
 
-                    if is_train:
+                    if is_fit:
                         dt_obj = datetime.fromtimestamp(arrivals[ord_a], tz=TZ_HANOI)
                         wd = dt_obj.weekday()
                         day_type = (
@@ -468,6 +480,9 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
         "INSERT INTO agg_segment_travel_times VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         matrix_rows,
     )
+    cur.execute('CREATE TABLE IF NOT EXISTS eta_baseline_manifest(fit_end_date TEXT, train_end_date TEXT, test_start_date TEXT)')
+    cur.execute('DELETE FROM eta_baseline_manifest')
+    cur.execute('INSERT INTO eta_baseline_manifest VALUES (?,?,?)',(fit_end_date,TRAIN_SPLIT_END_DATE,TEST_SPLIT_START_DATE))
     cur.commit() if hasattr(cur, "commit") else conn.commit()
     conn.close()
 
@@ -643,6 +658,8 @@ def build_and_evaluate_baseline_matrix() -> Dict[str, Any]:
         "total_cells": total_cells,
         "tier_counts": tier_counts,
         "train_trips": train_trip_count,
+        "fit_trips": fit_trip_count,
+        "fit_end_date": fit_end_date,
         "test_trips": test_trip_count,
         "rejected_slow_or_fast": rejected_slow_Or_fast,
         "unbracketed_pairs": unbracketed_pairs,

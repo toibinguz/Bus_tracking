@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--dates',nargs='+',required=True)
     parser.add_argument('--routes',nargs='+')
     parser.add_argument('--workers',type=int,default=2)
+    parser.add_argument('--baseline-fit-end')
     parser.add_argument('--pointer',type=Path,required=True)
     args=parser.parse_args()
     workspace=args.workspace.resolve()
@@ -60,6 +61,8 @@ def main():
         info=pipeline.materialize(args.snapshot,cache,args.dates,args.routes)
     if output.exists():
         artifact=pipeline.verify_artifact(output)
+        if args.baseline_fit_end and artifact['baseline_result'].get('fit_end_date')!=args.baseline_fit_end:
+            raise ValueError('output has a different baseline fit cutoff; choose a new workspace')
         if artifact['cache_id']!=info['cache_id']:
             raise ValueError('output belongs to another cache')
         if artifact['pipeline_sha256']!=pipeline.digest(Path(pipeline.__file__).read_bytes()):
@@ -68,7 +71,7 @@ def main():
             if pipeline.digest((ROOT/relative).read_bytes())!=expected:
                 raise ValueError('domain code changed; choose a new workspace')
     else:
-        artifact=pipeline.build(cache,output,args.workers)
+        artifact=pipeline.build(cache,output,args.workers,baseline_fit_end=args.baseline_fit_end)
     base=['docker','compose','-f',str(ROOT/'docker-compose.hdfs.yml'),'--profile','eta','run','--rm','--no-deps','eta-artifacts','python3','/workspace/scripts/eta_snapshot_pipeline.py']
     mounted_output='/workspace/'+output.relative_to(ROOT).as_posix()
     publish=subprocess.run(base+['publish','--output',mounted_output,'--transport','webhdfs'],capture_output=True,text=True,timeout=300)

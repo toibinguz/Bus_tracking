@@ -26,6 +26,11 @@ class BusVehicleDTO(BaseModel):
     deg: float = Field(default=0.0, description="Góc xoay theo hướng di chuyển (0 - 360 độ)")
     speed_kmh: float = Field(default=0.0, description="Vận tốc hiện tại (km/h)")
     updated_at: str = Field(..., description="Mốc thời gian cập nhật của xe (ISO 8601)")
+    # Internal projection result shared by speed, features and station filtering.
+    matched_projection: Optional[Tuple[float,float,int]] = Field(default=None,exclude=True)
+    projection_checked: bool = Field(default=False,exclude=True)
+    projection_status: str = Field(default='uninitialized',exclude=True)
+    projection_generation: int = Field(default=0,exclude=True)
     current_station_id: Optional[int] = Field(default=None, description="ID trạm hiện tại")
     next_station_id: Optional[int] = Field(default=None, description="ID trạm kế tiếp")
     telemetry_source: Literal["busmap", "timbus"] = Field(
@@ -45,6 +50,7 @@ class RouteItemDTO(BaseModel):
     route_id: int = Field(..., description="Mã tuyến ID BusMap")
     route_no: str = Field(..., description="Số hiệu tuyến (ví dụ: 27, 01, E01)")
     name: str = Field(..., description="Tên tuyến chi tiết (Đầu bến - Cuối bến)")
+    timbus_supported: bool = Field(False, description="Tuyến có hỗ trợ đồng bộ TimBus 5s")
 
 
 class RouteLiveResponse(BaseModel):
@@ -98,7 +104,7 @@ class SafeWindowDTO(BaseModel):
     """Cửa sổ an toàn bất đối xứng [P10, P90] kèm thông số độ đệm thực."""
 
     p10_seconds: float = Field(..., description="Phân vị ETA P10 (nhanh nhất) tính bằng giây")
-    p50_seconds: float = Field(..., description="Phân vị ETA P50 (trung vị, ML core) tính bằng giây")
+    p50_seconds: float = Field(..., description="Ước tính ETA trung tâm (tên P50); cần kiểm chứng calibration theo dữ liệu")
     p90_seconds: float = Field(..., description="Phân vị ETA P90 (chậm nhất) tính bằng giây")
     p10_minutes: int = Field(default=0, description="Phút an toàn P10: ceil(p10_seconds / 60.0)")
     p90_minutes: int = Field(default=0, description="Phút an toàn P90: ceil(p90_seconds / 60.0)")
@@ -133,7 +139,7 @@ class ApproachingBusDTO(BaseModel):
         ..., description="Nguồn ETA runtime: ml_calibrated hoặc baseline_fallback"
     )
     safe_window: SafeWindowDTO = Field(..., description="Cửa sổ an toàn bất đối xứng [P10, P90] và thông số đệm")
-    speed_kmh: float = Field(..., description="Vận tốc đo tức thời (km/h)")
+    speed_kmh: float = Field(..., description="Vận tốc dùng cho ETA sau làm mượt nếu có (km/h)")
     traffic_status: str = Field(default="BINH_THUONG", description="Điều kiện giao thông: THONG_THOANG, BINH_THUONG, UN_TAC")
     ping_time: Optional[str] = Field(default=None, description="Mốc thời gian GPS thực tế của xe (ISO 8601)")
     ping_age_seconds: Optional[float] = Field(default=0.0, description="Độ trôi tuổi gói tin GPS tính bằng giây")

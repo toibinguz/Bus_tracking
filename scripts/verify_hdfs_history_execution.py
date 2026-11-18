@@ -23,6 +23,9 @@ def main():
         count=frame.count()
         assert count==info['accepted_bus_rows']
         assert frame.select('event_id').distinct().count()==count,'duplicate accepted event'
+        assert frame.where((F.col('route_id')<=0)|(F.col('vehicle_id')<=0)).limit(1).count()==0,'invalid accepted identifier'
+        assert frame.where(F.col('dt')!=F.to_date(F.from_unixtime('device_epoch')).cast('string')).limit(1).count()==0,'event day is not Hanoi epoch day'
+        assert frame.where(F.isnan('s_bus_m')|(F.col('s_bus_m')<0)|F.isnan('cross_track_m')|(F.col('cross_track_m')<0)).limit(1).count()==0,'invalid projected distance'
         assert info['raw_bus_rows']==count+info['rejected_rows']+info['duplicate_bus_observations']
         lineage=spark.read.parquet(info['snapshot_path']+'/event_lineage')
         assert lineage.count()==info['unique_bus_events']

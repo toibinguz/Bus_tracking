@@ -48,7 +48,7 @@ def test_f2_station_override_wins_over_direction_hint():
     assert output[0].direction == "re"
 
 
-def test_f3_short_bracketed_direction_glitch_is_relabelled():
+def test_f3_direction_changes_reset_without_using_future_data_to_relabel():
     output, _ = project_route_events(
         [
             event("first", 0, 105.001, "go"),
@@ -58,7 +58,10 @@ def test_f3_short_bracketed_direction_glitch_is_relabelled():
         SHAPES,
         {},
     )
-    assert [row.direction for row in output] == ["go", "go", "go"]
+    assert [row.direction for row in output] == ["go", "re", "go"]
+    prefix,_=project_route_events([event('first',0,105.001,'go'),event('glitch',10,105.002,'re')],SHAPES,{})
+    assert output[:2]==prefix
+    assert all(row.derived_speed_kmh is None for row in output)
 
 
 def test_f4_off_corridor_event_is_excluded():

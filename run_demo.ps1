@@ -4,7 +4,9 @@
 param(
     [ValidateRange(1, 65535)]
     [int]$Port = 8000,
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [string]$ReleasePointer,
+    [switch]$LocalData
 )
 
 # 1. Force UTF-8 Encoding for Console
@@ -19,6 +21,12 @@ if ($rootDir) {
     Set-Location -Path $rootDir
 } else {
     $rootDir = Get-Location
+}
+
+if ($ReleasePointer -and $LocalData) { throw 'Choose either -ReleasePointer or -LocalData' }
+if ($LocalData) { Remove-Item Env:\ETA_RELEASE_POINTER -ErrorAction SilentlyContinue }
+if ($ReleasePointer) {
+    $env:ETA_RELEASE_POINTER = (Resolve-Path -LiteralPath $ReleasePointer -ErrorAction Stop).Path
 }
 
 # 3. Locate Python executable in .venv

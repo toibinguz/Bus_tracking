@@ -70,7 +70,9 @@ def project_filter_extrapolate(
     if delta_t_age > MAX_TELEMETRY_STALE_SEC:
         return None  # Xe ma tắt máy/mất sóng > 5 phút
 
-    s_ping, d_perp, seg_idx = shape_model.project_point(vehicle.lat, vehicle.lng)
+    if vehicle.projection_checked and vehicle.matched_projection is None:
+        return None
+    s_ping, d_perp, seg_idx = vehicle.matched_projection if vehicle.projection_checked else shape_model.project_point(vehicle.lat, vehicle.lng)
     if d_perp > MAX_CORRIDOR_CROSS_TRACK_M:
         return None  # Lệch hành lang tuyến
 

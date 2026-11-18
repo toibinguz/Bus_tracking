@@ -101,8 +101,9 @@ class IncidentsProvider:
 class DataAccess:
     """Nạp catalog + shape + stations + baseline matrix vào RAM; phục vụ tra cứu O(1)/O(seg)."""
 
-    def __init__(self, db_path: Optional[str] = None, config_path: Optional[str] = None, timbus_db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, config_path: Optional[str] = None, timbus_db_path: Optional[str] = None, baseline_db_path: Optional[str] = None):
         self._db_path = os.path.abspath(db_path) if db_path else os.path.join(BASE_DIR, DEFAULT_DB_PATH)
+        self._baseline_db_path = os.path.abspath(baseline_db_path) if baseline_db_path else self._db_path
         self._config_path = os.path.abspath(config_path) if config_path else os.path.join(BASE_DIR, CONFIG_FILE)
         self._timbus_db_path = os.path.abspath(timbus_db_path) if timbus_db_path else os.path.join(BASE_DIR, DEFAULT_TIMBUS_DB_PATH)
 
@@ -189,7 +190,12 @@ class DataAccess:
                 for row in rows:
                     r_id = int(row[0])
                     r_no = str(row[1]).strip()
-                    dto = RouteItemDTO(route_id=r_id, route_no=r_no, name=str(row[2]).strip())
+                    dto = RouteItemDTO(
+                        route_id=r_id,
+                        route_no=r_no,
+                        name=str(row[2]).strip(),
+                        timbus_supported=bool(self.get_timbus_anchors(r_id, 0)[0] or self.get_timbus_anchors(r_id, 1)[0]),
+                    )
                     self._routes_cache.append(dto)
                     self._routes_by_id[r_id] = dto
                     self._routes_by_code[r_no.upper()] = dto
@@ -208,7 +214,12 @@ class DataAccess:
                     r_no = str(item.get("route_no", str(r_id))).strip()
                     if r_id in self._routes_by_id:
                         continue
-                    dto = RouteItemDTO(route_id=r_id, route_no=r_no, name=str(item.get("name", f"Tuyến {r_no}")).strip())
+                    dto = RouteItemDTO(
+                        route_id=r_id,
+                        route_no=r_no,
+                        name=str(item.get("name", f"Tuyến {r_no}")).strip(),
+                        timbus_supported=bool(self.get_timbus_anchors(r_id, 0)[0] or self.get_timbus_anchors(r_id, 1)[0]),
+                    )
                     self._routes_cache.append(dto)
                     self._routes_by_id[r_id] = dto
                     self._routes_by_code[r_no.upper()] = dto
@@ -221,11 +232,11 @@ class DataAccess:
 
     def load_baseline_matrix(self) -> Dict[BaselineKey, Tuple[float, float, float, float, float, int, float]]:
         """Nạp agg_segment_travel_times vào RAM; cũng dựng route_idx_by_code + route_base_speed agg."""
-        if not os.path.exists(self._db_path):
+        if not os.path.exists(self._baseline_db_path):
             return self._baseline_matrix
 
         try:
-            with self._connect() as conn:
+            with self._connect_ro(self._baseline_db_path) as conn:
                 rows = conn.execute(
                     "SELECT route_code, direction, from_station_order, to_station_order, day_type, hour_slot, "
                     "quality_tier, tt_p10_sec, tt_p50_sec, tt_p90_sec, tt_mean_sec, tt_std_sec, segment_length_m "
@@ -250,6 +261,8 @@ class DataAccess:
 
             logger.info("Loaded %d baseline cells vào RAM cache", len(self._baseline_matrix))
         except Exception as e:
+            if self._baseline_db_path != self._db_path:
+                raise ValueError('invalid release baseline') from e
             logger.warning("Không nạp được ma trận baseline: %s", e)
         return self._baseline_matrix
 

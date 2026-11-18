@@ -36,7 +36,10 @@ def test_vehicle_projection_exact_parity_across_midnight_and_direction_blip():
     assert len(expected['rows'])==8
     assert canonical(expected['rows'])==canonical([r for group in actual for r in group['rows']])
     assert sorted(r['input_events'] for r in actual)==[4,4]
-    assert any(r['derived_speed_kmh'] is not None and '2026-11-13T00:00' in r['device_update_time'] for r in expected['rows'])
+    # Direction changes start a new history; later observations must not rewrite
+    # the midnight direction blip using future data.
+    assert any(r['derived_speed_kmh'] is not None and '2026-11-13T00:01' in r['device_update_time'] for r in expected['rows'])
+    assert all(r['derived_speed_kmh'] is None for r in expected['rows'] if '2026-11-13T00:00' in r['device_update_time'])
     with pytest.raises(ValueError,match='event limit'):
         list(project_vehicles(ordered(rows),ref,3))
 

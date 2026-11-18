@@ -22,9 +22,10 @@ APP_MODULE = "module_3_bus_eta_prediction.step_3_5_web_demo.app"
 EXPECTED_HEALTH = {
     "status": "healthy",
     "healthy": True,
-    "provider": "busmap",
-    "mode": "busmap_discrete_only",
+    "provider": "busmap_timbus",
+    "mode": "hybrid_live_local_storage",
     "upstream": "https://api.busmap.city/v2/public/busmap/route_bus_gps",
+    "upstream_checked": False,
 }
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -47,7 +48,8 @@ def test_f02_f03_health_contract_is_identical_on_both_paths(client: TestClient) 
 
     assert legacy.status_code == 200
     assert versioned.status_code == 200
-    assert legacy.json() == EXPECTED_HEALTH
+    assert {key: legacy.json()[key] for key in EXPECTED_HEALTH} == EXPECTED_HEALTH
+    assert legacy.json()['serving']['mode'] in {'local', 'release'}
     assert versioned.json() == legacy.json()
 
 
@@ -125,7 +127,8 @@ def test_f05_launcher_accepts_existing_server_health() -> None:
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
             try:
-                if requests.get(f"http://127.0.0.1:{port}/api/v1/health", timeout=1).json() == EXPECTED_HEALTH:
+                health = requests.get(f"http://127.0.0.1:{port}/api/v1/health", timeout=1).json()
+                if all(health.get(key) == value for key, value in EXPECTED_HEALTH.items()):
                     break
             except (requests.RequestException, ValueError):
                 pass
@@ -134,7 +137,7 @@ def test_f05_launcher_accepts_existing_server_health() -> None:
             pytest.fail("server did not become healthy within 30 seconds")
 
         result = subprocess.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "run_demo.ps1", "-Port", str(port), "-NoBrowser"],
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "run_demo.ps1", "-Port", str(port), "-NoBrowser", "-LocalData"],
             cwd=ROOT,
             capture_output=True,
             text=True,

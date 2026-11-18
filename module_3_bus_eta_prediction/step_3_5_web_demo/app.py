@@ -2,11 +2,12 @@
 Web Demo Application - BusMap Discrete Tracking Server
 Module: module_3_bus_eta_prediction/step_3_5_web_demo/app.py
 
-FastAPI server delivering discrete live bus positions and route catalogs.
-100% BusMap HTTPS telemetry, zero TimBus/XOR/socket complexity.
+FastAPI server combining BusMap/TimBus live GPS with local ETA serving data.
 """
 
 from pathlib import Path
+import os
+from uuid import uuid4
 from typing import Optional, List, Union
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,7 +26,7 @@ from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation import (
 
 app = FastAPI(
     title="Hanoi Bus Live Discrete Tracking",
-    description="Hệ thống theo dõi xe buýt Hà Nội giật cục rời rạc thời gian thực (BusMap discrete telemetry)",
+    description="Theo dõi GPS BusMap/TimBus và dự báo ETA từ dữ liệu phục vụ local",
     version="1.0.0"
 )
 app.app = app  # Support direct attribute lookup when imported as web_app.app
@@ -33,9 +34,10 @@ app.app = app  # Support direct attribute lookup when imported as web_app.app
 HEALTH_PAYLOAD = {
     "status": "healthy",
     "healthy": True,
-    "provider": "busmap",
-    "mode": "busmap_discrete_only",
+    "provider": "busmap_timbus",
+    "mode": "hybrid_live_local_storage",
     "upstream": "https://api.busmap.city/v2/public/busmap/route_bus_gps",
+    "upstream_checked": False,
 }
 
 LOCAL_DEMO_ORIGINS = [
@@ -53,7 +55,24 @@ app.add_middleware(
 )
 
 # Initialize service singleton
-service = BusMapServingService()
+service = BusMapServingService(release_pointer=os.environ.get('ETA_RELEASE_POINTER'))
+
+
+@app.middleware('http')
+async def correlate_request(request, call_next):
+    from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.request_trace import request_id
+    from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.upstream_capture import http_request_id
+    # Server-generated identity avoids collisions and untrusted file/path input.
+    value = str(uuid4())
+    token = request_id.set(value)
+    upstream_token=http_request_id.set(value)
+    try:
+        response = await call_next(request)
+        response.headers['X-Request-ID'] = value
+        return response
+    finally:
+        request_id.reset(token)
+        http_request_id.reset(upstream_token)
 
 # Paths
 BASE_DIR = Path(__file__).resolve().parent
@@ -76,8 +95,10 @@ def get_root():
 @app.get("/api/health")
 @app.get("/api/v1/health")
 def get_health():
-    """Kiểm tra tình trạng sức khỏe của backend và upstream."""
-    return HEALTH_PAYLOAD
+    """Process health and pinned local data identity; this does not probe upstreams."""
+    return dict(HEALTH_PAYLOAD, serving=service.source_info,
+                capture=dict(backend_trace=bool(os.environ.get('ETA_TRACE_DIR')),
+                             upstream_raw=bool(os.environ.get('ETA_UPSTREAM_RAW_DIR'))))
 
 
 @app.get("/api/routes", response_model=List[RouteItemDTO])

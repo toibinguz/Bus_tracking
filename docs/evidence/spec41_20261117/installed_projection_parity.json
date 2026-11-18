@@ -1,0 +1,16 @@
+{
+  "scope": "exact same normalized arrival-ordered GPS and contiguous direction runs; tests shared projection, not source direction normalization",
+  "observations": 5264,
+  "vehicle_streams": 37,
+  "direction_runs": 46,
+  "duplicate_or_late_ignored": 27966,
+  "matched": 5106,
+  "mismatches": 0,
+  "direction_pending": 22,
+  "sources": {
+    "Z:\\Desktop\\Bus_tracking\\scripts\\verify_installed_projection_parity.py": "3806ace176acf579bb524045678a3326e09abce7d674e91520185b4b71964ffa",
+    "runtime\\eta_live_session_20261117_raw\\backend\\trace.jsonl": "bb8e8c38ca89d6d6a0f58601db75e8b11b2fdff7344fd8fe0429d09f358b5818",
+    "Z:\\Desktop\\Bus_tracking\\module_1_data_ingestion_and_preprocessing\\step_1_4_frenet_spatial_projection\\route_matcher.py": "a470b760b88a83ba948b6f1d06bf5bf5f3848239ace956bd8a6dae21e6540a96",
+    "Z:\\Desktop\\Bus_tracking\\module_3_bus_eta_prediction\\step_3_4_eta_serving_and_evaluation\\online_features.py": "67a9a3312d9024d5e8b0454b16fdbf3a4d422a36d7fe1bf9cf31b32bc334923e"
+  }
+}

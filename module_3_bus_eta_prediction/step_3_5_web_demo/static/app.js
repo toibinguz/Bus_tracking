@@ -30,6 +30,7 @@
 
   // Active markers map: vehicleId -> Leaflet Marker
   const activeMarkers = new Map();
+  const routeTimbusMap = new Map();
 
   // Pinned Station State (SPEC-08)
   let pinnedStation = null;
@@ -939,7 +940,7 @@
    */
   function startPolling() {
     if (pollTimer) clearInterval(pollTimer);
-    activePollIntervalMs = POLL_INTERVAL_MS;
+    activePollIntervalMs = routeTimbusMap.get(currentRouteId) ? TIMBUS_POLL_MS : POLL_INTERVAL_MS;
     resetCountdown();
     pollVehicles();
     pollTimer = setInterval(pollVehicles, activePollIntervalMs);
@@ -951,7 +952,8 @@
   function clearAllMarkers() {
     activeMarkers.forEach(m => m.remove());
     activeMarkers.clear();
-    vehicleListEl.innerHTML = '<div class="empty-state">Đang tải dữ liệu trực tiếp từ BusMap...</div>';
+    const srcLabel = routeTimbusMap.get(currentRouteId) ? 'TimBus' : 'BusMap';
+    vehicleListEl.innerHTML = `<div class="empty-state">Đang tải dữ liệu trực tiếp từ ${srcLabel}...</div>`;
     vehicleCountEl.textContent = '0 xe hoạt động';
     listCounterBadge.textContent = '0 xe';
     map._hasFittedInitialBounds = false;
@@ -994,7 +996,9 @@
       }
 
       let defaultOptionIndex = 0;
+      routeTimbusMap.clear();
       routes.forEach((r, idx) => {
+        routeTimbusMap.set(r.route_id, Boolean(r.timbus_supported));
         const opt = document.createElement('option');
         opt.value = r.route_id;
         opt.textContent = `${r.route_no} - ${r.name}`;

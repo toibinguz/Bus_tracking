@@ -118,7 +118,7 @@ def test_locked_routes_96_enabled_vs_80_ignored(service: BusMapServingService, m
             direction=direction,
             count=1,
             timestamp=now_iso,
-            vehicles=[_make_bm_vehicle(1, "29F-099.99", route_id, lat, lon, now_iso)],
+            vehicles=[_make_bm_vehicle(1+direction, f"29F-099.9{direction}", route_id, lat, lon, now_iso).model_copy(update={'direction':direction})],
         )
 
     def fake_tb(station_ids, plates, direction=0, route_code="", timeout=3, inter_request_delay=0.05):
@@ -298,6 +298,8 @@ def test_live_vehicles_5s_timbus_merge_and_poll_interval(
 
     lat_bm, lon_bm, _ = _point_at_s(pts, s_target - 800.0)
     lat_tb, lon_tb, _ = _point_at_s(pts, s_target - 650.0)
+    reverse_pts=service._da.get_shape_points(r32_id,'re')
+    reverse_lat,reverse_lon,_=_point_at_s(reverse_pts,1000.)
     now_iso = datetime.now(TZ_HANOI).isoformat()
 
     def fake_live(route_id: int, direction: int = 0) -> RouteLiveResponse:
@@ -306,14 +308,17 @@ def test_live_vehicles_5s_timbus_merge_and_poll_interval(
             direction=direction,
             count=1,
             timestamp=now_iso,
-            vehicles=[_make_bm_vehicle(301, "29F-053.01", route_id, lat_bm, lon_bm, now_iso, speed_kmh=22.0)],
+            vehicles=[_make_bm_vehicle(301+direction, "29F-053.01" if direction==0 else "29F-053.02", route_id,
+                                      lat_bm if direction==0 else reverse_lat,lon_bm if direction==0 else reverse_lon,
+                                      now_iso, speed_kmh=22.0).model_copy(update={'direction':direction})],
         )
 
     tb_calls: List[List[str]] = []
 
     def fake_tb(cls, station_ids, plates, direction=0, route_code="", timeout=3, inter_request_delay=0.05):
         tb_calls.append(list(plates))
-        return {"29F05301": _make_bus_record("29F05301", "32", lat_tb, lon_tb, speed_kmh=30)}
+        if direction==0:return {"29F05301": _make_bus_record("29F05301", "32", lat_tb, lon_tb, speed_kmh=30)}
+        return {"29F05302": _make_bus_record("29F05302", "32", reverse_lat, reverse_lon, speed_kmh=30)}
 
     monkeypatch.setattr(svc_mod, "fetch_live_vehicles_for_route", fake_live)
     monkeypatch.setattr(TimBusClient, "query_central_vehicles", classmethod(fake_tb))

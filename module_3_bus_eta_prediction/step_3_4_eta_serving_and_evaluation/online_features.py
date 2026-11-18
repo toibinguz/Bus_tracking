@@ -139,6 +139,56 @@ class OnlineFeatureExtractor:
         # (route_id, dir_int) -> {vehicle_id: (epoch, s_bus, speed_kmh, ratio)}
         self._fleet: Dict[Tuple[int, int], Dict[int, Tuple[float, float, float, float]]] = {}
         self._shape_models: Dict[Tuple[int, str], Optional[ShapeProjectionModel]] = {}
+        self._match_lock=threading.RLock()
+        self._matchers={};self._matched={};self._directions={};self._generations={}
+
+    def project_vehicle(self,route_id,dir_int,vehicle,now_epoch):
+        """One causal route match per source timestamp, reused by every consumer."""
+        from module_1_data_ingestion_and_preprocessing.step_1_4_frenet_spatial_projection.route_matcher import RouteHMM
+        shape=self._get_shape_model(route_id,'go' if dir_int==0 else 're')
+        if shape is None:return vehicle.model_copy(update={'projection_checked':True,'matched_projection':None,'projection_status':'missing_shape'})
+        epoch,_=parse_ping_epoch(vehicle.updated_at,now_epoch);epoch=min(epoch,now_epoch)
+        key=(route_id,dir_int,vehicle.id);identity=(route_id,vehicle.id)
+        with self._match_lock:
+            previous_direction=self._directions.get(identity)
+            if previous_direction and previous_direction[0]!=dir_int:
+                if epoch<=previous_direction[1]:
+                    return vehicle.model_copy(update={'projection_checked':True,'matched_projection':None,'projection_status':'old_direction','projection_generation':self._generations.get(identity,0)})
+                self._reset_vehicle(route_id,vehicle.id)
+            self._directions[identity]=(dir_int,max(epoch,previous_direction[1] if previous_direction and previous_direction[0]==dir_int else epoch))
+            cached=self._matched.get(key)
+            if cached and epoch<cached[0]:return cached[2]
+            if cached and epoch==cached[0]:return vehicle.model_copy(update=cached[1])
+            matcher=self._matchers.setdefault(key,RouteHMM(shape))
+            old_resets=matcher.resets
+            match=matcher.update(epoch,vehicle.lat,vehicle.lng,int(epoch*1000))
+            if matcher.resets!=old_resets:
+                self._clear_observations(route_id,vehicle.id)
+                self._generations[identity]=self._generations.get(identity,0)+1
+            update=dict(projection_checked=True,matched_projection=(match.s,match.cross_track,match.segment) if match else None,
+                        projection_status=matcher.reason,projection_generation=self._generations.get(identity,0))
+            prepared=vehicle.model_copy(update=update)
+            self._matched[key]=(epoch,update,prepared)
+            return prepared
+
+    def _clear_observations(self,route_id,vehicle_id):
+        with self._obs_lock:
+            for key in list(self._obs):
+                if key[0]==route_id and key[2]==vehicle_id:self._obs.pop(key,None)
+            for key,fleet in self._fleet.items():
+                if key[0]==route_id:fleet.pop(vehicle_id,None)
+
+    def _reset_vehicle(self,route_id,vehicle_id):
+        self._clear_observations(route_id,vehicle_id)
+        for key in list(self._matchers):
+            if key[0]==route_id and key[2]==vehicle_id:
+                self._matchers.pop(key,None);self._matched.pop(key,None)
+        identity=(route_id,vehicle_id);self._generations[identity]=self._generations.get(identity,0)+1
+
+    def projection_history(self,route_id,dir_int,vehicle_id):
+        with self._match_lock:
+            matcher=self._matchers.get((route_id,dir_int,vehicle_id))
+            return {p.epoch:p.s for p in matcher.best_path} if matcher else {}
 
     # ------------------------------------------------------------------ state
     def _get_shape_model(self, route_id: int, dir_str: str) -> Optional[ShapeProjectionModel]:
@@ -157,6 +207,8 @@ class OnlineFeatureExtractor:
         corridor = self._da.get_corridor_stations(route_id, dir_str)
         route_base_spd = self._da.get_route_profile(route_id, dir_str)[0]
 
+        vehicles=[self.project_vehicle(route_id,dir_int,v,now_epoch) for v in vehicles]
+        vehicles=[v for v in vehicles if v.matched_projection is not None]
         fleet: Dict[int, Tuple[float, float, float, float]] = {}
         with self._obs_lock:
             if shape_model is not None and len(corridor) >= 2:
@@ -165,7 +217,7 @@ class OnlineFeatureExtractor:
                 seg_p50 = self._segment_array(route_id, dir_int, corridor, day_type, hour_slot, route_base_spd, index=1)
 
                 for v in vehicles:
-                    s_bus, _, _ = shape_model.project_point(v.lat, v.lng)
+                    s_bus, _, _ = v.matched_projection
                     raw_spd = v.raw_speed_kmh if v.raw_speed_kmh is not None else v.speed_kmh
                     spd = max(0.0, float(raw_spd))
                     t_ping, _ = parse_ping_epoch(v.updated_at, now_epoch)
@@ -192,6 +244,11 @@ class OnlineFeatureExtractor:
                         ring.pop(0)
                     if len(ring) > _OBS_MAX_LEN:
                         del ring[: len(ring) - _OBS_MAX_LEN]
+
+                    matcher=self._matchers.get(ring_key)
+                    if matcher and matcher.best_path:
+                        corrections={p.epoch:p.s for p in matcher.best_path}
+                        ring[:]=[(t,corrections.get(t,s),speed) for t,s,speed in ring]
 
                     # Fleet lưu v_roll3 như tập train (feature_store_builder: active_fleet = v_roll3, ratio)
                     v_i, _ = _window_speed(ring, s_bus, _INST_WIN_SEC, 10.0)
@@ -266,6 +323,8 @@ class OnlineFeatureExtractor:
         target_order: int, s_target_m: float, s_bus_m: float, now_epoch: float,
     ) -> Dict[str, float]:
         """Trả dict đủ 54 khóa theo ALL_54_FEATURES."""
+        if vehicle.projection_checked and vehicle.matched_projection is not None:
+            s_bus_m=vehicle.matched_projection[0]
         dir_str = "go" if dir_int == 0 else "re"
         corridor = self._da.get_corridor_stations(route_id, dir_str)
         if len(corridor) < 2:
@@ -276,7 +335,8 @@ class OnlineFeatureExtractor:
         n_seg = len(st_s_vals) - 1
         r_len = self._da.get_route_profile(route_id, dir_str)[2]
         route_base_spd, r_spacing, _ = self._da.get_route_profile(route_id, dir_str)
-        route_id_idx = self._da.get_route_idx(route_id) or 0
+        route_index = self._da.get_route_idx(route_id)
+        route_id_idx = -1 if route_index is None else route_index
 
         day_type, hour_slot, wd, sin_t, cos_t = self._calendar(now_epoch)
 

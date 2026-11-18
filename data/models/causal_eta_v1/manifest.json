@@ -1,0 +1,199 @@
+{
+  "schema": "causal-eta.v1",
+  "features": [
+    "route_id_idx",
+    "direction_id",
+    "current_station_order",
+    "target_station_order",
+    "day_type",
+    "day_of_week",
+    "hour_slot",
+    "sin_time",
+    "cos_time",
+    "s_bus_m",
+    "s_target_m",
+    "remaining_distance_m",
+    "n_stations_ahead",
+    "progress_ratio",
+    "target_progress_ratio",
+    "dist_to_next_station_m",
+    "ego_speed_avg_3min_kmh",
+    "ego_speed_avg_5min_kmh",
+    "baseline_eta_p50_sec",
+    "baseline_eta_mean_sec",
+    "baseline_eta_p10_sec",
+    "baseline_eta_p90_sec",
+    "baseline_eta_p90_minus_p10_sec",
+    "baseline_eta_rss_std_sec",
+    "baseline_eta_mean_minus_p50_sec",
+    "baseline_max_seg_p90_sec",
+    "baseline_tier0_frac",
+    "route_base_speed_kmh",
+    "route_station_spacing_m",
+    "lead_bus_dist_ahead_m",
+    "follow_bus_dist_behind_m",
+    "n_active_buses_on_route",
+    "n_buses_in_corridor_ahead",
+    "lead_bus_speed_kmh",
+    "follow_bus_speed_kmh",
+    "lead_bus_speed_ratio"
+  ],
+  "category_domains": {
+    "route_id_idx": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "direction_id": [
+      0,
+      1
+    ],
+    "day_type": [
+      0,
+      1,
+      2
+    ],
+    "hour_slot": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21
+    ]
+  },
+  "hashes": {
+    "model": "58673a231ffb91d5c6744eece2743c6d36be27aa4311ea1491019ba2fd037d46"
+  },
+  "best_iteration": 899,
+  "trained_rounds": 900,
+  "provenance": {
+    "source": "runtime/causal_eta_all48_20261118/features/*.parquet (train+validation merged, 15 days, warm-started +300r)",
+    "test_split": "2026-11-02..2026-11-07"
+  },
+  "evaluation": {
+    "overall": {
+      "baseline": {
+        "rows": 4000961,
+        "mae": 161.05549892722797,
+        "median_ae": 96.25363969802856,
+        "p90_ae": 373.72756004333496,
+        "bias": -8.454829074311846,
+        "crossings": 341407,
+        "crossing_balanced_mae": 122.25166062144126
+      },
+      "model": {
+        "rows": 4000961,
+        "mae": 132.29860687908572,
+        "median_ae": 80.60222339630127,
+        "p90_ae": 310.1600914001465,
+        "bias": -12.665702107768155,
+        "crossings": 149288,
+        "crossing_balanced_mae": 109.78706713721607
+      }
+    },
+    "by_horizon": {
+      "1": {
+        "rows": 182777,
+        "mae": 39.40144606210542,
+        "median_ae": 21.356858491897583,
+        "p90_ae": 85.06494803428647,
+        "bias": -8.36980590521481,
+        "crossings": 96421,
+        "crossing_balanced_mae": 31.027649284494192
+      },
+      "2-5": {
+        "rows": 958689,
+        "mae": 68.09571878100064,
+        "median_ae": 43.19445323944092,
+        "p90_ae": 145.45868639946022,
+        "bias": -9.53245866487295,
+        "crossings": 144349,
+        "crossing_balanced_mae": 60.70820794506872
+      },
+      "6-15": {
+        "rows": 1696640,
+        "mae": 127.5453634150866,
+        "median_ae": 87.19836747646332,
+        "p90_ae": 276.8788280487063,
+        "bias": -12.572316250101753,
+        "crossings": 125011,
+        "crossing_balanced_mae": 119.32511186093858
+      },
+      "16+": {
+        "rows": 1162855,
+        "mae": 206.76585338984566,
+        "median_ae": 151.66494417190552,
+        "p90_ae": 449.2758475780485,
+        "bias": -16.060312119154755,
+        "crossings": 79780,
+        "crossing_balanced_mae": 197.40296917773105
+      }
+    },
+    "route_51": {
+      "rows": 112933,
+      "mae": 154.5616704656395,
+      "median_ae": 96.38458347320557,
+      "p90_ae": 347.65956301689147,
+      "bias": -8.236617317643905,
+      "crossings": 8423,
+      "crossing_balanced_mae": 119.3189872762674
+    }
+  }
+}

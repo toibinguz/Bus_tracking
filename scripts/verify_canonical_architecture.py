@@ -1,104 +1,65 @@
-"""
-End-to-End Canonical Architecture Verification Script
-Tests the 3 strategic modules:
-- Module 1: Ingestion & Preprocessing (BusMap Native Ground Truth, 1D Frenet Projection)
-- Module 2: Big Data Storage & Lakehouse (SQLite Operational Store, Parquet Lakehouse)
-- Module 3: Bus ETA Prediction (Baseline Travel Time Matrix, Model Artifacts)
-"""
+"""Read-only structural readiness checks, scoped to Silver or Gold.
 
-import sys
-import os
+Passing this command does not certify label correctness, leakage or ML accuracy.
+Gold is allowed to exist when verifying Silver; no historical row thresholds.
+"""
+import argparse
+import json
+from pathlib import Path
 import sqlite3
+import sys
 
-# Reconfigure stdout for UTF-8 on Windows
-if sys.stdout.encoding != 'utf-8':
-    try:
-        sys.stdout.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
+import pyarrow.parquet as pq
 
-# Ensure project root in sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from config.system_config import get_database_path
-
-DB_PATH = get_database_path()
-LAKEHOUSE_PATH = "data/lakehouse/silver/route_projected_telemetry"
-BRONZE_INC_PATH = "data/lakehouse/bronze/tomtom_incidents_raw"
-SILVER_INC_PATH = "data/lakehouse/silver/fact_route_tomtom_incidents"
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
 
 
-def verify():
-    print("=" * 80)
-    print("CANONICAL BRONZE & SILVER ARCHITECTURE VERIFICATION AUDIT")
-    print("=" * 80)
-
-    # 1. Verify SQLite Operational Database
-    print(f"\n[1] AUDITING MODULE 2: OPERATIONAL DATABASE ({DB_PATH})...")
-    assert os.path.exists(DB_PATH), f"Missing database: {DB_PATH}"
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    canon_routes = cur.execute("SELECT count(1) FROM canonical_route_master").fetchone()[0]
-    canon_stations = cur.execute("SELECT count(1) FROM canonical_station_master").fetchone()[0]
-    canon_shapes = cur.execute("SELECT count(1) FROM canonical_shape_master").fetchone()[0]
-    proj_cnt = cur.execute("SELECT count(1) FROM route_projected_telemetry").fetchone()[0]
-
-    print(f"  * Canonical Master Routes       : {canon_routes:,} routes")
-    print(f"  * Canonical Master Stations     : {canon_stations:,} stations")
-    print(f"  * Canonical Centerline Points   : {canon_shapes:,} points")
-    print(f"  * Projected Telemetry Pings     : {proj_cnt:,} pings")
-
-    assert canon_routes >= 48, f"Routes count below threshold ({canon_routes})"
-    assert canon_stations >= 10000, f"Stations count below threshold ({canon_stations})"
-    assert canon_shapes >= 100000, f"Shape points below threshold ({canon_shapes})"
-    assert proj_cnt >= 200000, f"Projected pings below threshold ({proj_cnt})"
-
-    # 2. Verify Analytical View
-    print("\n[2] AUDITING GLOBAL ANALYTICAL VIEW (v_bus_to_next_station)...")
-    sample_view = cur.execute("""
-        SELECT route_code, plate, s_bus_m, next_station_name, distance_remaining_m, derived_speed_kmh
-        FROM v_bus_to_next_station
-        WHERE distance_remaining_m > 0
-        LIMIT 3
-    """).fetchall()
-    for row in sample_view:
-        s_name = row[3] if row[3] else "Unknown Station"
-        print(f"  * Sample Bus: Route {row[0]} ({row[1]}) -> Next Station: {s_name[:25]} | Remaining: {row[4]:.1f}m | Speed: {row[5]} km/h")
-    assert len(sample_view) == 3, "Failed to query view v_bus_to_next_station"
-
-    # 3. Verify Parquet Lakehouse (Bronze & Silver)
-    print("\n[3] AUDITING MODULE 2: MEDALLION PARQUET LAKEHOUSE (BRONZE & SILVER)...")
-    assert os.path.exists(LAKEHOUSE_PATH), f"Missing lakehouse directory: {LAKEHOUSE_PATH}"
-    
-    tel_parquet_count = sum(1 for _, _, files in os.walk(LAKEHOUSE_PATH) for f in files if f.endswith(".parquet"))
-    bronze_inc_count = sum(1 for _, _, files in os.walk(BRONZE_INC_PATH) for f in files if f.endswith(".parquet")) if os.path.exists(BRONZE_INC_PATH) else 0
-    silver_inc_count = sum(1 for _, _, files in os.walk(SILVER_INC_PATH) for f in files if f.endswith(".parquet")) if os.path.exists(SILVER_INC_PATH) else 0
-
-    print(f"  * Silver Telemetry Partitions   : {tel_parquet_count} files in {LAKEHOUSE_PATH}")
-    print(f"  * Bronze Incidents Partitions   : {bronze_inc_count} files in {BRONZE_INC_PATH}")
-    print(f"  * Silver Incidents Partitions   : {silver_inc_count} files in {SILVER_INC_PATH}")
-
-    assert tel_parquet_count >= 50, f"Insufficient Silver telemetry partitions ({tel_parquet_count})"
-
-    # 4. Confirm Zero Gold / Module 3 Tables in SQLite (Pre-Module 3 Silver State)
-    print("\n[4] AUDITING ZERO GOLD INGESTION STATE (PRE-MODULE 3 SILVER SANITY)...")
-    gold_tables = cur.execute("""
-        SELECT name FROM sqlite_master 
-        WHERE type='table' AND name IN ('agg_segment_travel_times', 'ml_station_pair_evaluation', 'ml_route_evaluation_summary')
-    """).fetchall()
-    print(f"  * Gold Tables in SQLite         : {len(gold_tables)} (Expected 0)")
-    assert len(gold_tables) == 0, f"Unexpected Gold tables found: {[t[0] for t in gold_tables]}"
-
-    gold_dir = "data/lakehouse/gold"
-    gold_files = [os.path.join(r, f) for r, _, fs in os.walk(gold_dir) for f in fs if f.endswith(".parquet")] if os.path.exists(gold_dir) else []
-    print(f"  * Gold Parquet Files on Disk    : {len(gold_files)} (Expected 0)")
-    assert len(gold_files) == 0, f"Unexpected Gold files found: {gold_files}"
-
-    conn.close()
-    print("\n" + "=" * 80)
-    print("ALL BRONZE & SILVER ARCHITECTURE CHECKS PASSED WITH 100% SUCCESS!")
-    print("=" * 80)
+def parquet_inventory(root,required):
+    files=sorted(Path(root).rglob('*.parquet'))
+    if not files:raise ValueError('no Parquet files: '+str(root))
+    count=0
+    for path in files:
+        file=pq.ParquetFile(path)
+        columns=file.schema_arrow.names
+        if len(columns)!=len(set(columns)) or not set(required).issubset(columns):
+            raise ValueError('invalid Parquet schema: '+str(path))
+        count+=file.metadata.num_rows
+    if not count:raise ValueError('stage has no rows: '+str(root))
+    return dict(files=len(files),rows=count)
 
 
-if __name__ == "__main__":
-    verify()
+def verify(database,lakehouse,stage='silver'):
+    database=Path(database).resolve()
+    tables={}
+    required={'canonical_route_master':['route_id','route_code'],
+              'canonical_station_master':['route_id','route_code','direction','station_order','station_id','cum_distance_m'],
+              'canonical_shape_master':['route_id','route_code','direction','point_order','lat','lon','cum_distance_m']}
+    if stage=='gold':required['agg_segment_travel_times']=['route_code','direction','from_station_order','to_station_order','tt_p50_sec','sample_count']
+    with sqlite3.connect(database.as_uri()+'?mode=ro',uri=True) as conn:
+        for table,columns in required.items():
+            actual={r[1] for r in conn.execute('PRAGMA table_info('+table+')')}
+            if not set(columns).issubset(actual):raise ValueError('missing table/columns: '+table)
+            count=conn.execute('SELECT COUNT(*) FROM '+table).fetchone()[0]
+            if not count:raise ValueError('empty required table: '+table)
+            invalid=conn.execute('SELECT COUNT(*) FROM '+table+' WHERE '+' OR '.join(c+' IS NULL' for c in columns)).fetchone()[0]
+            if invalid:raise ValueError('null required values: '+table)
+            if conn.execute('SELECT COUNT(*) FROM '+table+" WHERE typeof(route_code)!='text'").fetchone()[0]:
+                raise ValueError('route codes must remain text: '+table)
+            tables[table]=count
+    lakehouse=Path(lakehouse)
+    silver=parquet_inventory(lakehouse/'silver/route_projected_telemetry',
+                              ['vehicle_id','device_update_time','device_epoch','direction','s_bus_m','derived_speed_kmh'])
+    result=dict(stage=stage,tables=tables,silver=silver,scope='structural readiness only; not a correctness/accuracy verdict')
+    if stage=='gold':
+        result['features']=parquet_inventory(lakehouse/'gold/eta_feature_store',
+                                             ['route_id_idx','actual_eta_sec','baseline_eta_p50_sec','n_stations_ahead'])
+    return result
+
+
+if __name__=='__main__':
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--database',type=Path,default=ROOT/'data/hanoi_bus_system.db')
+    parser.add_argument('--lakehouse',type=Path,default=ROOT/'data/lakehouse')
+    parser.add_argument('--stage',choices=['silver','gold'],default='silver')
+    args=parser.parse_args();print(json.dumps(verify(args.database,args.lakehouse,args.stage)))
