@@ -71,13 +71,23 @@ def fetch_route_buses_live(route_id: int, direction: int = 0):
     """
     url = f"https://api.busmap.city/v2/public/busmap/route_bus_gps?regionCode=hn&routeId={route_id}&direction={direction}"
     req = urllib.request.Request(url, headers=_get_live_route_headers(), method="GET")
+    from .upstream_capture import capture
+    sent_at=datetime.now().astimezone().isoformat()
     try:
         with urllib.request.urlopen(req, timeout=8.0, context=SSL_UNVERIFIED_CTX) as resp:
             data = resp.read()
+            capture('busmap',dict(route_id=route_id,direction=direction,endpoint='route_bus_gps'),
+                    data,resp.status,dict(resp.headers),sent_at=sent_at)
             if not data:
                 return []
             return json.loads(data.decode('utf-8'))
     except Exception as e:
+        if isinstance(e,urllib.error.HTTPError):
+            capture('busmap',dict(route_id=route_id,direction=direction,endpoint='route_bus_gps'),
+                    e.read(),e.code,dict(e.headers),error=type(e).__name__,sent_at=sent_at)
+        else:
+            capture('busmap',dict(route_id=route_id,direction=direction,endpoint='route_bus_gps'),
+                    error=type(e).__name__+': '+str(e),sent_at=sent_at)
         print(f"      [!] Lỗi truy vấn route_bus_gps tuyến {route_id} hướng {direction}: {e}", flush=True)
         return []
 

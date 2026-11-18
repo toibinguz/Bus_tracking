@@ -20,6 +20,7 @@ def main():
     build.add_argument('--cache',type=Path,required=True)
     build.add_argument('--output',type=Path,required=True)
     build.add_argument('--workers',type=int,default=2)
+    build.add_argument('--baseline-fit-end',help='use 2026-10-23 when preparing the current ML validation protocol')
     publish=commands.add_parser('publish')
     publish.add_argument('--output',type=Path,required=True)
     publish.add_argument('--transport',choices=['docker','webhdfs'],default='docker')
@@ -50,7 +51,7 @@ def main():
     if args.command=='materialize':
         result=pipeline.materialize(args.snapshot,args.cache,args.dates,args.routes)
     elif args.command=='build':
-        result=pipeline.build(args.cache,args.output,args.workers)
+        result=pipeline.build(args.cache,args.output,args.workers,baseline_fit_end=args.baseline_fit_end)
     elif args.command=='publish':
         result=pipeline.publish(args.output,store)
     elif args.command=='download':

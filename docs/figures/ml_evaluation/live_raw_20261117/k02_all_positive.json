@@ -1,0 +1,20 @@
+{
+  "rows": 222,
+  "cohort_rows": 222,
+  "min_actual_sec": 0,
+  "arrival_events": 12,
+  "vehicles": 10,
+  "mean_pct": -3.8539020863732047,
+  "std_pct": 18.092115637738132,
+  "median_pct": 0.6691979159793705,
+  "p10_pct": -26.940185438694837,
+  "p90_pct": 15.915341548637015,
+  "iqr_pct": 26.105124552514802,
+  "wape_pct": 12.55221879099113,
+  "negative_pct": 48.1981981981982,
+  "positive_pct": 51.80180180180181,
+  "axis_coverage_pct": 100.0,
+  "outside_axis": 0,
+  "formula": "100 * (GPS-derived actual remaining - predicted remaining) / actual remaining",
+  "caveat": "forecast-weighted descriptive distribution; forecasts on a vehicle/event are correlated; GPS crossing, not dwell"
+}

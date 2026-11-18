@@ -149,7 +149,7 @@ def paths(module, **selected):
             setattr(module,key,value)
 
 
-def build(cache,output,workers=2):
+def build(cache,output,workers=2,baseline_fit_end=None):
     import pandas as pd
     import pyarrow as pa
     import pyarrow.dataset as ds
@@ -170,7 +170,7 @@ def build(cache,output,workers=2):
         frame.to_sql('route_projected_telemetry',conn,index=False)
     from module_3_bus_eta_prediction.step_3_1_historical_baseline_model import baseline_matrix_builder as baseline
     with paths(baseline,DB_PATH=database,SILVER_TEL_DIR=silver,GOLD_BASELINE_DIR=output/'gold'/'agg_segment_travel_times'):
-        baseline_result = baseline.build_and_evaluate_baseline_matrix()
+        baseline_result = baseline.build_and_evaluate_baseline_matrix(fit_end_date=baseline_fit_end)
     incident_rows=0
     if info['incident_observations']:
         from module_1_data_ingestion_and_preprocessing.step_1_4_frenet_spatial_projection import tomtom_incident_projector as incidents
@@ -186,17 +186,32 @@ def build(cache,output,workers=2):
     from module_3_bus_eta_prediction.step_3_2_feature_store_extractor import feature_store_builder as features
     with paths(features,DB_PATH=database,SILVER_TEL_DIR=silver,SILVER_INC_DIR=output/'silver'/'fact_route_tomtom_incidents',GOLD_FEATURE_DIR=output/'gold'/'eta_feature_store'):
         feature_result=features.build_gold_feature_store(max_workers=workers)
+    feature_manifest=output/'gold'/'eta_feature_store'/'feature_store_manifest.json'
+    feature_identity=json.loads(feature_manifest.read_text(encoding='utf-8'))
+    feature_identity.update(source_snapshot_id=info['snapshot_id'],cache_id=info['cache_id'])
+    atomic_write(feature_manifest,encoded(feature_identity))
+    # Timing is an observation, not part of immutable data identity. Including it
+    # produced a different artifact ID for every rebuild of identical inputs.
+    print('ETA_BUILD_OBSERVATION='+json.dumps(dict(baseline_elapsed_sec=baseline_result.get('elapsed_sec'),
+                                                features_elapsed_sec=feature_result.get('elapsed_sec'))),flush=True)
+    baseline_result={key:value for key,value in baseline_result.items() if key!='elapsed_sec'}
+    feature_result={key:value for key,value in feature_result.items() if key!='elapsed_sec'}
     atomic_write(output/'source_snapshot.json',(cache/'source.json').read_bytes())
     from config import system_config as policy
+    from module_3_bus_eta_prediction import temporal_contract
     domain_policy={key:getattr(baseline,key) for key in dir(baseline) if key.startswith(('BRACKET_','BASELINE_','SEGMENT_','DAY_TYPE_','EXCLUDE_TERMINAL')) and isinstance(getattr(baseline,key),(int,float,bool,str))}
     domain_policy.update({key:getattr(features,key) for key in ('RECENT_PROBE_WINDOW_SEC','FLEET_ACTIVE_WINDOW_SEC','MIN_EGO_SAMPLE_ADVANCE_M')})
-    lineage=dict(schema_version='eta-artifact.v1',snapshot_id=info['snapshot_id'],cache_id=info['cache_id'],selection=dict(dates=info['dates'],routes=info['routes']),
+    code_paths=[Path(module.__file__) for module in (baseline,features,temporal_contract)]+[
+        ROOT/'config/system_config.py',
+        ROOT/'module_1_data_ingestion_and_preprocessing/step_1_3_telemetry_kinematic_sanitizer/trip_segmenter.py',
+        ROOT/'module_1_data_ingestion_and_preprocessing/step_1_4_frenet_spatial_projection/tomtom_incident_projector.py']
+    lineage=dict(schema_version='eta-artifact.v2',snapshot_id=info['snapshot_id'],cache_id=info['cache_id'],selection=dict(dates=info['dates'],routes=info['routes']),
                  execution='local existing domain algorithms; Silver was processed by distributed Spark',
                  split=dict(train_end=policy.TRAIN_SPLIT_END_DATE,test_start=policy.TEST_SPLIT_START_DATE),
                  baseline_result=baseline_result,feature_result=feature_result,incident_fact_rows=incident_rows,
                  domain_policy=domain_policy,incident_projector_sha256=digest((ROOT/'module_1_data_ingestion_and_preprocessing/step_1_4_frenet_spatial_projection/tomtom_incident_projector.py').read_bytes()),
                  pipeline_sha256=digest(Path(__file__).read_bytes()),
-                 code={str(Path(module.__file__).relative_to(ROOT)):digest(Path(module.__file__).read_bytes()) for module in (baseline,features)},
+                 code={str(path.relative_to(ROOT)):digest(path.read_bytes()) for path in code_paths},
                  files=files_manifest(output))
     lineage['artifact_id']=digest(encoded(lineage))
     atomic_write(output/'artifact.json',encoded(lineage))

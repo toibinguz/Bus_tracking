@@ -7,6 +7,7 @@ Ghép: data_access + live_feed + frenet + online_features + model_runtime + eta_
 """
 
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 import logging
 import math
 import threading
@@ -76,6 +77,20 @@ class MacroSpeedTracker:
         self._ema: Dict[Tuple[int, int, str], float] = {}
         self._last_win_dt: Dict[Tuple[int, int, str], float] = {}
         self._seed: Dict[Tuple[int, int, str], float] = {}
+
+    def reset_vehicle(self,route_id,plate_norm):
+        with self._lock:
+            for key in list(self._history):
+                if key[0]==route_id and key[2]==plate_norm:
+                    for state in (self._history,self._ema,self._last_win_dt,self._seed):state.pop(key,None)
+
+    def revise_positions(self,route_id,dir_int,plate_norm,positions):
+        key=(route_id,dir_int,plate_norm)
+        with self._lock:
+            history=self._history.get(key,[])
+            revised=[(t,positions.get(t,s)) for t,s in history]
+            if revised!=history:
+                self._history[key]=revised;self._ema.pop(key,None);self._last_win_dt.pop(key,None)
 
     def _trim_leading_dwell(
         self,
@@ -215,12 +230,31 @@ class BusMapServingService:
                                     baseline_routes=sorted(self._da.route_idx_by_code),
                                     model_status='candidate_unverified' if self._runtime.available else 'unavailable')
         self._extractor = OnlineFeatureExtractor(self._da, self._incidents)
+        self.source_info['model'] = self._runtime.identity
         self._shape_models: Dict[Tuple[int, str], Optional[ShapeProjectionModel]] = {}
         # Cache Monotonicity, danh sách xe vượt trạm theo từng trạm & vận tốc vĩ mô cho luồng hybrid TimBus 5s
         self._tb_lock = threading.Lock()
         self._tb_last_valid: Dict[Tuple[int, int, str], Tuple[float, float, BusVehicleDTO]] = {}
         self._passed_station_plates: Dict[Tuple[int, int, int, str], float] = {}
         self._speed_tracker = MacroSpeedTracker()
+        self._projection_generations={}
+
+    def _prepare_vehicle(self,route_id,dir_int,vehicle,now_epoch):
+        vehicle=self._extractor.project_vehicle(route_id,dir_int,vehicle,now_epoch)
+        plate=TimBusClient.normalize_plate(vehicle.plate);key=(route_id,plate)
+        with self._tb_lock:
+            previous=self._projection_generations.get(key,0)
+            if vehicle.projection_generation!=previous:
+                self._speed_tracker.reset_vehicle(route_id,plate)
+                for cached_key in list(self._tb_last_valid):
+                    if cached_key[0]==route_id and cached_key[2]==plate:self._tb_last_valid.pop(cached_key,None)
+                for passed_key in list(self._passed_station_plates):
+                    if passed_key[0]==route_id and passed_key[3]==plate:self._passed_station_plates.pop(passed_key,None)
+                from .request_trace import record
+                record('projection_reset',route_id=route_id,direction=dir_int,vehicle_id=vehicle.id,
+                       generation=vehicle.projection_generation,reason=vehicle.projection_status)
+            self._projection_generations[key]=vehicle.projection_generation
+        return vehicle
 
     # ---------------------------------------------------------------- catalog
     def get_routes(self) -> List[RouteItemDTO]:
@@ -320,6 +354,9 @@ class BusMapServingService:
         live_resp = pre_live_resp if pre_live_resp is not None else fetch_live_vehicles_for_route(
             route_id=route_id, direction=dir_int
         )
+        # A malformed/stale response must not move one vehicle between both
+        # direction trackers during the same sync cycle.
+        live_resp=live_resp.model_copy(update={'vehicles':[v for v in live_resp.vehicles if v.direction==dir_int]})
         if not timbus_ok or not anchor_sids or not live_resp.vehicles:
             return timbus_ok, live_resp.vehicles
 
@@ -345,6 +382,9 @@ class BusMapServingService:
         )
         # Fleet describes the whole route, independently of the requested station.
         self._extractor.update_observation(route_id, dir_int, merged, now_epoch)
+        from .request_trace import record
+        record('route_observation',route_id=route_id,direction=dir_int,query_epoch=now_epoch,
+               vehicles=[vehicle.model_dump() for vehicle in merged])
         return timbus_ok, self._filter_station_vehicles(
             route_id, dir_int, merged, shape_model, now_epoch, s_target, station_order
         )
@@ -368,6 +408,7 @@ class BusMapServingService:
 
         with ThreadPoolExecutor(max_workers=2) as pool:
             fut_primary = pool.submit(
+                copy_context().run,
                 self._sync_single_direction,
                 route_id,
                 primary_dir,
@@ -377,6 +418,7 @@ class BusMapServingService:
                 primary_live_resp,
             )
             fut_other = pool.submit(
+                copy_context().run,
                 self._sync_single_direction,
                 route_id,
                 other_dir,
@@ -472,6 +514,12 @@ class BusMapServingService:
                                 "telemetry_source": "timbus",
                             }
                         )
+                        tb_dto=self._prepare_vehicle(route_id,dir_int,tb_dto,now_epoch)
+                        if tb_dto.matched_projection is None:
+                            continue
+                        s_tb,ct_tb,seg_idx_tb=tb_dto.matched_projection
+                        ux,uy=shape_model.segment_unit_tangent(seg_idx_tb)
+                        tb_dto=tb_dto.model_copy(update={'deg':math.degrees(math.atan2(ux,uy))%360.})
                         # Luôn giữ bản ghi TimBus mới nhất trong _tb_last_valid (kể cả khi đã qua trạm để bản đồ live chạy tiếp)
                         with self._tb_lock:
                             cached = self._tb_last_valid.get(cache_key)
@@ -516,17 +564,25 @@ class BusMapServingService:
             return vehicles
         approaching = []
         for vehicle in vehicles:
-            s_cur, cross_track, _ = shape_model.project_point(vehicle.lat, vehicle.lng)
+            vehicle=self._prepare_vehicle(route_id,dir_int,vehicle,now_epoch)
+            if vehicle.matched_projection is None:continue
+            s_cur, cross_track, _ = vehicle.matched_projection
             if cross_track > MAX_CORRIDOR_CROSS_TRACK_M:
                 continue
             plate = TimBusClient.normalize_plate(vehicle.plate)
             key = (route_id, dir_int, station_order, plate) if station_order is not None else None
             if s_cur > s_target:
+                from .request_trace import record
+                record('station_filtered',route_id=route_id,direction=dir_int,station_order=station_order,
+                       vehicle=vehicle.model_dump(),reason='passed_station',s_bus_m=s_cur,s_target_m=s_target)
                 if key is not None:
                     with self._tb_lock:
                         self._passed_station_plates[key] = now_epoch
                 continue
             if key is not None and self._is_recently_passed_locked(key, s_cur, s_target, now_epoch):
+                from .request_trace import record
+                record('station_filtered',route_id=route_id,direction=dir_int,station_order=station_order,
+                       vehicle=vehicle.model_dump(),reason='recently_passed_guard',s_bus_m=s_cur,s_target_m=s_target)
                 continue
             approaching.append(vehicle)
         return approaching
@@ -562,12 +618,21 @@ class BusMapServingService:
         route_base_spd = self._da.get_route_profile(route_id, dir_str)[0]
         stabilized: List[BusVehicleDTO] = []
         for v in vehicles:
+            v=self._prepare_vehicle(route_id,dir_int,v,now_epoch)
+            if v.matched_projection is None:continue
             p_norm = TimBusClient.normalize_plate(v.plate)
             if not p_norm:
                 stabilized.append(v)
                 continue
-            s_cur, _, _ = shape_model.project_point(v.lat, v.lng)
+            s_cur, _, _ = v.matched_projection
+            if v.telemetry_source=='timbus':
+                # TimBus has no measured heading. Keep its inferred map arrow
+                # consistent with the selected branch, including cached DTOs.
+                ux,uy=shape_model.segment_unit_tangent(v.matched_projection[2])
+                v=v.model_copy(update={'deg':math.degrees(math.atan2(ux,uy))%360.})
+            self._speed_tracker.revise_positions(route_id,dir_int,p_norm,self._extractor.projection_history(route_id,dir_int,v.id))
             t_sample, _ = parse_ping_epoch(v.updated_at, now_epoch)
+            t_sample=min(now_epoch,t_sample)
             raw_spd = float(v.raw_speed_kmh if v.raw_speed_kmh is not None else v.speed_kmh)
             bm_entry = bm_proj.get(p_norm)
             bm_spd = float(bm_entry[0].speed_kmh) if bm_entry is not None else raw_spd
@@ -659,16 +724,24 @@ class BusMapServingService:
                 primary_live_resp=live_resp,
             )
         else:
-            vehicles = live_resp.vehicles
+            vehicles = [self._prepare_vehicle(route_id,dir_int,v,now_epoch) for v in live_resp.vehicles]
+            vehicles = [v for v in vehicles if v.matched_projection is not None]
             self._extractor.update_observation(route_id, dir_int, vehicles, now_epoch)
+            from .request_trace import record
+            record('route_observation',route_id=route_id,direction=dir_int,query_epoch=now_epoch,
+                   vehicles=[vehicle.model_dump() for vehicle in vehicles])
 
         station_s = [st.cum_distance_m for st in stations_resp.stations]
         approaching: List[ApproachingBusDTO] = []
         speeds: List[float] = []
 
         for v in vehicles:
+            v=self._prepare_vehicle(route_id,dir_int,v,now_epoch)
             bus_state = project_filter_extrapolate(v, shape_model, s_target, now_epoch)
             if bus_state is None:
+                from .request_trace import record
+                record('eta_filtered', route_id=route_id, direction=dir_int, station_order=station_order,
+                       vehicle=v.model_dump(), reason='projection_stale_heading_or_passed')
                 continue
 
             features = self._extractor.build_features(
@@ -680,7 +753,8 @@ class BusMapServingService:
                 s_bus_m=bus_state.s_now,
                 now_epoch=now_epoch,
             )
-            ml_p50 = self._runtime.predict_p50(features) if self._runtime.available else None
+            ml_supported = self._runtime.available and self._da.get_route_idx(route_id) is not None
+            ml_p50 = self._runtime.predict_p50(features) if ml_supported else None
             prediction_source = "ml_calibrated" if ml_p50 is not None else "baseline_fallback"
 
             dto = compute_station_eta(
@@ -697,6 +771,10 @@ class BusMapServingService:
                 prediction_source=prediction_source,
             )
             dto = dto.model_copy(update={"telemetry_source": v.telemetry_source})
+            from .request_trace import record
+            record('eta_result', route_id=route_id, direction=dir_int, station_order=station_order,
+                   query_epoch=now_epoch, s_bus_m=bus_state.s_now, s_target_m=s_target,
+                   vehicle=v.model_dump(), features=features, result=dto.model_dump(), serving=self.source_info)
             approaching.append(dto)
             speeds.append(v.speed_kmh)
 

@@ -1,0 +1,118 @@
+{
+  "scope": "recorded merged-GPS boundary replay through installed HTTP; no upstream network, not a new live session",
+  "counts": {
+    "fleet_snapshots": 3600,
+    "timbus_cache_misses_without_network": 1900,
+    "http_requests": 1440,
+    "original_forecasts": 4990,
+    "installed_forecasts": 4976,
+    "ml_calibrated": 4976,
+    "new_forecast_entries": 0,
+    "removed_forecast_entries": 14
+  },
+  "known_case_pair_delta_sec": -0.6000000000001364,
+  "known_case_forecasts_after_event": 69,
+  "known_case_max_jump_after_event": 6.7999999999999545,
+  "lifecycle": {},
+  "resets": [
+    {
+      "route": 27,
+      "vehicle": 8837136,
+      "direction": 0,
+      "epoch": 1794917516.345408,
+      "status": "direction_change_pending",
+      "generation": 1
+    },
+    {
+      "route": 27,
+      "vehicle": 8837136,
+      "direction": 1,
+      "epoch": 1794917556.231783,
+      "status": "initialized",
+      "generation": 2
+    },
+    {
+      "route": 27,
+      "vehicle": 8837147,
+      "direction": 1,
+      "epoch": 1794917556.231783,
+      "status": "initialized",
+      "generation": 1
+    },
+    {
+      "route": 27,
+      "vehicle": 8837151,
+      "direction": 1,
+      "epoch": 1794917636.297178,
+      "status": "initialized",
+      "generation": 1
+    },
+    {
+      "route": 2,
+      "vehicle": 231981,
+      "direction": 1,
+      "epoch": 1794917822.426458,
+      "status": "initialized",
+      "generation": 1
+    },
+    {
+      "route": 2,
+      "vehicle": 231970,
+      "direction": 1,
+      "epoch": 1794917992.328138,
+      "status": "direction_change_pending",
+      "generation": 1
+    },
+    {
+      "route": 2,
+      "vehicle": 231970,
+      "direction": 0,
+      "epoch": 1794918062.361725,
+      "status": "initialized",
+      "generation": 2
+    },
+    {
+      "route": 27,
+      "vehicle": 8837134,
+      "direction": 0,
+      "epoch": 1794918153.571615,
+      "status": "initialized",
+      "generation": 1
+    },
+    {
+      "route": 27,
+      "vehicle": 8837140,
+      "direction": 0,
+      "epoch": 1794918153.571615,
+      "status": "initialized",
+      "generation": 1
+    },
+    {
+      "route": 2,
+      "vehicle": 231985,
+      "direction": 1,
+      "epoch": 1794918157.403592,
+      "status": "outside_corridor",
+      "generation": 1
+    },
+    {
+      "route": 2,
+      "vehicle": 231985,
+      "direction": 0,
+      "epoch": 1794918327.401879,
+      "status": "outside_corridor",
+      "generation": 2
+    }
+  ],
+  "removed_forecast_reasons": {
+    "no_feasible_transition": 14
+  },
+  "sources": {
+    "Z:\\Desktop\\Bus_tracking\\scripts\\verify_installed_hmm_replay.py": "8cc682bae9e706ba1858835902e5bcd4e6f40aa38962a5fb967c32dacbf8ab97",
+    "runtime\\eta_live_session_20261117_raw\\http.jsonl": "d9627828fef4c4abaabd7609684eaa224aa8b7d7dac0a434f5d9bf579b73863a",
+    "runtime\\eta_live_session_20261117_raw\\backend\\trace.jsonl": "bb8e8c38ca89d6d6a0f58601db75e8b11b2fdff7344fd8fe0429d09f358b5818",
+    "Z:\\Desktop\\Bus_tracking\\module_1_data_ingestion_and_preprocessing\\step_1_4_frenet_spatial_projection\\route_matcher.py": "a470b760b88a83ba948b6f1d06bf5bf5f3848239ace956bd8a6dae21e6540a96",
+    "Z:\\Desktop\\Bus_tracking\\module_3_bus_eta_prediction\\step_3_4_eta_serving_and_evaluation\\serving_service.py": "4d37bfb91c89b41c0dcc3495c42dbad9616362988ce6eb78cba0b534330a7d15",
+    "Z:\\Desktop\\Bus_tracking\\module_3_bus_eta_prediction\\step_3_4_eta_serving_and_evaluation\\online_features.py": "67a9a3312d9024d5e8b0454b16fdbf3a4d422a36d7fe1bf9cf31b32bc334923e"
+  }
+}

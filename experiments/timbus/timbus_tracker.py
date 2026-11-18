@@ -9,11 +9,14 @@ Mã định danh gói mục tiêu: com.binhanh.bushanoi (Tìm Buýt - Phiên b�
 Endpoint: http://www.timbus.vn:9149/SearchBuyt/VehicleState
 
 Hỗ trợ 2 chế độ:
-  1. Thư viện Python (Importable Library): from tools.timbus_tracker import TimBusClient, BusRecord
-  2. Công cụ dòng lệnh CLI: python tools/timbus_tracker.py --station 157 --routes "03A,25,32"
+  1. Thư viện Python: from experiments.timbus.timbus_tracker import TimBusClient, BusRecord
+  2. CLI: python experiments/timbus/timbus_tracker.py --station 157 --routes "03A,25,32"
 """
 
 import sys
+from pathlib import Path
+if __package__ in (None,''):
+    sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
 import argparse
 import base64
 import urllib.request
@@ -22,6 +25,7 @@ import struct
 import random
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextvars import copy_context
 from dataclasses import dataclass, asdict
 from typing import List, Optional, Dict, Any
 
@@ -258,10 +262,30 @@ class TimBusClient:
             method="GET"
         )
         
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            resp_body = resp.read().decode('utf-8').strip().strip('"')
-            decrypted_bytes = cls.decrypt_packet(resp_body)
-            return cls.parse_bus_packet(decrypted_bytes, direction_fallback=direction)
+        from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.upstream_capture import capture
+        from datetime import datetime, timezone
+        sent_at=datetime.now(timezone.utc).isoformat()
+        params=dict(station_id=station_id,route=route_param,vehicle=vehicle_param,direction=direction)
+        attachments=dict(request_payload=payload,encoded_request=encrypted_req.encode('utf-8'))
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw=resp.read()
+                try:
+                    resp_body = raw.decode('utf-8').strip().strip('"')
+                    decrypted_bytes = cls.decrypt_packet(resp_body)
+                    attachments['decoded_response']=decrypted_bytes
+                    buses=cls.parse_bus_packet(decrypted_bytes, direction_fallback=direction)
+                except Exception as error:
+                    capture('timbus',params,raw,resp.status,dict(resp.headers),error='decode: '+str(error),attachments=attachments,sent_at=sent_at)
+                    raise
+                capture('timbus',params,raw,resp.status,dict(resp.headers),attachments=attachments,sent_at=sent_at)
+                return buses
+        except urllib.error.HTTPError as error:
+            capture('timbus',params,error.read(),error.code,dict(error.headers),error='http_error',attachments=attachments,sent_at=sent_at)
+            raise
+        except (OSError,urllib.error.URLError) as error:
+            capture('timbus',params,error=str(error),attachments=attachments,sent_at=sent_at)
+            raise
 
     @classmethod
     def query_station_fleet(cls, station_id: int, route_codes: List[str], direction: int = 1) -> List[BusRecord]:
@@ -359,6 +383,7 @@ class TimBusClient:
                 with ThreadPoolExecutor(max_workers=max_workers) as pool:
                     fut_map = {
                         pool.submit(
+                            copy_context().run,
                             cls.query_targeted_vehicle,
                             station_id=sid,
                             route_code=route_code,

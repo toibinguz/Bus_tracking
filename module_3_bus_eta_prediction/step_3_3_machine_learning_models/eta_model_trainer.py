@@ -177,12 +177,14 @@ def assign_horizon_bucket(n_stations_ahead: np.ndarray) -> np.ndarray:
     return b
 
 
-def prepare_xgb_dataframe(df: pd.DataFrame, feature_cols: List[str]) -> pd.DataFrame:
+def prepare_xgb_dataframe(df: pd.DataFrame, feature_cols: List[str], category_domains=None) -> pd.DataFrame:
     """Prepares feature DataFrame with categorical dtypes for fast XGBoost histogram splitting."""
     X = df[feature_cols].copy()
+    fixed=category_domains or {}
     for c in CATEGORICAL_FEATURES:
         if c in X.columns:
-            X[c] = X[c].astype("category")
+            values=X[c].astype('int32')
+            X[c] = pd.Categorical(values,categories=np.asarray(fixed[c],dtype='int32')) if c in fixed else values.astype('category')
     return X
 
 
@@ -458,7 +460,8 @@ def train_xgb_residual_model(
     weighted by `1 / sqrt(max(60, baseline_eta_p50_sec))`.
     """
     t0 = time.perf_counter()
-    X_fit = prepare_xgb_dataframe(fit_df, feature_cols)
+    fixed={'direction_id':[0,1],'day_type':[0,1,2],'hour_slot':list(range(5,22))}
+    X_fit = prepare_xgb_dataframe(fit_df, feature_cols,category_domains=fixed)
     y_fit = (fit_df["actual_eta_sec"] - fit_df["baseline_eta_p50_sec"]).to_numpy(dtype=np.float32)
     w_fit = (1.0 / np.sqrt(np.maximum(60.0, fit_df["baseline_eta_p50_sec"].to_numpy(dtype=np.float32)))).astype(
         np.float32
@@ -487,7 +490,7 @@ def train_xgb_residual_model(
         eval_metric="mae",
         early_stopping_rounds=30,
         random_state=42,
-        n_jobs=-1,
+        n_jobs=int(os.environ.get('ETA_TRAIN_THREADS','-1')),
     )
 
     model.fit(
@@ -564,6 +567,10 @@ def compute_feature_importance_ledger(
 
 
 def run_step_3_4_ml_training_and_evaluation() -> Dict[str, Any]:
+    from module_3_bus_eta_prediction.temporal_contract import require_validation_provenance
+    training_provenance=require_validation_provenance(GOLD_FEATURE_DIR)
+    if os.path.isdir(MODEL_OUT_DIR) and os.listdir(MODEL_OUT_DIR):
+        raise ValueError('model output is not empty; choose a fresh output to preserve existing artifacts')
     t_start = time.perf_counter()
     os.makedirs(MODEL_OUT_DIR, exist_ok=True)
     train_root = os.path.join(GOLD_FEATURE_DIR, "split=train")
@@ -792,6 +799,11 @@ def run_step_3_4_ml_training_and_evaluation() -> Dict[str, Any]:
 
     # Save metadata JSON
     meta_payload = {
+        "training_provenance": training_provenance,
+        "effective_parameters": {name:{key:('NaN' if isinstance(value,float) and np.isnan(value) else value)
+                                       for key,value in fitted.get_params().items()}
+                                 for name,fitted in [('full',model_full),('pruned',model_pruned)]},
+        "versions": dict(xgboost=xgb.__version__,numpy=np.__version__,pandas=pd.__version__),
         "total_test_rows": total_test_rows,
         "all_features": ALL_54_FEATURES,
         "pruned_features": pruned_features,

@@ -4,6 +4,7 @@ This module never refreshes a release or calls HDFS from the serving process.
 Existing releases contain baseline/incidents, not a promoted ML model bundle.
 """
 from pathlib import Path
+import json
 import sqlite3
 
 from module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.eta_snapshot import inspect_active
@@ -12,6 +13,9 @@ from module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.eta_snapshot 
 def load_release_source(pointer, catalog_database):
     active = inspect_active(Path(pointer).resolve())
     release = Path(active['release']).resolve()
+    manifest=json.loads((release/'artifact.json').read_text(encoding='utf-8'))
+    if manifest.get('schema_version') not in ('eta-artifact.v1','eta-artifact.v2'):
+        raise ValueError('unsupported serving release schema')
     database = release / 'baseline.db'
     with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as baseline, \
             sqlite3.connect(Path(catalog_database).resolve().as_uri() + '?mode=ro', uri=True) as catalog:

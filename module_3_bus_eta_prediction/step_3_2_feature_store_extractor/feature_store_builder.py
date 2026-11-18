@@ -17,7 +17,6 @@ Optimizations over naive single-core implementation:
 
 import math
 import os
-import shutil
 import sqlite3
 import sys
 import time
@@ -157,7 +156,7 @@ def _process_single_route(args: Tuple[Any, ...]) -> Tuple[str, int, int, float]:
     if tel_df.empty:
         return (r_code, 0, 0, 0.0)
 
-    tel_df["dt"] = tel_df["device_update_time"].str.slice(0, 10)
+    tel_df["dt"] = pd.to_datetime(tel_df["device_epoch"],unit='s',utc=True).dt.tz_convert('Asia/Ho_Chi_Minh').dt.strftime('%Y-%m-%d')
     tel_df = tel_df.sort_values(["direction", "vehicle_id", "device_epoch"]).reset_index(drop=True)
 
     # Load route TomTom incidents if partition exists
@@ -269,9 +268,12 @@ def _process_single_route(args: Tuple[Any, ...]) -> Tuple[str, int, int, float]:
                     v_grp["derived_speed_kmh"].tolist(),
                 )
             )
-            trips = segment_trajectory_into_trips(
-                pings_tuples, epoch_idx=1, s_idx=2, shape_len_m=r_len, trim_terminals=True
-            )
+            from module_3_bus_eta_prediction.temporal_contract import split_at_dates, MODEL_BASELINE_FIT_END_DATE
+            trips = []
+            for window in split_at_dates(pings_tuples,[MODEL_BASELINE_FIT_END_DATE,TRAIN_SPLIT_END_DATE]):
+                trips.extend(segment_trajectory_into_trips(
+                    window, epoch_idx=1, s_idx=2, shape_len_m=r_len, trim_terminals=True
+                ))
 
             for tr in trips:
                 arrivals = extract_bracketed_station_arrivals(tr, st_list, epoch_idx=1, s_idx=2)
@@ -648,8 +650,8 @@ def build_gold_feature_store(max_workers: int = 8) -> Dict[str, Any]:
     print(f"Target Directory: {GOLD_FEATURE_DIR} | Workers: {max_workers}", flush=True)
     print("=" * 96, flush=True)
 
-    if os.path.exists(GOLD_FEATURE_DIR):
-        shutil.rmtree(GOLD_FEATURE_DIR, ignore_errors=True)
+    if os.path.exists(GOLD_FEATURE_DIR) and os.listdir(GOLD_FEATURE_DIR):
+        raise ValueError('feature output is not empty; choose a fresh output instead of deleting previous evidence')
     os.makedirs(os.path.join(GOLD_FEATURE_DIR, "split=train"), exist_ok=True)
     os.makedirs(os.path.join(GOLD_FEATURE_DIR, "split=test"), exist_ok=True)
 
@@ -686,6 +688,10 @@ def build_gold_feature_store(max_workers: int = 8) -> Dict[str, Any]:
         FROM agg_segment_travel_times
         """
     ).fetchall()
+    try:
+        baseline_fit_end=conn.execute('SELECT fit_end_date FROM eta_baseline_manifest').fetchone()[0]
+    except sqlite3.OperationalError:
+        baseline_fit_end=None
     conn.close()
 
     bm_by_route: Dict[str, Dict[str, Dict[Tuple[int, int, int, int], Tuple[float, float, float, float, float, int, float]]]] = defaultdict(lambda: defaultdict(dict))
@@ -734,6 +740,17 @@ def build_gold_feature_store(max_workers: int = 8) -> Dict[str, Any]:
     )
     print("=" * 96, flush=True)
 
+    import json
+    import hashlib
+    from pathlib import Path
+    manifest=dict(schema_version='eta-feature-store.v1',baseline_fit_end_date=baseline_fit_end,
+                  route_mapping={route:index for index,route in enumerate(active_routes)},
+                  train_end_date=TRAIN_SPLIT_END_DATE,test_start_date=TEST_SPLIT_START_DATE)
+    manifest['files']={}
+    for path in sorted(Path(GOLD_FEATURE_DIR).rglob('*.parquet')):
+        with path.open('rb') as stream:
+            manifest['files'][path.relative_to(GOLD_FEATURE_DIR).as_posix()]=hashlib.file_digest(stream,'sha256').hexdigest()
+    Path(GOLD_FEATURE_DIR,'feature_store_manifest.json').write_text(json.dumps(manifest,sort_keys=True),encoding='utf-8')
     return {
         "train_rows": total_train,
         "test_rows": total_test,

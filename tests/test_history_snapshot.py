@@ -1,4 +1,5 @@
 import json
+import pytest
 from unittest.mock import patch
 
 from module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.history_snapshot import normalize_bus, normalize_incident, merge_event, project_group
@@ -60,3 +61,24 @@ def test_unknown_direction_is_not_return():
         result = project_group((8,[row]),reference())
         assert projector.call_args.args[0][0].direction_hint == 'unknown'
         assert result['rejected'][0]['event_id'] == row['event_id']
+
+
+@pytest.mark.parametrize('identifier',[True,False,0,-1,1.5])
+def test_invalid_identifier_is_not_silently_coerced(identifier):
+    assert normalize_bus(raw(vehicle_id=identifier),'batch',reference())[0]=='reject'
+
+
+def test_synthetic_marker_cannot_be_relabelled_as_observed():
+    kind,row=normalize_bus(raw(provenance='synthetic_scale'),'batch',reference())
+    assert kind=='reject' and row['reason']=='non_observed_source'
+
+
+def test_equivalent_timestamp_offsets_have_same_identity_and_route_code_is_text():
+    a=normalize_bus(raw(),'a',reference())[1]
+    b=normalize_bus(raw(device_update_time='2026-11-12T01:00:00Z'),'b',reference())[1]
+    assert a['event_id']==b['event_id'] and a['route_code']=='08A'
+
+
+@pytest.mark.parametrize('value',[None,[],1,'text'])
+def test_non_object_json_is_quarantined_instead_of_aborting_batch(value):
+    assert normalize_bus(json.dumps(value),'batch',reference())[0]=='reject'

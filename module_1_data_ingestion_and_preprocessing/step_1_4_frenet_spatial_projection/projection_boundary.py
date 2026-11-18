@@ -58,7 +58,7 @@ def project_route_events(
     shape_by_direction: Mapping[str, list[tuple[float, float, float, float]]],
     station_direction_lookup: Mapping[tuple[int, int], str],
 ) -> tuple[list[ProjectedEvent], dict[str, int]]:
-    """Project a single route without I/O, preserving the legacy worker policy."""
+    """Project one route causally with the same HMM used by ETA serving."""
     diagnostics: Counter[str] = Counter()
     if not events:
         return [], dict(diagnostics)
@@ -93,23 +93,6 @@ def project_route_events(
                 direction_runs.append([item[1], [item]])
             else:
                 direction_runs[-1][1].append(item)  # type: ignore[union-attr]
-
-        run_index = 1
-        while run_index < len(direction_runs) - 1:
-            previous_direction, previous_events = direction_runs[run_index - 1]
-            current_direction, current_events = direction_runs[run_index]
-            next_direction, next_events = direction_runs[run_index + 1]
-            previous_items = previous_events  # type: ignore[assignment]
-            current_items = current_events  # type: ignore[assignment]
-            next_items = next_events  # type: ignore[assignment]
-            span_seconds = next_items[0][0].device_epoch_s - previous_items[-1][0].device_epoch_s
-            if previous_direction == next_direction and 0 < span_seconds <= STALE_DELTA_T_MAX_SEC:
-                relabelled = [(event, previous_direction) for event, _ in current_items]
-                previous_items.extend(relabelled)
-                previous_items.extend(next_items)
-                del direction_runs[run_index : run_index + 2]
-            else:
-                run_index += 1
 
         for direction, run_events in direction_runs:
             items = run_events  # type: ignore[assignment]

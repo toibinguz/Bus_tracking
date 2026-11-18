@@ -7,6 +7,7 @@ FastAPI server combining BusMap/TimBus live GPS with local ETA serving data.
 
 from pathlib import Path
 import os
+from uuid import uuid4
 from typing import Optional, List, Union
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -56,6 +57,23 @@ app.add_middleware(
 # Initialize service singleton
 service = BusMapServingService(release_pointer=os.environ.get('ETA_RELEASE_POINTER'))
 
+
+@app.middleware('http')
+async def correlate_request(request, call_next):
+    from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.request_trace import request_id
+    from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.upstream_capture import http_request_id
+    # Server-generated identity avoids collisions and untrusted file/path input.
+    value = str(uuid4())
+    token = request_id.set(value)
+    upstream_token=http_request_id.set(value)
+    try:
+        response = await call_next(request)
+        response.headers['X-Request-ID'] = value
+        return response
+    finally:
+        request_id.reset(token)
+        http_request_id.reset(upstream_token)
+
 # Paths
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
@@ -78,7 +96,9 @@ def get_root():
 @app.get("/api/v1/health")
 def get_health():
     """Process health and pinned local data identity; this does not probe upstreams."""
-    return dict(HEALTH_PAYLOAD, serving=service.source_info)
+    return dict(HEALTH_PAYLOAD, serving=service.source_info,
+                capture=dict(backend_trace=bool(os.environ.get('ETA_TRACE_DIR')),
+                             upstream_raw=bool(os.environ.get('ETA_UPSTREAM_RAW_DIR'))))
 
 
 @app.get("/api/routes", response_model=List[RouteItemDTO])

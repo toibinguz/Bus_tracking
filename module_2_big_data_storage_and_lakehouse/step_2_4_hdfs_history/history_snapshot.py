@@ -12,6 +12,14 @@ def normalize_bus(raw, batch_id, reference):
     import json
     try:
         value = json.loads(raw)
+        if not isinstance(value,dict):
+            raise ValueError('bus record must be an object')
+        if value.get('provenance','observed')!='observed':
+            return 'reject',dict(reason='non_observed_source',batch_id=batch_id,raw_json=raw)
+        for field in ('route_id','vehicle_id'):
+            candidate=value[field]
+            if isinstance(candidate,bool) or int(candidate)<=0 or (not isinstance(candidate,str) and int(candidate)!=candidate):
+                raise ValueError('identifiers must be positive integral values')
         route_id, vehicle_id = int(value['route_id']), int(value['vehicle_id'])
         routes = {int(k): v for k, v in reference['routes'].items()}
         if route_id not in routes:

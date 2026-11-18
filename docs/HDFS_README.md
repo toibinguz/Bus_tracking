@@ -15,10 +15,10 @@ flowchart LR
     E --> F[Local: baseline, incidents, features]
     F --> G[HDFS Gold: sản phẩm có phiên bản]
     G --> H[Release local: SQLite và Parquet]
-    H --> I[Tra baseline và đọc features offline]
+    H --> I[Web ETA đọc local / train và đánh giá offline]
 ```
 
-Spark xử lý Silver; thuật toán tạo baseline/incident facts/features chạy **local** từ cache Silver. Release dùng được khi tắt Docker. Đường SQLite/local hiện hữu vẫn hoạt động độc lập; lượt tích hợp chưa chuyển web đang dùng sang release này và chưa huấn luyện lại model.
+Spark xử lý Silver; thuật toán tạo baseline/incident facts/features chạy **local** từ cache Silver. Web chọn `-ReleasePointer` để đọc release đã tải hoặc `-LocalData` để test bằng nguồn local. Không query HDFS trong request. Release baseline-only chưa ghép model chưa kiểm chứng; không tự chuyển process đang chạy khi đổi pointer. Xem tiến độ thực nghiệm hiện tại ở SPEC-41, tách khỏi số liệu lịch sử bên dưới.
 
 ## Kết quả đã có bằng chứng
 

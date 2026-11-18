@@ -40,6 +40,10 @@ def service(monkeypatch):
     svc._apply_macro_speeds = lambda *args: args[4]
     svc._da = SimpleNamespace(get_timbus_anchors=lambda *args: (True, [1]))
     svc._get_shape_model = lambda *args: Shape()
+    # These tests isolate pass guards/merge, not route matching. Installed HMM
+    # behavior is checked separately with real geometry and recorded GPS/HTTP.
+    svc._prepare_vehicle = lambda route,direction,v,now:v.model_copy(update={
+        'projection_checked':True,'matched_projection':Shape().project_point(v.lat,v.lng)})
     monkeypatch.setattr(TimBusClient, "query_central_vehicles", lambda **kwargs: {})
     return svc
 
@@ -105,6 +109,9 @@ def extractor():
     )
     extractor._get_shape_model = lambda *args: Shape()
     extractor._segment_array = lambda *args, **kwargs: [36]
+    extractor._matchers={}
+    extractor.project_vehicle=lambda route,direction,v,now:v.model_copy(update={
+        'projection_checked':True,'matched_projection':Shape().project_point(v.lat,v.lng)})
     return extractor
 
 

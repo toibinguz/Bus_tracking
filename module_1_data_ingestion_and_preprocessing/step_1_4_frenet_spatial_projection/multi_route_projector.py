@@ -2,7 +2,7 @@
 High-Speed Multi-Core Parallel Frenet Spatial Projection Pipeline (v3.0 Clean)
 - Enforces GTFS Direction Standard: 0 -> go (Outbound), 1 -> re (Inbound)
 - Quarantines unassigned depot / off-duty pings (direction = -1 with no valid station)
-- Implements Monotonicity Forward Sliding Window Guard to eliminate backward projection jumps
+- Uses the shared causal route HMM, including terminal/direction lifecycle
 - Resolves shared station topology (457 terminal/interchange stops)
 - Calculates robust derived kinematics (v_derived = delta_s / delta_t) with strict corridor chaining
 """
@@ -10,9 +10,7 @@ High-Speed Multi-Core Parallel Frenet Spatial Projection Pipeline (v3.0 Clean)
 import os
 import sys
 import time
-import math
 import sqlite3
-import numpy as np
 from pathlib import Path
 from typing import List, Tuple, Dict, Any, Optional
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -32,142 +30,28 @@ from config.system_config import (
     CANONICAL_START_DATE,
     MIN_CLUSTER_ROUTE_DAYS,
     HANOI_BBOX,
-    METERS_PER_DEG_LON_EQUATOR,
-    METERS_PER_DEG_LAT,
     MAX_CORRIDOR_CROSS_TRACK_M,
-    MAX_GPS_BACKWARD_JITTER_M,
-    FRENET_MIN_FORWARD_WINDOW_M,
-    FRENET_MAX_SPEED_MPS,
-    GPS_DRIFT_MAX_SPEED_KMPH,
-    STALE_DELTA_T_MAX_SEC,
-    TERMINAL_RESET_ZONE_M,
 )
 
 DB_PATH = os.path.join(BASE_DIR, DEFAULT_DB_PATH)
 
 
-def project_points_to_shape(
-    vehicle_pings: List[Tuple[Any, ...]], 
-    shape_pts: List[Tuple[float, float, float]]
-) -> List[Tuple[int, float, float]]:
-    """
-    Vectorized orthogonal projection of GPS points onto polyline segments
-    with Monotonicity Forward Sliding Window Guard for trajectory continuity.
-    vehicle_pings: list of (ping_id, lat, lon, device_epoch) sorted by epoch.
-    shape_pts: list of (point_order, lat, lon, cum_distance_m) sorted by point_order.
-    """
-    if not vehicle_pings or not shape_pts:
+def project_points_to_shape(vehicle_pings, shape_pts):
+    """Apply the same causal HMM used by serving to one ordered vehicle/route run."""
+    if not vehicle_pings or len(shape_pts)<2:
         return []
-
-    s_lats = np.array([p[1] for p in shape_pts], dtype=np.float64)
-    s_lons = np.array([p[2] for p in shape_pts], dtype=np.float64)
-    s_cums = np.array([p[3] for p in shape_pts], dtype=np.float64)
-
-    if len(s_lats) < 2:
-        return []
-
-    mean_lat = np.mean(s_lats)
-    kx = METERS_PER_DEG_LON_EQUATOR * math.cos(math.radians(mean_lat))
-    ky = METERS_PER_DEG_LAT
-
-    x1 = s_lons[:-1] * kx
-    y1 = s_lats[:-1] * ky
-    x2 = s_lons[1:] * kx
-    y2 = s_lats[1:] * ky
-
-    dx = x2 - x1
-    dy = y2 - y1
-    seg_lens_sq = dx * dx + dy * dy
-    safe_lens_sq = np.maximum(seg_lens_sq, 1e-6)
-    cum_starts = s_cums[:-1]
-    seg_lens = np.sqrt(seg_lens_sq)
-    n_segs = len(dx)
-    route_len = float(s_cums[-1])
-
-    results = []
-    prev_s = None
-    prev_epoch = None
-
-    for ping_id, p_lat, p_lon, p_epoch in vehicle_pings:
-        px = p_lon * kx
-        py = p_lat * ky
-
-        # 1. Forward Sliding Window Guard within active trip (dt <= STALE_DELTA_T_MAX_SEC)
-        use_window = False
-        dt = None
-        if prev_s is not None and prev_epoch is not None:
-            dt = p_epoch - prev_epoch
-            if dt <= 0:
-                continue
-            if dt <= STALE_DELTA_T_MAX_SEC:
-                max_forward = max(FRENET_MIN_FORWARD_WINDOW_M, dt * FRENET_MAX_SPEED_MPS)
-                win_s_min = max(0.0, prev_s - MAX_GPS_BACKWARD_JITTER_M)
-                win_s_max = prev_s + max_forward
-
-                idx_start = max(0, int(np.searchsorted(cum_starts, win_s_min, side='left')) - 1)
-                idx_end = min(n_segs, int(np.searchsorted(cum_starts, win_s_max, side='right')) + 1)
-                if idx_end > idx_start:
-                    use_window = True
-
-        if use_window:
-            sub_x1 = x1[idx_start:idx_end]
-            sub_y1 = y1[idx_start:idx_end]
-            sub_dx = dx[idx_start:idx_end]
-            sub_dy = dy[idx_start:idx_end]
-            sub_safe_lens_sq = safe_lens_sq[idx_start:idx_end]
-            sub_seg_lens = seg_lens[idx_start:idx_end]
-            sub_cum_starts = cum_starts[idx_start:idx_end]
-
-            p_dx1 = px - sub_x1
-            p_dy1 = py - sub_y1
-            t = np.clip((p_dx1 * sub_dx + p_dy1 * sub_dy) / sub_safe_lens_sq, 0.0, 1.0)
-            proj_x = sub_x1 + t * sub_dx
-            proj_y = sub_y1 + t * sub_dy
-            dist_sq = (px - proj_x) ** 2 + (py - proj_y) ** 2
-            best_local_seg = np.argmin(dist_sq)
-            min_d = math.sqrt(dist_sq[best_local_seg])
-
-            # If within acceptable corridor tolerance, lock onto forward projection
-            if min_d <= MAX_CORRIDOR_CROSS_TRACK_M:
-                best_t = t[best_local_seg]
-                best_s = round(float(sub_cum_starts[best_local_seg] + best_t * sub_seg_lens[best_local_seg]), 1)
-                if round(best_s - prev_s, 1) >= -MAX_GPS_BACKWARD_JITTER_M:
-                    results.append((ping_id, best_s, round(min_d, 1)))
-                    prev_s = best_s
-                    prev_epoch = p_epoch
-                    continue
-
-        # 2. Global Search Fallback (trip restarts, terminal resets, major detours)
-        p_dx1 = px - x1
-        p_dy1 = py - y1
-        t = np.clip((p_dx1 * dx + p_dy1 * dy) / safe_lens_sq, 0.0, 1.0)
-        proj_x = x1 + t * dx
-        proj_y = y1 + t * dy
-        dist_sq = (px - proj_x) ** 2 + (py - proj_y) ** 2
-        best_seg = np.argmin(dist_sq)
-
-        min_d = math.sqrt(dist_sq[best_seg])
-        best_t = t[best_seg]
-        best_s = round(float(cum_starts[best_seg] + best_t * seg_lens[best_seg]), 1)
-
-        # Guard against unphysical mid-route backward jumps within an active trip (0 < dt <= STALE_DELTA_T_MAX_SEC)
-        if min_d <= MAX_CORRIDOR_CROSS_TRACK_M:
-            if prev_s is not None and dt is not None and (0 < dt <= STALE_DELTA_T_MAX_SEC):
-                ds = round(best_s - prev_s, 1)
-                if ds < -MAX_GPS_BACKWARD_JITTER_M:
-                    is_turnaround_reset = (
-                        route_len > 1000.0
-                        and prev_s >= (route_len - TERMINAL_RESET_ZONE_M)
-                        and best_s <= TERMINAL_RESET_ZONE_M
-                    )
-                    if not is_turnaround_reset:
-                        # Reject mid-route backward jump (wrong-way or loop self-intersection snap)
-                        continue
-            results.append((ping_id, best_s, round(min_d, 1)))
-            prev_s = best_s
-            prev_epoch = p_epoch
-
-    return results
+    from .route_matcher import ShapeProjectionModel, RouteHMM
+    matcher=RouteHMM(ShapeProjectionModel.build(shape_pts))
+    output=[]
+    previous_epoch=None
+    for index,(ping_id,lat,lon,epoch) in enumerate(vehicle_pings):
+        if previous_epoch is not None and epoch<=previous_epoch:
+            continue
+        previous_epoch=epoch
+        match=matcher.update(float(epoch),float(lat),float(lon),index)
+        if match is not None:
+            output.append((ping_id,match.s,match.cross_track))
+    return output
 
 
 def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[int, int], str]]) -> Tuple[int, str, int, list, float]:

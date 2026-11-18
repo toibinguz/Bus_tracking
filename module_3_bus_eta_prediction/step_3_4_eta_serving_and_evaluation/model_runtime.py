@@ -11,6 +11,7 @@ XGBoost dự báo RESIDUAL; serving dựng ETA = max(5.0, baseline_eta_p50_sec +
 import json
 import logging
 import os
+import hashlib
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -49,6 +50,7 @@ class ModelRuntime:
         self._model = model
         self._calibrator: Dict[str, Tuple[float, float]] = calibrator or {}
         self._booster_feature_names = booster_feature_names
+        self.identity = {}
 
     @classmethod
     def load(cls, model_path: str = MODEL_PATH, metadata_path: str = METADATA_PATH) -> "ModelRuntime":
@@ -69,7 +71,14 @@ class ModelRuntime:
                         calibrator[str(k)] = (float(v[0]), float(v[1]))
 
             logger.info("Đã nạp model (%d feature) và %d ô calibrator", len(booster_feature_names), len(calibrator))
-            return cls(model=model, calibrator=calibrator, booster_feature_names=booster_feature_names)
+            runtime = cls(model=model, calibrator=calibrator, booster_feature_names=booster_feature_names)
+            def fingerprint(path):
+                with open(path, 'rb') as stream:
+                    return hashlib.file_digest(stream, 'sha256').hexdigest()
+            runtime.identity = dict(model_sha256=fingerprint(model_path),
+                                    metadata_sha256=fingerprint(metadata_path) if os.path.exists(metadata_path) else None,
+                                    features=booster_feature_names)
+            return runtime
         except Exception as e:
             logger.error("Không nạp được model runtime (%s): %s", model_path, e)
             return cls(model=None, calibrator={}, booster_feature_names=None)
@@ -84,7 +93,7 @@ class ModelRuntime:
         Dự báo ETA P50 tuyệt đối (đã calibrate). None nếu model unavailable/exception.
         = max(5.0, baseline_eta_p50_sec + delta), rồi áp calibrator theo (route_id_idx, direction_id, horizon).
         """
-        if not self.available:
+        if not self.available or feature_row.get('route_id_idx', -1) < 0:
             return None
         try:
             X = pd.DataFrame([feature_row]).reindex(columns=self._booster_feature_names)
@@ -105,6 +114,9 @@ class ModelRuntime:
                 scale_factor, bias_shift = cal
                 eta = 0.5 * (eta * scale_factor) + 0.5 * (eta + bias_shift)
                 eta = max(5.0, eta)
+            from .request_trace import record
+            record('model_prediction', features=feature_row, delta=delta, calibrator=cal,
+                   prediction_seconds=eta, model=self.identity)
             return eta
         except Exception as e:
             logger.warning("Lỗi predict_p50, fallback baseline: %s", e)
