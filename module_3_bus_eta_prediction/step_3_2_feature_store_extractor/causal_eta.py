@@ -93,6 +93,8 @@ class CausalFeatures:
         self._lock = threading.RLock()
         self._shapes = {}
         self._corridors = {}
+        self._profiles = {}
+        self._baseline_cells = {}
         self._states = {}
         self._directions = {}
         self._fingerprints = {}
@@ -234,7 +236,10 @@ class CausalFeatures:
         day = min(2, max(0, stamp.weekday() - 4))
         hour = min(BASELINE_MAX_HOUR_SLOT, max(BASELINE_MIN_HOUR_SLOT, stamp.hour))
         angle = math.tau * (stamp.hour + stamp.minute / 60) / 24
-        profile_speed, spacing, length = self.data.get_route_profile(route_id, ('go', 're')[direction])
+        prof_key = (route_id, direction)
+        if prof_key not in self._profiles:
+            self._profiles[prof_key] = self.data.get_route_profile(route_id, ('go', 're')[direction])
+        profile_speed, spacing, length = self._profiles[prof_key]
         if length <= 0:
             return None
         baseline = self._baseline(route_id, direction, corridor, positions, current, target, s, day, hour)
@@ -257,9 +262,17 @@ class CausalFeatures:
         speeds = {'ego3': speed3, 'ego5': speed5, 'lead3': lead, 'follow3': follow}
         return fields, state.journey, state.last, speeds
 
+    def _route_baseline_cells(self, route, direction, corridor, day, hour):
+        key = (route, direction, day, hour)
+        if key not in self._baseline_cells:
+            self._baseline_cells[key] = [
+                self.data.get_baseline_cell(route, direction, corridor[i][0], corridor[i + 1][0], day, hour)
+                for i in range(len(corridor) - 1)
+            ]
+        return self._baseline_cells[key]
+
     def _baseline(self, route, direction, corridor, positions, start, stop, s, day, hour):
-        cells = [self.data.get_baseline_cell(route, direction, corridor[i][0], corridor[i + 1][0], day, hour)
-                 for i in range(start, stop)]
+        cells = self._route_baseline_cells(route, direction, corridor, day, hour)[start:stop]
         if any(cell is None for cell in cells):
             return None
         first = (positions[start + 1] - s) / (positions[start + 1] - positions[start])
@@ -300,11 +313,12 @@ class CausalFeatures:
         if speed.start_s < positions[0] or speed.end_s > positions[-1]:
             return None
         expected = 0.0
+        route_cells = self._route_baseline_cells(route, direction, corridor, day, hour)
         for i, (left, right) in enumerate(zip(positions, positions[1:])):
             overlap = min(right, speed.end_s) - max(left, speed.start_s)
             if overlap <= 0:
                 continue
-            cell = self.data.get_baseline_cell(route, direction, corridor[i][0], corridor[i + 1][0], day, hour)
+            cell = route_cells[i]
             if cell is None or cell[5] == 3:
                 return None
             expected += cell[1] * overlap / (right - left)

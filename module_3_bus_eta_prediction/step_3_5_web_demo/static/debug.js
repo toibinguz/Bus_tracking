@@ -25,6 +25,9 @@
   const liveAlert = document.getElementById('dbgLiveAlert');
   const fleetTbody = document.getElementById('dbgFleetTbody');
   const cntFleet = document.getElementById('cntFleet');
+  const incidentsChips = document.getElementById('dbgIncidentsChips');
+  const incidentsTbody = document.getElementById('dbgIncidentsTbody');
+  const cntIncidents = document.getElementById('cntIncidents');
   const systemGrid = document.getElementById('dbgSystemGrid');
   const workspaceEl = document.getElementById('dbgWorkspace');
   const splitterEl = document.getElementById('dbgSplitter');
@@ -39,8 +42,10 @@
   }).addTo(map);
 
   const shapeLayer = L.layerGroup().addTo(map);
+  const incidentLayer = L.layerGroup().addTo(map);
   const stationLayer = L.layerGroup().addTo(map);
   const busLayer = L.layerGroup().addTo(map);
+  const incidentLayersByKey = new Map();
 
   let catalog = [];
   let currentRouteId = null;
@@ -358,6 +363,81 @@
     }).join('');
   }
 
+  function renderIncidents(incidents, fetchedAt) {
+    const list = Array.isArray(incidents) ? incidents : [];
+    cntIncidents.textContent = String(list.length);
+    incidentsChips.innerHTML = [
+      `<span class="chip ${list.length ? 'warn' : ''}">SỰ CỐ: ${list.length}</span>`,
+      `<span class="chip">FETCHED: ${C.escapeHtml(fetchedAt ? C.formatTime(fetchedAt) : '--')}</span>`,
+    ].join('');
+
+    incidentLayer.clearLayers();
+    incidentLayersByKey.clear();
+
+    if (!list.length) {
+      incidentsTbody.innerHTML = '<tr><td colspan="6" class="empty-cell">Không có sự cố TomTom nào trên tuyến/chiều này.</td></tr>';
+      return;
+    }
+
+    const magColor = (mag) => (mag >= 3 ? '#ef4444' : (mag === 2 ? '#f97316' : '#eab308'));
+    const magLabel = (mag) => (mag >= 3 ? 'Nặng (3+)' : (mag === 2 ? 'Trung bình (2)' : (mag === 1 ? 'Nhẹ (1)' : 'Khác (0)')));
+
+    incidentsTbody.innerHTML = list.map((inc, idx) => {
+      const key = `${inc.incident_id || 'inc'}-${idx}`;
+      const color = magColor(Number(inc.magnitude_of_delay || 0));
+      const delaySec = Math.round(Number(inc.delay_seconds || 0));
+      const lenM = Math.round(Number(inc.length_meters || 0));
+      const sRange = `${Math.round(Number(inc.s_min_m || 0))} – ${Math.round(Number(inc.s_max_m || 0))} m`;
+      const popupHtml = `
+        <div style="min-width:200px;font-size:12px;line-height:1.45">
+          <strong>${C.escapeHtml(inc.description || 'Sự cố giao thông')}</strong><br>
+          <span>ID: <code>${C.escapeHtml(inc.incident_id || '--')}</code> | Cat: <b>${Number(inc.icon_category || 0)}</b></span><br>
+          <span>Mức độ: <b>${C.escapeHtml(magLabel(Number(inc.magnitude_of_delay || 0)))}</b></span><br>
+          <span>Trễ: <b>${delaySec}s</b> | Dài: <b>${lenM}m</b></span><br>
+          <span>Lý trình tuyến: <b>${sRange}</b></span><br>
+          <span>Snapshot: ${C.escapeHtml(fetchedAt ? C.formatTime(fetchedAt) : '--')}</span>
+        </div>
+      `;
+
+      let focusLayer = null;
+      const polys = Array.isArray(inc.polylines) ? inc.polylines : [];
+      for (const pts of polys) {
+        if (!Array.isArray(pts) || !pts.length) continue;
+        const layer = pts.length === 1
+          ? L.circleMarker(pts[0], { radius: 8, color, fillColor: color, fillOpacity: 0.85, weight: 2 })
+          : L.polyline(pts, { color, weight: 6, opacity: 0.9, lineCap: 'round' });
+        layer.bindPopup(popupHtml);
+        layer.addTo(incidentLayer);
+        if (!focusLayer) focusLayer = layer;
+      }
+      if (focusLayer) incidentLayersByKey.set(key, focusLayer);
+
+      return `
+        <tr data-inc-key="${C.escapeHtml(key)}">
+          <td class="mono">${C.escapeHtml(inc.incident_id || '--')}<br><span style="opacity:.7">cat:${Number(inc.icon_category || 0)}</span></td>
+          <td>${C.escapeHtml(inc.description || 'Sự cố giao thông')}</td>
+          <td><span class="chip ${Number(inc.magnitude_of_delay || 0) >= 3 ? 'danger' : 'warn'}">${C.escapeHtml(magLabel(Number(inc.magnitude_of_delay || 0)))}</span></td>
+          <td class="mono">${delaySec}s</td>
+          <td class="mono">${lenM}m</td>
+          <td class="mono">${sRange}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  incidentsTbody.addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-inc-key]');
+    if (!tr) return;
+    const layer = incidentLayersByKey.get(tr.dataset.incKey);
+    if (!layer) return;
+    if (typeof layer.getBounds === 'function') {
+      map.fitBounds(layer.getBounds(), { padding: [50, 50], maxZoom: 16 });
+    } else if (typeof layer.getLatLng === 'function') {
+      map.setView(layer.getLatLng(), Math.max(map.getZoom(), 15));
+    }
+    layer.openPopup();
+  });
+
   async function refreshHealth() {
     const res = await C.fetchJson('/api/health');
     if (!res.ok) {
@@ -439,6 +519,7 @@
       syncPollInterval(Boolean(d.timbus_supported), d.poll_interval_sec);
       latestVehicles = d.vehicles || [];
       renderFleetTable(d);
+      renderIncidents(d.incidents || [], d.incidents_fetched_at);
       renderBusMarkers(latestVehicles);
       if (pinnedOrder !== null) {
         refreshEta();

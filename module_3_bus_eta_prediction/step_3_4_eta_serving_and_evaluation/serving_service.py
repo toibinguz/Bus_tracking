@@ -1112,11 +1112,13 @@ class BusMapServingService:
             polylines = self._extract_incident_polylines(inc.get("geometry_type", ""), inc.get("coordinates"))
             inc_len_m = float(inc.get("length_meters") or 0.0)
             s_hits: List[float] = []
+            matched_polylines: List[List[List[float]]] = []
             for pts in polylines:
                 if len(pts) == 1:
                     s_val, ct_val, _ = shape_model.project_point(pts[0][0], pts[0][1])
                     if ct_val <= MAX_CORRIDOR_CROSS_TRACK_M:
                         s_hits.append(s_val)
+                        matched_polylines.append([[round(pts[0][0], 6), round(pts[0][1], 6)]])
                     continue
                 if len(pts) < 2:
                     continue
@@ -1133,8 +1135,11 @@ class BusMapServingService:
                     if proj is not None:
                         s_val, ct_val, _ = proj
                         matched_vertices.append((idx, s_val, ct_val))
-                for s_min, s_max, _ in split_matched_vertices_into_runs(matched_vertices, pt_step_dists, inc_len_m):
-                    s_hits.extend((s_min, s_max))
+                runs = split_matched_vertices_into_runs(matched_vertices, pt_step_dists, inc_len_m)
+                if runs:
+                    matched_polylines.append([[round(lat, 6), round(lon, 6)] for lat, lon in pts])
+                    for s_min, s_max, _ in runs:
+                        s_hits.extend((s_min, s_max))
 
             if s_hits:
                 matched.append(
@@ -1147,6 +1152,7 @@ class BusMapServingService:
                         length_meters=inc_len_m,
                         s_min_m=round(min(s_hits), 1),
                         s_max_m=round(max(s_hits), 1),
+                        polylines=matched_polylines,
                     )
                 )
 

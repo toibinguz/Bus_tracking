@@ -67,6 +67,7 @@ class RouteIncidentDTO(BaseModel):
     length_meters: float = Field(default=0.0, description="Chiều dài đoạn sự cố (mét)")
     s_min_m: float = Field(default=0.0, description="Lý trình bắt đầu trên tuyến (m)")
     s_max_m: float = Field(default=0.0, description="Lý trình kết thúc trên tuyến (m)")
+    polylines: List[List[List[float]]] = Field(default_factory=list, description="Danh sách polyline [[lat, lon], ...] của sự cố")
 
 
 class RouteLiveResponse(BaseModel):
