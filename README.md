@@ -1,6 +1,6 @@
 # Hệ thống Theo dõi Xe buýt Hà Nội, Lưu trữ Lakehouse & Dự báo ETA
 
-- **Phiên bản kiến trúc:** Kiến trúc Lambda (Batch View + Speed View)
+- **Phiên bản kiến trúc:** Kiến trúc Lambda (Batch Layer + Speed Layer + Serving Layer)
 - **Đầu vào:** BusMap API, TimBus Central API (`experiments/timbus/`), TomTom Incidents API, dữ liệu GTFS chuẩn (`data/ground_truth/busmap_canonical/`)
 - **Đầu ra:** SQLite (`data/hanoi_bus_system.db`), Medallion Lakehouse Parquet (`data/lakehouse/`), HDFS (`step_2_4_hdfs_history/`), mô hình `causal-eta.v1` (`data/models/causal_eta_v1/`), Web Demo FastAPI (`step_3_5_web_demo/`)
 
@@ -32,8 +32,8 @@ flowchart TD
     subgraph M3["Module 3: Dự báo ETA & Web Demo"]
         CF["step_3_2: CausalFeatures (36 biến)"]
         TRAIN["step_3_3: Residual XGBoost (causal-eta.v1)"]
-        SERVE["step_3_4: BusMapServingService + ModelRuntime + eta_policy"]
-        WEB["step_3_5: FastAPI Web Demo"]
+        SERVE["step_3_4: SpeedLayerPoller (45s) + BusMapServingService\n+ ModelRuntime + eta_policy"]
+        WEB["step_3_5: FastAPI Web Demo (/ & /debug)"]
     end
 
     BM & TT --> CRAWL -->|"HF / Spool JSONL"| BR --> PROJ --> SIL
