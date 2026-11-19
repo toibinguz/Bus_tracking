@@ -6,8 +6,16 @@
 
 ## 1. Kiến trúc dự báo Residual ETA
 
-```
-ETA_pred = max(5.0, baseline_eta_p50_sec + XGBoost_residual(36 causal features))
+```mermaid
+flowchart TD
+    SIL["Silver Telemetry (route_projected_telemetry)"] -->|"step_3_1: baseline_matrix_builder.py\n(MIN_SAMPLES=5, MAX_SEG=1800s)"| GOLD["Gold Baseline Matrix\n(agg_segment_travel_times: p10, p50, p90, mean, var)"]
+    GOLD -->|"baseline_eta_*"| CF["step_3_2: CausalFeatures (36 biến nhân quả)"]
+    SIL -->|"Replay theo tiền tố quá khứ"| REP["step_3_3: TrainingReplay (silver_replay_trainer.py)"]
+    CF --> REP
+    REP -->|"residual = actual_eta - baseline_p50"| XGB["XGBoost Residual (causal-eta.v1)\n(model.json + manifest.json)"]
+    XGB --> MR["step_3_4: ModelRuntime.predict_p50"]
+    GOLD -->|"SQLite baseline nhẹ"| MR
+    MR --> OUT["ETA_pred = max(5.0, baseline_eta_p50_sec + delta)\n(hoặc fallback baseline nếu ngoài _known_routes)"]
 ```
 
 - **Baseline Matrix (`step_3_1`):** Tổng hợp phân vị (`p10`, `p50`, `p90`, `mean`, `var`) thời gian đi giữa các trạm theo `(route_id, direction, segment_idx, day_type, hour_slot)` từ Silver Parquet (`MIN_SAMPLES_FOR_BASELINE = 5`, `MAX_SEGMENT_TRAVEL_TIME_SEC = 1800.0`).

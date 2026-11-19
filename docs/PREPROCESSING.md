@@ -8,15 +8,18 @@
 
 ```mermaid
 flowchart TD
-    PING["Ping GPS thô (lat, lon, speed, direction, ts)"] --> BBOX{"Trong HANOI_BBOX 4 biên?"}
+    PING["Ping GPS thô (lat, lon, speed, direction, device_update_time)"] --> BBOX{"Trong HANOI_BBOX 4 biên?\n(19.50..22.50, 104.50..107.50)"}
     BBOX -->|"Không"| OOB["OUT_OF_BOUNDS"]
     BBOX -->|"Có"| KIN{"Vận tốc nhảy > 100 km/h?"}
-    KIN -->|"Có"| DRIFT["GPS_DRIFT_JUMP (giữ nguyên cache cũ)"]
-    KIN -->|"Không"| DEPOT{"Đứng yên < 50m trong vùng bến?"}
+    KIN -->|"Có"| DRIFT["GPS_DRIFT_JUMP (không cập nhật kinematic_cache)"]
+    KIN -->|"Không"| DEPOT{"Đứng yên < 50m tại bến?\n(TERMINAL_STATIONARY_TOL_M)"}
     DEPOT -->|"Có"| IDLE["IDLE_DEPOT"]
     DEPOT -->|"Không"| VALID["ACTIVE_VALID / STALE_PING"]
-    VALID --> SEG["trip_segmenter.py (Tách chuyến)"]
-    SEG --> FRENET["route_matcher.py / multi_route_projector.py (s_bus_m, cross_track_m)"]
+    VALID --> SEG["trip_segmenter.py\n(Gap > 900s, đổi direction, hoặc s < prev_s - 120m)"]
+    SEG --> PROJ["step_1_4: ShapeProjectionModel + RouteHMM\n(multi_route_projector.py / projection_boundary.py)"]
+    INC["TomTom Incidents JSONL"] --> INCPROJ["tomtom_incident_projector.py\n(Chiếu lưới đoạn 100m theo tuyến)"]
+    PROJ -->|"cross_track_m <= 35.0m"| SIL["Silver Telemetry (route_projected_telemetry)"]
+    INCPROJ --> SILINC["Silver Incidents (fact_route_tomtom_incidents)"]
 ```
 
 ## 2. Quy tắc làm sạch & Chiếu không gian (`config/system_config.py`)

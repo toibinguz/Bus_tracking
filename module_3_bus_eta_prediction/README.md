@@ -8,10 +8,15 @@
 
 ```mermaid
 flowchart TD
-    S31["step_3_1: Historical Baseline Matrix"] --> S32["step_3_2: CausalFeatures (36 vars)"]
-    S32 --> S33["step_3_3: Residual XGBoost (causal-eta.v1)"]
-    S33 -->|"model.json + manifest.json"| S34["step_3_4: Serving & ModelRuntime"]
-    S34 --> S35["step_3_5: FastAPI Web Demo"]
+    SIL["Silver Telemetry Parquet"] -->|"step_3_1: baseline_matrix_builder.py"| S31["Gold Baseline Matrix (p10, p50, p90, mean, var)"]
+    S31 -->|"baseline_eta_*"| S32["step_3_2: CausalFeatures (36 biến nhân quả)"]
+    SIL -->|"Silver Telemetry Replay"| S33["step_3_3: TrainingReplay & silver_replay_trainer.py"]
+    S32 --> S33
+    S33 -->|"Residual XGBoost (causal-eta.v1)"| ART["data/models/causal_eta_v1/ (model.json + manifest.json)"]
+    LIVE["BusMap Live + TimBus + Silver Incidents"] --> S34["step_3_4: BusMapServingService + RouteHMM + ModelRuntime + eta_policy"]
+    S31 -->|"SQLite Baseline nhẹ"| S34
+    ART --> S34
+    S34 -->|"ApproachingBusDTO + SafeWindowDTO"| S35["step_3_5: FastAPI Web Demo (/api/station-eta, /api/live-buses)"]
 ```
 
 ## Các Sub-module

@@ -8,14 +8,39 @@
 
 ```mermaid
 flowchart TD
-    BM["BusMap Live API (live_feed.py)"] --> MERGE["BusMapServingService._sync_single_direction"]
-    TB["TimBus Central API (TimBusClient)"] --> MERGE
-    MERGE -->|"RouteHMM + ShapeProjectionModel"| PROJ["Chiếu s_bus_m & Guard vượt trạm"]
-    PROJ --> CAUSAL["CausalFeatures (36 biến, _causal_lock)"]
-    INC["Silver TomTom Incidents (IncidentsProvider)"] --> CAUSAL
-    CAUSAL --> MR["ModelRuntime.predict_p50 (causal-eta.v1)"]
-    MR -->|"eta_sec (hoặc fallback baseline nếu None)"| POL["eta_policy (P1-P10, proximity cap)"]
-    POL --> API["FastAPI Web Demo (/api/station-eta, /api/live-buses)"]
+    subgraph LIVE["1. Nguồn dữ liệu trực tuyến"]
+        BM["BusMap Live API (live_feed.py, cache RAM)"]
+        TB["TimBus Central API (TimBusClient)"]
+    end
+
+    subgraph MATCH["2. Hợp nhất, Chiếu tuyến & Guard"]
+        MERGE["BusMapServingService._sync_and_merge_timbus"]
+        HMM["step_1_4: ShapeProjectionModel + RouteHMM (Viterbi nhân quả)"]
+        GUARD["Pass Guard (_passed_station_plates) & _tb_last_valid"]
+    end
+
+    subgraph FEAT["3. Trạng thái Đội xe & Đặc trưng"]
+        CAUSAL["CausalFeatures (36 biến, bảo vệ bởi _causal_lock)"]
+        SQL["SQLite (GTFS tĩnh + Gold Baseline)"]
+        INC["Silver TomTom Incidents (IncidentsProvider)"]
+    end
+
+    subgraph PRED["4. Suy luận ETA & Chính sách ổn định"]
+        MR["ModelRuntime.predict_p50 (causal-eta.v1)"]
+        CHECK{"route_id_idx thuộc _known_routes?"}
+        XGB["max(5.0, baseline_p50 + residual_XGBoost)"]
+        BASE["Fallback: baseline_eta_p50_sec"]
+        POL["eta_policy (P1-P10, proximity cap, SafeWindowDTO)"]
+        API["FastAPI Web Demo (/api/station-eta, /api/live-buses)"]
+    end
+
+    BM & TB --> MERGE --> HMM --> GUARD --> CAUSAL
+    SQL --> CAUSAL
+    INC --> CAUSAL
+    CAUSAL --> MR --> CHECK
+    CHECK -->|"Có"| XGB --> POL
+    CHECK -->|"Không"| BASE --> POL
+    POL --> API
 ```
 
 ## 2. Hợp đồng xử lý & Chính sách ổn định

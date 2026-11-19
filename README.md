@@ -8,12 +8,47 @@
 
 ```mermaid
 flowchart TD
-    A["BusMap / TimBus / TomTom Incidents"] --> B["Module 1: Crawler & Preprocessing"]
-    B -->|"Batch JSONL (HF / data/raw)"| C["Module 2: SQLite + Parquet Lakehouse + HDFS"]
-    C -->|"Silver / Gold Parquet"| D["Module 3: Baseline + CausalFeatures + XGBoost"]
-    A -->|"Live Feed + HMM Projection"| E["Speed View: BusMapServingService + ModelRuntime"]
-    D -->|"causal-eta.v1"| E
-    E --> F["Web Demo FastAPI (/api/station-eta, /api/live-buses)"]
+    subgraph SRC["Nguồn dữ liệu"]
+        BM["BusMap API"]
+        TB["TimBus Central API"]
+        TT["TomTom Incidents API"]
+        GTFS["GTFS Canonical (busmap_canonical/)"]
+    end
+
+    subgraph M1["Module 1: Thu thập & Tiền xử lý"]
+        CRAWL["step_1_1: Cloud/Local Crawler + HF Sync"]
+        SAN["step_1_3: Sanitizer & Trip Segmenter"]
+        PROJ["step_1_4: Frenet 1D & RouteHMM"]
+        MIG["step_1_5: Canonical GTFS Migration"]
+    end
+
+    subgraph M2["Module 2: Lưu trữ HDFS & Lakehouse (B-S-G)"]
+        BR["Bronze: HDFS /bus-eta/v1/bronze & HF JSONL"]
+        SIL["Silver: HDFS P2 & Parquet (cross_track <= 35m)"]
+        GOLD["Gold: agg_segment_travel_times (Baseline Matrix)"]
+        SQL["SQLite: hanoi_bus_system.db (GTFS tĩnh + Hứng Gold Baseline)"]
+    end
+
+    subgraph M3["Module 3: Dự báo ETA & Web Demo"]
+        CF["step_3_2: CausalFeatures (36 biến)"]
+        TRAIN["step_3_3: Residual XGBoost (causal-eta.v1)"]
+        SERVE["step_3_4: BusMapServingService + ModelRuntime + eta_policy"]
+        WEB["step_3_5: FastAPI Web Demo"]
+    end
+
+    BM & TT --> CRAWL --> BR --> PROJ --> SIL
+    CRAWL --> SAN --> SIL
+    GTFS --> MIG --> SQL
+    GTFS --> PROJ
+    SIL -->|"step_3_1: baseline_matrix_builder"| GOLD
+    GOLD -->|"Hứng kết quả Gold"| SQL
+    GOLD -->|"baseline_eta_p50/p10/p90"| CF
+    SIL -->|"Silver Telemetry Replay"| CF
+    CF --> TRAIN -->|"model.json + manifest.json"| SERVE
+    BM & TB -->|"Live GPS"| SERVE
+    SQL -->|"GTFS tĩnh & Baseline nhẹ"| SERVE
+    SIL -->|"fact_route_tomtom_incidents"| SERVE
+    SERVE --> WEB
 ```
 
 ## Cấu trúc thư mục & Tài liệu chi tiết

@@ -8,14 +8,21 @@
 
 ```mermaid
 flowchart TD
-    GHA["GitHub Actions (.github/workflows/crawl_bus.yml)"] -->|"9 phút/phiên, cron dự phòng 2h"| RUN["cloud_crawler_runner.py"]
-    RUN -->|"05:00-07:00"| CAT["catalog_refresher.py (Làm mới & push data/metadata/)"]
-    RUN -->|"05:00-22:00"| BUS["Micro-batch 15 xe (socket_client.py + device_pool.py)"]
-    RUN -->|"~13.5 phút/lần"| TOM["incident_client.py (TomTom Incidents)"]
-    BUS --> SAN["telemetry_sanitizer.py"]
-    SAN --> HF["hf_lake_sync.py -> Hugging Face (Toibinguz/hust-bus-data)"]
+    GHA["GitHub Actions (.github/workflows/crawl_bus.yml)\nconcurrency: hust-bus-crawler-relay | timeout: 15m"] -->|"Chạy phiên 9 phút (540s)"| RUN["cloud_crawler_runner.py"]
+    CRON["Cron Watchdog (0 */2 * * *)"] -->|"Đánh thức nếu chuỗi bị đứt"| GHA
+    RUN --> CHK_HR{"Giờ Hà Nội trong 05:00 - 22:00?"}
+    CHK_HR -->|"Không (Ban đêm)"| SLEEP["Ngủ 540s giữ nhịp relay (0 API call)"]
+    CHK_HR -->|"Có"| CHK_AM{"05:00 - 07:00 & chưa refresh hôm nay?"}
+    CHK_AM -->|"Có"| CAT["catalog_refresher.py -> Cập nhật & push data/metadata/hust_cluster_config.json"]
+    CHK_AM -->|"Không"| LOOP
+    CAT --> LOOP["Vòng lặp cào mỗi 75s (Micro-batch 15 xe)"]
+    LOOP --> SOCK["socket_client.py (Raw SSL + chunked + _IP_CACHE_LOCK) + device_pool.py"]
+    SOCK --> SAN["telemetry_sanitizer.py (BBOX, Drift, Idle Depot)"]
+    RUN -->|"2/3 phiên (~13.5 phút/lần)"| TOM["incident_client.py (TomTom Incidents, quota 85/ngày)"]
+    SAN --> HF["hf_lake_sync.py -> Hugging Face Commit API (raw_data/YYYY-MM-DD/bus)"]
     TOM --> HF
-    RUN -->|"Self-Trigger Next Run"| GHA
+    SLEEP --> RELAY["Self-Trigger Next Run (GitHub API dispatches)"]
+    HF --> RELAY --> GHA
 ```
 
 ## 2. Thành phần & Tham số SSOT

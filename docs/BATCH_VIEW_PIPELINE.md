@@ -8,14 +8,48 @@
 
 ```mermaid
 flowchart TD
-    RAW["HF Raw Batches / data/raw"] -->|"Bronze"| HDFS["HDFS & Lakehouse (Bronze -> Silver)"]
-    GTFS["data/ground_truth/busmap_canonical/"] --> S15["step_1_5: ingest_busmap_canonical.py"]
-    S15 -->|"Metadata GTFS nhẹ"| DB["SQLite (Web App Metadata + Gold Receiver)"]
-    RAW -->|"Sanitizer & Frenet"| S13["step_1_3 + step_1_4"]
-    HDFS -->|"Silver Telemetry"| S31["step_3_1: baseline_matrix_builder.py"]
-    S31 -->|"Gold Baseline"| DB
-    HDFS -->|"Silver Telemetry"| S33["step_3_3: silver_replay_trainer.py / causal_eta_training.py"]
-    S33 --> MODEL["data/models/causal_eta_v1/ (model.json + manifest.json)"]
+    subgraph IN["1. Dữ liệu đầu vào & GTFS"]
+        HF["Hugging Face Raw Batches (bus, incidents)"]
+        RAW["data/raw/YYYY-MM-DD/*.jsonl"]
+        GTFS["data/ground_truth/busmap_canonical/"]
+    end
+
+    subgraph B["2. Bronze & Tiền xử lý"]
+        HBR["HDFS Bronze (/bus-eta/v1/bronze/hf_raw) + SHA-256 Receipt"]
+        LBR["Lakehouse Bronze (bronze/tomtom_incidents_raw)"]
+        S15["step_1_5: ingest_busmap_canonical.py"]
+        S13["step_1_3: telemetry_sanitizer.py + trip_segmenter.py"]
+        S14["step_1_4: multi_route_projector.py + tomtom_incident_projector.py"]
+    end
+
+    subgraph S["3. Silver & Gold Lakehouse"]
+        SIL["Silver Parquet: route_projected_telemetry (cross_track_m <= 35m) & fact_route_tomtom_incidents"]
+        S31["step_3_1: baseline_matrix_builder.py"]
+        GOLD["Gold Baseline Matrix: agg_segment_travel_times (p10, p50, p90, mean, var)"]
+        SQL["SQLite (hanoi_bus_system.db): GTFS tĩnh + Baseline cho Web App"]
+    end
+
+    subgraph ML["4. Trích xuất Đặc trưng & Huấn luyện ML"]
+        DA["DataAccess (GTFS + Gold Baseline)"]
+        CF["step_3_2: CausalFeatures (36 biến nhân quả)"]
+        REP["step_3_3: TrainingReplay + silver_replay_trainer.py"]
+        XGB["Residual XGBoost: residual = actual_eta - baseline_p50"]
+        ART["data/models/causal_eta_v1/ (model.json + manifest.json)"]
+    end
+
+    HF --> HBR --> S14
+    RAW --> LBR
+    RAW --> S13 --> S14
+    GTFS --> S15 --> SQL
+    SQL -->|"canonical_shapes & stations"| S14
+    S14 --> SIL
+    SIL -->|"Train/Test Split"| S31 --> GOLD
+    GOLD -->|"Hứng kết quả tổng hợp"| SQL
+    GOLD -->|"baseline_eta_*"| DA
+    SQL -->|"GTFS Metadata"| DA
+    DA --> CF
+    SIL -->|"Silver Telemetry theo ngày/tuyến"| REP
+    CF --> REP --> XGB --> ART
 ```
 
 ## 2. Hợp đồng dữ liệu & Các bước thực thi

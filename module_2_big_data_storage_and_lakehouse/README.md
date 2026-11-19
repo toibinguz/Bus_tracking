@@ -8,10 +8,13 @@
 
 ```mermaid
 flowchart TD
-    M1["Module 1: HF Raw & Sanitizer"] -->|"Bronze (Immutable)"| S24["step_2_4: HDFS History (B-S-G)"]
-    S24 -->|"Gold Release / Baseline"| S21["step_2_1: SQLite (GTFS tĩnh + Gold Receiver)"]
-    M1 -->|"Local Parquet"| S22["step_2_2: Local Parquet Lakehouse"]
-    S24 -->|"Silver/Gold Snapshots"| M3["Module 3: Baseline, Feature Store & XGBoost"]
+    HF["Hugging Face Raw Batches"] -->|"hf_bronze.py + spool.py + receipt.py"| HBR["step_2_4: HDFS Bronze (/bus-eta/v1/bronze/hf_raw)"]
+    HBR -->|"p2_transform.py + history_execution.py"| HSIL["step_2_4: HDFS Silver P2 Snapshots"]
+    M1["Module 1: Telemetry & Incidents"] -->|"step_2_2: lakehouse_exporter.py"| LSIL["Local Lakehouse (Bronze & Silver Snappy Parquet)"]
+    HSIL & LSIL -->|"step_3_1: Baseline Matrix"| GOLD["Gold Layer (agg_segment_travel_times & eta_snapshot.py)"]
+    GOLD -->|"Hứng kết quả tổng hợp"| S21["step_2_1: SQLite (GTFS tĩnh + Baseline nhẹ cho Web App)"]
+    HSIL & LSIL -->|"Silver Telemetry"| M3["Module 3: CausalFeatures & XGBoost"]
+    GOLD -->|"Gold Baseline Features"| M3
     S21 -->|"Metadata & Baseline nhẹ"| WEB["Web Demo App"]
 ```
 

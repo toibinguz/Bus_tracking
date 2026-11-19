@@ -8,10 +8,38 @@
 
 ```mermaid
 flowchart TD
-    HF["Hugging Face Raw Batches"] -->|"Bronze (Immutable)"| HBR["HDFS /bus-eta/v1/bronze/hf_raw & data/lakehouse/bronze/"]
-    HBR -->|"Spark P2 / Frenet Projection"| HSIL["HDFS Silver P2 & data/lakehouse/silver/"]
-    HSIL -->|"Baseline & Feature Aggregation"| HGOLD["HDFS Gold Release & data/lakehouse/gold/"]
-    HGOLD -->|"Hứng kết quả tổng hợp"| SQL["SQLite (GTFS tĩnh + Baseline nhẹ cho Web App)"]
+    subgraph BR["Bronze Layer (Dữ liệu thô bất biến)"]
+        HF["Hugging Face Dataset (Toibinguz/hust-bus-data)"]
+        HDFS_BR["HDFS /bus-eta/v1/bronze/hf_raw (hf_bronze.py, spool.py, receipt.py SHA-256)"]
+        LH_BR["Lakehouse Bronze: bronze/tomtom_incidents_raw (dt=YYYY-MM-DD)"]
+    end
+
+    subgraph SIL["Silver Layer (Làm sạch & Chiếu 1D Frenet)"]
+        P2["Spark P2 Transform (p2_transform.py, history_execution.py)"]
+        EXP["step_2_2: lakehouse_exporter.py (atomic .tmp + os.replace)"]
+        LH_SIL["Silver Parquet: route_projected_telemetry (cross_track <= 35m) & fact_route_tomtom_incidents"]
+    end
+
+    subgraph GOLD["Gold Layer (Tổng hợp & Release)"]
+        BASE["step_3_1: agg_segment_travel_times (Baseline Matrix p10/p50/p90)"]
+        SNAP["step_2_4: eta_snapshot.py (Release Snapshot + SHA-256)"]
+    end
+
+    subgraph CONS["Đích tiêu thụ"]
+        ML["Module 3: CausalFeatures & silver_replay_trainer.py (Train ML)"]
+        SQL["SQLite (hanoi_bus_system.db): GTFS tĩnh + Hứng kết quả Gold Baseline"]
+        WEB["Web Demo App (step_3_4 / step_3_5)"]
+    end
+
+    HF --> HDFS_BR --> P2 --> LH_SIL
+    HF --> LH_BR --> EXP --> LH_SIL
+    LH_SIL --> BASE
+    LH_SIL --> SNAP
+    LH_SIL -->|"Silver Telemetry"| ML
+    BASE -->|"Gold Baseline Features"| ML
+    BASE -->|"Hứng kết quả tổng hợp"| SQL
+    SNAP -->|"Release Pointer"| WEB
+    SQL -->|"Metadata & Baseline nhẹ"| WEB
 ```
 
 ## 2. Vai trò các kho lưu trữ hiện tại
