@@ -29,7 +29,7 @@ from config import (
     get_tomtom_api_key, get_hf_token, HUST_BOTTLENECK_NODES,
     get_current_progressive_pool_size, MAX_POOL_SIZE
 )
-from .socket_client import fetch_single_bus_raw
+from .socket_client import SOCKET_RETRY_TIMEOUT_SEC, SOCKET_TIMEOUT_SEC, fetch_single_bus_raw
 from .catalog_manager import load_cluster_config
 from .incident_client import (
     execute_tomtom_flow_poll, execute_tomtom_incident_poll,
@@ -148,7 +148,7 @@ def main():
                 for fut in futures:
                     vid = futures[fut]
                     try:
-                        raw_res = fut.result(timeout=2.5)
+                        raw_res = fut.result(timeout=SOCKET_TIMEOUT_SEC + SOCKET_RETRY_TIMEOUT_SEC + 0.5)
                     except Exception:
                         raw_res = None
                     if raw_res:

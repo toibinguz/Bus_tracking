@@ -13,7 +13,7 @@ from .kinematic_engine import haversine_distance
 from config import (
     HANOI_BBOX,
     GPS_DRIFT_MAX_SPEED_KMPH,
-    BUS_STOPPED_SPEED_KMPH,
+    TERMINAL_STATIONARY_TOL_M,
     STALE_DELTA_T_MIN_SEC,
     STALE_DELTA_T_MAX_SEC,
     EMA_ALPHA,
@@ -72,7 +72,7 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
 
         if STALE_DELTA_T_MIN_SEC <= delta_t <= STALE_DELTA_T_MAX_SEC:
             dist = haversine_distance(prev_lat, prev_lon, std_lat, std_lon)
-            if dist < BUS_STOPPED_SPEED_KMPH:
+            if dist < TERMINAL_STATIONARY_TOL_M:
                 calc_speed = 0.0
                 smoothed_speed = 0.0
             else:
@@ -88,23 +88,24 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
             calc_speed = raw_speed
             smoothed_speed = raw_speed
 
-    kinematic_cache[vid] = {
-        "lat": std_lat,
-        "lon": std_lon,
-        "epoch": curr_epoch,
-        "smoothed_speed": smoothed_speed,
-        "last_update": last_update
-    }
+    if not is_drift_jump:
+        kinematic_cache[vid] = {
+            "lat": std_lat,
+            "lon": std_lon,
+            "epoch": curr_epoch,
+            "smoothed_speed": smoothed_speed,
+            "last_update": last_update
+        }
 
     # 3. Phân loại chất lượng dữ liệu
     quality_status = "ACTIVE_VALID"
 
-    # Trong BusMap: direction 1 = go, -1 = return (re), 0 = unassigned/depot
-    if (direction == 0 or route_id <= 0) and smoothed_speed == 0.0:
-        quality_status = "IDLE_DEPOT"
-    elif not (HANOI_BBOX["min_lat"] <= std_lat <= HANOI_BBOX["max_lat"] and
-              HANOI_BBOX["min_lon"] <= std_lon <= HANOI_BBOX["max_lon"]):
+    if not (HANOI_BBOX["min_lat"] <= std_lat <= HANOI_BBOX["max_lat"] and
+            HANOI_BBOX["min_lon"] <= std_lon <= HANOI_BBOX["max_lon"]):
         quality_status = "OUT_OF_BOUNDS"
+    # Trong BusMap: direction 1 = go, -1 = return (re), 0 = unassigned/depot
+    elif (direction == 0 or route_id <= 0) and smoothed_speed == 0.0:
+        quality_status = "IDLE_DEPOT"
     elif route_id not in target_route_ids:
         quality_status = "REASSIGNED_ROUTE"
     elif is_drift_jump:

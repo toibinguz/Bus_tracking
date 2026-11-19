@@ -96,7 +96,11 @@ def segment_trajectory_into_trips(
         # Terminal turnaround detection
         is_terminal_reset = False
         if shape_len_m and shape_len_m > 1000.0:
-            if prev_s >= (shape_len_m - TERMINAL_RESET_ZONE_M) and s <= TERMINAL_RESET_ZONE_M:
+            if (
+                prev_s >= (shape_len_m - TERMINAL_RESET_ZONE_M)
+                and s <= TERMINAL_RESET_ZONE_M
+                and s < (prev_s - MAX_BACKWARD_JITTER_M)
+            ):
                 is_terminal_reset = True
 
         # Check if a 300s..1800s gap is a valid mid-trip detour/signal dropout bridge

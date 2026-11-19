@@ -6,6 +6,7 @@ Quản lý kết nối TCP/SSL cấp thấp, Dynamic DNS cache trong RAM, và đ
 import socket
 import ssl
 import json
+import threading
 import time
 from .device_pool import get_busmap_device_id
 from config import get_hanoi_time
@@ -18,6 +19,7 @@ ssl_context.verify_mode = ssl.CERT_NONE
 _BUSMAP_HOST = "api.busmap.city"
 _BUSMAP_IP_CACHE = None
 _BUSMAP_IP_RESOLVED_AT = 0
+_IP_CACHE_LOCK = threading.Lock()
 SOCKET_TIMEOUT_SEC = 2.2       # Ngưỡng timeout tối ưu (gấp đôi thời gian phản hồi bình thường)
 SOCKET_RETRY_TIMEOUT_SEC = 1.5 # Ngưỡng timeout cho đợt retry nếu gặp 429
 
@@ -25,13 +27,37 @@ def get_busmap_ip():
     """Cache phân giải IP của api.busmap.city trong RAM để triệt tiêu 504 lần truy vấn DNS/vòng."""
     global _BUSMAP_IP_CACHE, _BUSMAP_IP_RESOLVED_AT
     now = time.time()
-    if _BUSMAP_IP_CACHE is None or (now - _BUSMAP_IP_RESOLVED_AT) > 600:  # Làm mới mỗi 10 phút
-        try:
-            _BUSMAP_IP_CACHE = socket.gethostbyname(_BUSMAP_HOST)
-            _BUSMAP_IP_RESOLVED_AT = now
-        except Exception:
-            _BUSMAP_IP_CACHE = _BUSMAP_HOST
-    return _BUSMAP_IP_CACHE
+    with _IP_CACHE_LOCK:
+        if _BUSMAP_IP_CACHE is None or (now - _BUSMAP_IP_RESOLVED_AT) > 600:  # Làm mới mỗi 10 phút
+            try:
+                _BUSMAP_IP_CACHE = socket.gethostbyname(_BUSMAP_HOST)
+                _BUSMAP_IP_RESOLVED_AT = now
+            except Exception:
+                _BUSMAP_IP_CACHE = _BUSMAP_HOST
+        return _BUSMAP_IP_CACHE
+
+
+def _decode_http_body(header: bytes, body: bytes) -> bytes:
+    """Giải mã Transfer-Encoding: chunked nếu phản hồi HTTP/1.1 dùng chunked."""
+    if b"transfer-encoding: chunked" not in header.lower():
+        return body
+    out = bytearray()
+    pos = 0
+    n = len(body)
+    while pos < n:
+        crlf = body.find(b"\r\n", pos)
+        if crlf == -1:
+            break
+        size_hex = body[pos:crlf].split(b";", 1)[0].strip()
+        if not size_hex:
+            break
+        chunk_size = int(size_hex, 16)
+        if chunk_size == 0:
+            break
+        start = crlf + 2
+        out.extend(body[start:start + chunk_size])
+        pos = start + chunk_size + 2
+    return bytes(out)
 
 def fetch_single_bus_raw(v_id):
     """
@@ -84,16 +110,18 @@ def fetch_single_bus_raw(v_id):
                                 d2 = ss2.recv(4096)
                                 if not d2: break
                                 resp2 += d2
-                            _, _, body2 = resp2.partition(b"\r\n\r\n")
+                            header2, _, body2 = resp2.partition(b"\r\n\r\n")
                             if body2:
-                                data2 = json.loads(body2.decode("utf-8", errors="ignore"))
+                                decoded2 = _decode_http_body(header2, body2)
+                                data2 = json.loads(decoded2.decode("utf-8", errors="ignore"))
                                 if data2 and isinstance(data2, list) and len(data2) > 0:
                                     item2 = data2[0]
                                     if isinstance(item2, dict):
                                         item2["_crawled_at"] = get_hanoi_time().isoformat()
                                     return item2
                     return None
-                data = json.loads(body.decode("utf-8", errors="ignore"))
+                decoded = _decode_http_body(header, body)
+                data = json.loads(decoded.decode("utf-8", errors="ignore"))
                 if data and isinstance(data, list) and len(data) > 0:
                     item = data[0]
                     if isinstance(item, dict):

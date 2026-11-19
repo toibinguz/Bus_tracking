@@ -125,7 +125,10 @@ def main():
 
                         lat = float(row.get("lat", 0.0) or 0.0)
                         lon = float(row.get("lon", 0.0) or 0.0)
-                        if lat < HANOI_BBOX["min_lat"] or lon < HANOI_BBOX["min_lon"]:  # Valid bounds check
+                        if not (
+                            HANOI_BBOX["min_lat"] <= lat <= HANOI_BBOX["max_lat"]
+                            and HANOI_BBOX["min_lon"] <= lon <= HANOI_BBOX["max_lon"]
+                        ):
                             continue
 
                         crawled_at = row.get("crawled_at", "")

@@ -35,7 +35,9 @@ def get_database_path() -> str:
     """Lay duong dan CSDL van hanh chuan."""
     if os.path.exists(DEFAULT_DB_PATH):
         return DEFAULT_DB_PATH
-    return LEGACY_AUDIT_DB_PATH
+    if os.path.exists(LEGACY_AUDIT_DB_PATH):
+        return LEGACY_AUDIT_DB_PATH
+    return DEFAULT_DB_PATH
 
 # -------------------------------------------------------------
 # 2. TOMTOM FREEMIUM BUDGET & LIMITS
@@ -53,12 +55,12 @@ TOMTOM_INCIDENT_INTERVAL_SEC = 750        # ~12.5 phút/lần (17h x 60 / 12.5 �
 # -------------------------------------------------------------
 # 3. GEOGRAPHIC BOUNDING BOXES & BOTTLENECK NODES
 # -------------------------------------------------------------
-# Bao phủ toàn bộ địa giới Đại đô thị Hà Nội mở rộng (từ Ba Vì/Sơn Tây/Hòa Lạc đến Vân Đình/Mê Linh)
+# Khung tọa độ rộng vùng Bắc Bộ chống tọa độ rác (0,0) / đảo lat-lon, không cắt cứng tuyến liên tỉnh
 HANOI_BBOX = {
-    "min_lat": 20.50,
-    "max_lat": 21.40,
-    "min_lon": 105.20,
-    "max_lon": 106.15
+    "min_lat": 19.50,
+    "max_lat": 22.50,
+    "min_lon": 104.50,
+    "max_lon": 107.50
 }
 
 # Quét sự cố trên toàn bộ vùng lõi đô thị mở rộng Hà Nội

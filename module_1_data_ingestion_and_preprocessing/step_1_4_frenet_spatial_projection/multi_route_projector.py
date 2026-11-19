@@ -66,12 +66,19 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
     pings_query = """
     SELECT ping_id, vehicle_id, plate, device_update_time, device_epoch, direction, lat, lon, current_station_id
     FROM vehicle_unique_pings
-    WHERE route_id = ? AND lat > ? AND lon > ? AND device_update_time >= ?
+    WHERE route_id = ? AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? AND device_update_time >= ?
     ORDER BY vehicle_id, device_epoch;
     """
     pings = cur.execute(
         pings_query,
-        (route_id, HANOI_BBOX["min_lat"], HANOI_BBOX["min_lon"], CANONICAL_START_DATE),
+        (
+            route_id,
+            HANOI_BBOX["min_lat"],
+            HANOI_BBOX["max_lat"],
+            HANOI_BBOX["min_lon"],
+            HANOI_BBOX["max_lon"],
+            CANONICAL_START_DATE,
+        ),
     ).fetchall()
     conn.close()
 

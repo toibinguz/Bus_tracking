@@ -100,8 +100,8 @@ def run(args):
     if source_manifest.is_file():
         files.append(source_manifest)
     files.extend((args.catalog, args.baseline, Path(__file__),
-                  ROOT / 'module_3_bus_eta_prediction/causal_eta.py',
-                  ROOT / 'module_3_bus_eta_prediction/causal_eta_training.py',
+                  ROOT / 'module_3_bus_eta_prediction/step_3_2_feature_store_extractor/causal_eta.py',
+                  ROOT / 'module_3_bus_eta_prediction/step_3_3_machine_learning_models/causal_eta_training.py',
                   ROOT / 'module_1_data_ingestion_and_preprocessing/step_1_4_frenet_spatial_projection/route_matcher.py'))
     provenance = dict(inputs={str(path): digest(path) for path in files}, baseline_fit_end_date=fit_day,
                       input_mode='busmap_lakehouse_silver', replay_clock='device_timestamp',

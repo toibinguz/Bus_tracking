@@ -107,7 +107,9 @@ def export_bronze_tomtom_incidents(
         if rows:
             os.makedirs(out_dir, exist_ok=True)
             df = pd.DataFrame(rows)
-            df.to_parquet(out_file, engine="pyarrow", compression="snappy", index=False)
+            tmp_file = out_file + ".tmp"
+            df.to_parquet(tmp_file, engine="pyarrow", compression="snappy", index=False)
+            os.replace(tmp_file, out_file)
             total_rows += len(df)
             new_partitions += 1
 
@@ -180,14 +182,14 @@ def export_to_parquet_lakehouse(
         route_dir = os.path.join(silver_tel_dir, f"route_code={rc}")
         os.makedirs(route_dir, exist_ok=True)
 
-        # Incremental check: find which dates exist in DB vs on disk
+        # Incremental check: find which valid-corridor dates exist in DB vs on disk
         cur.execute(
             """
             SELECT DISTINCT substr(device_update_time, 1, 10)
             FROM route_projected_telemetry
-            WHERE route_code = ?
+            WHERE route_code = ? AND cross_track_m <= ?
             """,
-            (rc,),
+            (rc, MAX_CORRIDOR_CROSS_TRACK_M),
         )
         db_dates = {r[0] for r in cur.fetchall() if r[0]}
         existing_dates = set()
@@ -226,7 +228,9 @@ def export_to_parquet_lakehouse(
             out_file = os.path.join(out_dir, "part-00000.snappy.parquet")
             if d_val in missing_dates or force_overwrite:
                 clean_sub = sub_df.drop(columns=["dt"])
-                clean_sub.to_parquet(out_file, engine="pyarrow", compression="snappy", index=False)
+                tmp_file = out_file + ".tmp"
+                clean_sub.to_parquet(tmp_file, engine="pyarrow", compression="snappy", index=False)
+                os.replace(tmp_file, out_file)
                 new_tel_files += 1
             total_tel_files += 1
 
@@ -238,21 +242,21 @@ def export_to_parquet_lakehouse(
             )
 
     # Export Silver fact_route_tomtom_incidents partitioned by route_code
-    existing_inc_files = glob.glob(os.path.join(silver_inc_dir, "route_code=*", "*.parquet"))
-    if force_overwrite or len(existing_inc_files) == 0:
-        df_inc = pd.read_sql_query("SELECT * FROM fact_route_tomtom_incidents", conn)
-        for rc, sub_inc in df_inc.groupby("route_code"):
-            inc_r_dir = os.path.join(silver_inc_dir, f"route_code={rc}")
+    df_inc = pd.read_sql_query("SELECT * FROM fact_route_tomtom_incidents", conn)
+    for rc, sub_inc in df_inc.groupby("route_code"):
+        inc_r_dir = os.path.join(silver_inc_dir, f"route_code={rc}")
+        inc_file = os.path.join(inc_r_dir, "part-00000.snappy.parquet")
+        if force_overwrite or not os.path.exists(inc_file):
             os.makedirs(inc_r_dir, exist_ok=True)
+            tmp_inc = inc_file + ".tmp"
             sub_inc.drop(columns=["route_code"]).to_parquet(
-                os.path.join(inc_r_dir, "part-00000.snappy.parquet"),
+                tmp_inc,
                 engine="pyarrow",
                 compression="snappy",
                 index=False,
             )
-        total_inc_rows = len(df_inc)
-    else:
-        total_inc_rows = sum(pq.read_metadata(fp).num_rows for fp in existing_inc_files)
+            os.replace(tmp_inc, inc_file)
+    total_inc_rows = len(df_inc)
 
     conn.close()
     elapsed = time.time() - t0

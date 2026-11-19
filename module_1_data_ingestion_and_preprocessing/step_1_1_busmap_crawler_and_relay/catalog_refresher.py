@@ -120,7 +120,7 @@ def audit_vehicle(vid):
     
     if age_h is not None and age_h > CATALOG_STALE_HOURS:
         status = "STALE"
-    elif route_id <= 0 or direction < 0 or (direction == 0 and speed == 0):
+    elif route_id <= 0 or direction < 0:
         status = "DEPOT"
     else:
         status = "ACTIVE"
@@ -222,7 +222,7 @@ def run_daily_catalog_refresh():
         age_h = res.get("age_h")
         st = res.get("status")
         # Xe bị coi là zombie nếu treo không phát tín hiệu > CATALOG_PRUNE_STALE_HOURS (48h) hoặc offline lỗi
-        if (st == "STALE" and age_h is not None and age_h >= CATALOG_PRUNE_STALE_HOURS) or (st == "OFFLINE" and res.get("error")):
+        if (st == "STALE" and age_h is not None and age_h >= CATALOG_PRUNE_STALE_HOURS) or st == "ERROR":
             pruned_zombies.append(v)
             print(f"    - [Auto-Prune] Đã loại bỏ xe zombie không phát tín hiệu > 48h: {v.get('title')} (ID: {vid}, Route: {v.get('routeId')})", flush=True)
         else:
