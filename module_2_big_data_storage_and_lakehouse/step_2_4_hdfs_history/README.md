@@ -17,5 +17,5 @@
 ## Cách kiểm thử
 
 ```bash
-python -m pytest tests/test_hdfs_p1_bronze.py tests/test_hdfs_p2_silver.py --basetemp=runtime/pytest_tmp -q
+python -m pytest tests/module_2/test_hdfs_contract.py tests/module_2/test_hdfs_p2_transform.py --basetemp=runtime/pytest_tmp -q
 ```

@@ -5,7 +5,7 @@ import sys
 import pandas as pd
 import pytest
 
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'scripts'))
 from verify_canonical_architecture import verify
 
 

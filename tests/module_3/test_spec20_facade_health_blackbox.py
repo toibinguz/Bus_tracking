@@ -27,7 +27,7 @@ EXPECTED_HEALTH = {
     "upstream": "https://api.busmap.city/v2/public/busmap/route_bus_gps",
     "upstream_checked": False,
 }
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture(scope="module")

@@ -20,7 +20,7 @@ from module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.spool import 
 from module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.webhdfs import WebHdfsUploader
 
 
-FIXTURE_PATH = Path(__file__).parent / "fixtures" / "hdfs_telemetry_v1.json"
+FIXTURE_PATH = Path(__file__).parents[1] / "fixtures" / "hdfs_telemetry_v1.json"
 
 
 def test_fixed_fixture_produces_stable_event_id_and_schema():

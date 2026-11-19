@@ -14,5 +14,5 @@
 ## Cách kiểm thử
 
 ```bash
-python -m pytest tests/test_causal_eta_training.py --basetemp=runtime/pytest_tmp -q
+python -m pytest tests/module_3/test_causal_eta_training.py --basetemp=runtime/pytest_tmp -q
 ```

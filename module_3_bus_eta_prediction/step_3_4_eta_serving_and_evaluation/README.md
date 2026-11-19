@@ -19,5 +19,5 @@
 ## Cách kiểm thử
 
 ```bash
-python -m pytest tests/test_eta_validation_protocol.py tests/test_timbus_station_state_regressions.py --basetemp=runtime/pytest_tmp -q
+python -m pytest tests/module_3/test_eta_validation_protocol.py tests/module_3/test_timbus_station_state_regressions.py --basetemp=runtime/pytest_tmp -q
 ```

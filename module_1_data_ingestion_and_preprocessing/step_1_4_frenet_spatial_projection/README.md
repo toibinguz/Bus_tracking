@@ -22,5 +22,5 @@
 
 ```bash
 python -m module_1_data_ingestion_and_preprocessing.step_1_4_frenet_spatial_projection.multi_route_projector
-python -m pytest tests/test_hmm_route_matcher.py --basetemp=runtime/pytest_tmp -q
+python -m pytest tests/module_1/test_installed_route_matcher.py --basetemp=runtime/pytest_tmp -q
 ```

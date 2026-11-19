@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'scripts'))
 from analyze_eta_live import crossing_events
 from evaluate_eta_candidate import metrics, validate_batch
 

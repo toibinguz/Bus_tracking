@@ -3,7 +3,7 @@ from pathlib import Path
 import sys
 import pytest
 
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'scripts'))
 from route_projection_candidates import RouteHMM
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.frenet import ShapeProjectionModel
 

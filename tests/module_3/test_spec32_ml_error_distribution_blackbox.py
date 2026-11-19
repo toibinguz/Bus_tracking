@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FIGURES_DIR = PROJECT_ROOT / "docs" / "figures" / "ml_evaluation"
 REPORTS_DIR = PROJECT_ROOT / "data" / "evaluation" / "ml_error_distribution"
 

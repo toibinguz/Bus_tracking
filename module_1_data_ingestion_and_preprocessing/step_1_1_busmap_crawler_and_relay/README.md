@@ -28,5 +28,5 @@
 
 ```bash
 python scripts/cloud_crawler_step.py --test --no-tomtom
-python -m pytest tests/test_crawler_hdfs_spool.py --basetemp=runtime/pytest_tmp -q
+python -m pytest tests/module_1/test_crawler_hdfs_spool.py --basetemp=runtime/pytest_tmp -q
 ```

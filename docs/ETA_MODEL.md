@@ -28,5 +28,5 @@ ETA_pred = max(5.0, baseline_eta_p50_sec + XGBoost_residual(36 causal features))
 
 ```bash
 python scripts/train_causal_eta.py
-python -m pytest tests/test_causal_eta_training.py tests/test_eta_validation_protocol.py --basetemp=runtime/pytest_tmp -q
+python -m pytest tests/module_3/test_causal_eta_training.py tests/module_3/test_eta_validation_protocol.py --basetemp=runtime/pytest_tmp -q
 ```

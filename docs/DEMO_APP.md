@@ -25,5 +25,5 @@
 
 ```bash
 uvicorn module_3_bus_eta_prediction.step_3_5_web_demo.app:app --host 0.0.0.0 --port 8000
-python -m pytest tests/test_spec24_conservative_eta_blackbox.py tests/test_timbus_station_state_regressions.py --basetemp=runtime/pytest_tmp -q
+python -m pytest tests/module_3/test_spec24_conservative_eta_blackbox.py tests/module_3/test_timbus_station_state_regressions.py --basetemp=runtime/pytest_tmp -q
 ```

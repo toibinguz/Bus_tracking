@@ -34,5 +34,5 @@ flowchart LR
 ## 3. Kiểm thử
 
 ```bash
-python -m pytest tests/test_hmm_route_matcher.py tests/test_trip_segmenter.py --basetemp=runtime/pytest_tmp -q
+python -m pytest tests/module_1/test_installed_route_matcher.py tests/module_1/test_projection_boundary.py --basetemp=runtime/pytest_tmp -q
 ```

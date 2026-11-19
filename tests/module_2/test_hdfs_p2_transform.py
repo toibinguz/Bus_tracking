@@ -8,7 +8,7 @@ from module_2_big_data_storage_and_lakehouse.step_2_4_hdfs_history.p2_transform 
 )
 
 
-FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "hdfs_p2"
+FIXTURE_ROOT = Path(__file__).parents[1] / "fixtures" / "hdfs_p2"
 
 
 def test_p2_fixture_has_one_duplicate_and_accepted_spec26_projection():

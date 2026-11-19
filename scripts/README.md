@@ -39,8 +39,8 @@
 ### 4. Script tham chiếu / phụ thuộc kiểm thử (`tests/`)
 | Script | Được test tham chiếu |
 | --- | --- |
-| `analyze_eta_live.py`, `evaluate_eta_candidate.py` | `tests/test_eta_validation_protocol.py` |
-| `experiment_eta_streaming.py`, `global_projection_reference.py` | `tests/test_eta_streaming_experiments.py` |
-| `probe_eta_behavior.py` | `tests/test_eta_behavior_probes.py` |
-| `route_projection_candidates.py` | `tests/test_route_projection_candidates.py` |
-| `sync_hf_hdfs_session.py` | `tests/test_hf_bounded_session.py` |
+| `analyze_eta_live.py`, `evaluate_eta_candidate.py` | `tests/module_3/test_eta_validation_protocol.py` |
+| `experiment_eta_streaming.py`, `global_projection_reference.py` | `tests/module_3/test_eta_streaming_experiments.py` |
+| `probe_eta_behavior.py` | `tests/module_3/test_eta_behavior_probes.py` |
+| `route_projection_candidates.py` | `tests/module_1/test_route_projection_candidates.py` |
+| `sync_hf_hdfs_session.py` | `tests/module_2/test_hf_bounded_session.py` |
