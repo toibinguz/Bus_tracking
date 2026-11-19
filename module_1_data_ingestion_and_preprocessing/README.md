@@ -2,14 +2,14 @@
 
 - **Vai trò:** Thu thập dữ liệu GPS xe buýt + sự cố giao thông TomTom, làm sạch động học, phân đoạn chuyến và chiếu không gian 1D Frenet.
 - **Đầu vào:** BusMap API, TomTom Incidents API, Hugging Face Dataset (`Toibinguz/hust-bus-data`), `data/ground_truth/busmap_canonical/`.
-- **Đầu ra:** Batch JSONL (`data/raw/` & Hugging Face), các bảng `raw_bus_pings`, `route_projected_telemetry`, `fact_route_tomtom_incidents` trong `data/hanoi_bus_system.db`.
+- **Đầu ra:** Batch JSONL lên Hugging Face (`Toibinguz/hust-bus-data`) / HDFS Bronze spool, dữ liệu đã làm sạch động học & chiếu 1D Frenet, cùng metadata GTFS chuẩn (`canonical_*`) trong SQLite.
 
 ## Sơ đồ luồng
 
 ```mermaid
 flowchart TD
     BM["BusMap & TomTom Incidents API"] --> S11["step_1_1: Crawler & HF Sync\n(cloud_crawler_runner.py, socket_client.py, incident_client.py)"]
-    S11 -->|"Raw JSONL (HF / data/raw)"| S13["step_1_3: Sanitizer & Trip Segmenter\n(HANOI_BBOX, Drift >100km/h, Idle <50m, Gap >900s)"]
+    S11 -->|"Raw JSONL (HF / HDFS Bronze)"| S13["step_1_3: Sanitizer & Trip Segmenter\n(HANOI_BBOX, Drift >100km/h, Idle <50m, Gap >900s)"]
     GTFS["data/ground_truth/busmap_canonical/"] --> S15["step_1_5: Canonical GTFS Migration\n(canonical_routes, canonical_shapes, canonical_stations)"]
     S13 -->|"Cleaned Pings & Trips"| S14["step_1_4: Chiếu 1D Frenet thuần\n(multi_route_projector.py, tomtom_incident_projector.py)"]
     S15 -->|"Shapes & Stations"| S14
