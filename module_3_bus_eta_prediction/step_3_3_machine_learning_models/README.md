@@ -17,6 +17,6 @@
 ## Cách chạy & Kiểm thử
 
 ```bash
-python scripts/train_causal_eta.py
+python -m module_3_bus_eta_prediction.step_3_3_machine_learning_models.silver_replay_trainer --help
 python -m pytest tests/module_3/test_causal_eta_training.py --basetemp=runtime/pytest_tmp -q
 ```

@@ -1,14 +1,16 @@
-# Step 2.1: Kho lưu trữ Vận hành SQLite (`step_2_1_sqlite_operational_store`)
+# Step 2.1: Nền nhẹ SQLite cho Web App (`step_2_1_sqlite_operational_store`)
 
-- **Vai trò:** Quản lý schema chuẩn (`canonical_routes`, `canonical_stations`, `canonical_shapes`, `raw_bus_pings`, `route_projected_telemetry`, `fact_route_tomtom_incidents`, `bus_trip_segments`) và phiên làm việc SQLite (`data/hanoi_bus_system.db`).
-- **Đầu vào:** `get_database_path()` từ `config/system_config.py`.
-- **Đầu ra:** Kết nối SQLite đã bật WAL/index cho Module 1 (ingest/projection) và Module 3 (serving metadata/baseline).
+- **Vai trò:**
+  - **Giai đoạn thử nghiệm ban đầu:** SQLite (`data/hanoi_bus_system.db`) từng đóng vai trò kho dữ liệu duy nhất (`raw_bus_pings`, `route_projected_telemetry`, `fact_route_tomtom_incidents`).
+  - **Kiến trúc sản phẩm hoàn thiện:** Nhường toàn bộ vai trò lưu trữ `raw` & `silver` cho **HDFS / Lakehouse**, chỉ còn làm **nền nhẹ cho Web App** (`canonical_routes`, `canonical_stations`, `canonical_shapes`) và **nơi hứng kết quả tổng hợp từ HDFS Gold** (bảng baseline ETA phục vụ tra cứu nhanh).
+- **Đầu vào:** `get_database_path()` từ `config/system_config.py`, dữ liệu GTFS chuẩn (`step_1_5`) và kết quả tổng hợp từ HDFS Gold.
+- **Đầu ra:** Kết nối SQLite phục vụ Web Demo (`step_3_4`, `step_3_5`) với độ trễ thấp.
 
 ## Thành phần chính
 
 | File / Symbol | Vai trò | Input -> Output |
 | --- | --- | --- |
-| `db_manager.py` (`OperationalDatabaseManager`) | Khởi tạo bảng, index và cung cấp context/connection tới SQLite | `db_path` -> SQLite schema & connection |
+| `db_manager.py` (`OperationalDatabaseManager`) | Khởi tạo schema và cung cấp kết nối tới SQLite | `db_path` -> SQLite schema & connection |
 
 ## Tham số SSOT (`config/system_config.py`)
 

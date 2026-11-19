@@ -27,6 +27,6 @@
 ## Cách chạy & Kiểm thử
 
 ```bash
-python scripts/cloud_crawler_step.py --test --no-tomtom
+python -m module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.cloud_crawler_runner --test --no-tomtom
 python -m pytest tests/module_1/test_crawler_hdfs_spool.py --basetemp=runtime/pytest_tmp -q
 ```

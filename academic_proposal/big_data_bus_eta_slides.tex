@@ -290,8 +290,8 @@
         \vspace{2pt}
         \begin{block}{Phân vùng Medallion (Bronze -- Silver -- Gold)}
             \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
-                \item \textbf{Hive-style Partitioning:} \texttt{route\_code=.../dt=YYYY-MM-DD/} hỗ trợ Partition Pruning, đọc lọc trực tiếp bằng PyArrow/PySpark.
-                \item \textbf{SQLite Operational Store:} Lưu metadata tuyến/trạm GTFS chuẩn và bảng baseline cho tầng Serving.
+                \item \textbf{HDFS \& Parquet Lakehouse:} Kho lưu trữ chính cho dữ liệu lịch sử thô (Bronze), đã chiếu (Silver) và tổng hợp (Gold), hỗ trợ Partition Pruning.
+                \item \textbf{SQLite nền nhẹ cho Web App:} Nhường raw/silver cho HDFS; chỉ giữ GTFS tĩnh \& hứng kết quả Gold (baseline) cho Serving.
             \end{itemize}
         \end{block}
     \end{column}
@@ -301,19 +301,19 @@
         \begin{tikzpicture}[scale=0.82, every node/.style={transform shape}]
             % HDFS Tree
             \node[draw=HustBlue, fill=HustBlue!15, rounded corners, font=\scriptsize\bfseries, text width=5cm, align=center] (root) {
-                HDFS \& Medallion Parquet Lakehouse
+                HDFS Medallion Lakehouse (Kho chính)
             };
             
             \node[below=0.3cm of root, draw=BorderGray, fill=LightGray, rounded corners, font=\tiny\ttfamily, text width=5cm] (part) {
                 /bus-eta/v1/bronze/hf\_raw/\\
-                data/lakehouse/silver/\\
+                /bus-eta/v1/silver/ \& gold/\\
                 \ \ $\llcorner$ route\_code=02/dt=2026-11-19/\\
                 \ \ \ \ \ \ $\llcorner$ part-00000.snappy.parquet
             };
 
             \node[below=0.35cm of part, draw=DarkGreen!80, fill=DarkGreen!10, rounded corners, font=\scriptsize, text width=5cm, align=center] (hive) {
-                \textbf{SQLite Operational Store}\\
-                GTFS Canonical + Serving Metadata\\
+                \textbf{SQLite (Nền nhẹ Web App)}\\
+                GTFS tĩnh + Hứng kết quả Gold\\
                 \textit{(data/hanoi\_bus\_system.db)}
             };
 

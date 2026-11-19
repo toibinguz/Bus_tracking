@@ -2,7 +2,7 @@
 
 - **Trạng thái:** Current
 - **Phạm vi:** Cloud Crawler 24/7 trên GitHub Actions, Local Crawler, TomTom Incidents, làm mới danh mục xe đầu ngày và đồng bộ lên Hugging Face Dataset.
-- **Nguồn sự thật (Code paths):** `.github/workflows/crawl_bus.yml`, `scripts/cloud_crawler_step.py`, `module_1_data_ingestion_and_preprocessing/step_1_1_busmap_crawler_and_relay/`, `config/system_config.py`.
+- **Nguồn sự thật (Code paths):** `.github/workflows/crawl_bus.yml`, `module_1_data_ingestion_and_preprocessing/step_1_1_busmap_crawler_and_relay/`, `config/system_config.py`.
 
 ## 1. Sơ đồ hoạt động Crawler 24/7
 
@@ -34,8 +34,8 @@ flowchart TD
 
 ```bash
 # Chạy thử 1 vòng đầy đủ cục bộ (không đẩy Hugging Face, không gọi TomTom)
-python scripts/cloud_crawler_step.py --test --no-tomtom
+python -m module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.cloud_crawler_runner --test --no-tomtom
 
 # Làm mới danh mục xe thủ công
-python scripts/daily_catalog_refresh.py
+python -m module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.catalog_refresher
 ```

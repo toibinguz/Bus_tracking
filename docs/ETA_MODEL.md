@@ -2,7 +2,7 @@
 
 - **Trạng thái:** Current
 - **Phạm vi:** Baseline Matrix (`step_3_1`), bộ 36 đặc trưng nhân quả `CausalFeatures` (`step_3_2`), mô hình residual XGBoost (`step_3_3`) và runtime suy luận (`step_3_4`).
-- **Nguồn sự thật (Code paths):** `step_3_1_historical_baseline_model/baseline_matrix_builder.py`, `step_3_2_feature_store_extractor/causal_eta.py`, `step_3_3_machine_learning_models/causal_eta_training.py`, `step_3_4_eta_serving_and_evaluation/model_runtime.py`, `scripts/train_causal_eta.py`, `data/models/causal_eta_v1/manifest.json`.
+- **Nguồn sự thật (Code paths):** `step_3_1_historical_baseline_model/baseline_matrix_builder.py`, `step_3_2_feature_store_extractor/causal_eta.py`, `step_3_3_machine_learning_models/` (`causal_eta_training.py`, `silver_replay_trainer.py`), `step_3_4_eta_serving_and_evaluation/model_runtime.py`, `data/models/causal_eta_v1/manifest.json`.
 
 ## 1. Kiến trúc dự báo Residual ETA
 
@@ -27,6 +27,6 @@ ETA_pred = max(5.0, baseline_eta_p50_sec + XGBoost_residual(36 causal features))
 ## 3. Huấn luyện & Kiểm thử
 
 ```bash
-python scripts/train_causal_eta.py
+python -m module_3_bus_eta_prediction.step_3_3_machine_learning_models.silver_replay_trainer --help
 python -m pytest tests/module_3/test_causal_eta_training.py tests/module_3/test_eta_validation_protocol.py --basetemp=runtime/pytest_tmp -q
 ```

@@ -45,7 +45,7 @@ flowchart LR
 uvicorn module_3_bus_eta_prediction.step_3_5_web_demo.app:app --host 0.0.0.0 --port 8000
 
 # Thử nghiệm Cloud Crawler cục bộ (1 vòng, không đẩy Hugging Face)
-python scripts/cloud_crawler_step.py --test --no-tomtom
+python -m module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.cloud_crawler_runner --test --no-tomtom
 
 # Chạy toàn bộ bộ kiểm thử
 python -m pytest tests/ --basetemp=runtime/pytest_tmp -q

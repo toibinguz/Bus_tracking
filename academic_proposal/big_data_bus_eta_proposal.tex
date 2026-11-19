@@ -65,8 +65,8 @@ Hệ thống được thiết kế theo mô hình Lambda nhằm giải quyết b
 \newpage
 \subsection{Khâu Lưu Trữ Phân Tán Bất Biến (Distributed Storage Layer)}
 \begin{itemize}[leftmargin=*,noitemsep,topsep=1.5pt]
-    \item \textbf{Kiến trúc Medallion Lakehouse (Bronze -- Silver -- Gold):} Dữ liệu thô từ Hugging Face được nhập bất biến vào cụm Hadoop HDFS (\texttt{/bus-eta/v1/bronze/hf\_raw}) kèm SHA-256 receipt và xuất song song ra Parquet nén Snappy phân vùng theo tuyến/ngày (\texttt{route\_code=.../dt=YYYY-MM-DD}) phục vụ Partition Pruning.
-    \item \textbf{Kho vận hành SQLite (\texttt{hanoi\_bus\_system.db}):} Lưu trữ danh mục tuyến/trạm GTFS chuẩn, dữ liệu chiếu Frenet và bảng baseline phục vụ tra cứu nhanh cho tầng Web Serving.
+    \item \textbf{Kiến trúc Medallion Lakehouse (Bronze -- Silver -- Gold) trên HDFS:} Là kho lưu trữ lịch sử chính của hệ thống. Dữ liệu thô từ Hugging Face được nhập bất biến vào HDFS (\texttt{/bus-eta/v1/bronze/hf\_raw}) kèm SHA-256 receipt, chuyển hóa sang Silver Parquet nén Snappy phân vùng theo tuyến/ngày (\texttt{route\_code=.../dt=YYYY-MM-DD}) phục vụ Partition Pruning và tổng hợp Gold.
+    \item \textbf{Nền nhẹ SQLite cho Web App (\texttt{hanoi\_bus\_system.db}):} Nhường toàn bộ vai trò lưu dữ liệu \textit{raw/silver} cho HDFS/Lakehouse, chỉ lưu metadata tuyến/trạm GTFS chuẩn và hứng kết quả tổng hợp từ tầng Gold (bảng baseline) để phục vụ Web Serving độ trễ thấp.
 \end{itemize}
 
 \subsection{Khâu Xử Lý Dữ Liệu (Processing Layer: 2 Luồng Thực Thi)}

@@ -1,25 +1,25 @@
 # Module 2: Lưu trữ Dữ liệu & Medallion Lakehouse (`module_2_big_data_storage_and_lakehouse`)
 
-- **Vai trò:** Quản lý 2 tầng lưu trữ bổ trợ: SQLite Operational Store (`data/hanoi_bus_system.db`) cho ETL/serving metadata và Medallion Lakehouse (Parquet cục bộ `data/lakehouse/` + HDFS `step_2_4_hdfs_history/`) cho phân tích và huấn luyện ML.
-- **Đầu vào:** `data/raw/`, các bảng đã xử lý từ Module 1 (`raw_bus_pings`, `route_projected_telemetry`, `fact_route_tomtom_incidents`), và Hugging Face raw batches.
-- **Đầu ra:** SQLite DB (`data/hanoi_bus_system.db`), Bronze/Silver/Gold Parquet (`data/lakehouse/`), và các phân vùng/snapshot bất biến trên HDFS.
+- **Vai trò:** Quản lý kho lưu trữ lịch sử chính trên **HDFS / Medallion Parquet Lakehouse (Bronze – Silver – Gold)**, và giữ **SQLite** làm nền nhẹ cho Web App (metadata GTFS chuẩn + nơi hứng kết quả tổng hợp từ HDFS Gold).
+- **Đầu vào:** Hugging Face Raw Batches (`Toibinguz/hust-bus-data`), dữ liệu `data/raw/` & GTFS chuẩn (`step_1_5`).
+- **Đầu ra:** HDFS Bronze/Silver/Gold (`step_2_4_hdfs_history/`), Parquet Lakehouse (`data/lakehouse/`), và SQLite nền nhẹ (`data/hanoi_bus_system.db`) cho Web App.
 
 ## Sơ đồ luồng
 
 ```mermaid
 flowchart LR
-    M1["Module 1: Raw JSONL & Frenet Projection"] --> S21["step_2_1: SQLite Operational Store"]
-    S21 -->|"Operational Tables"| S22["step_2_2: Parquet Lakehouse (B-S-G)"]
-    M1 -->|"HF / Spool JSONL"| S24["step_2_4: HDFS History (Bronze/Silver/Gold)"]
-    S22 -->|"Silver/Gold Parquet"| M3["Module 3: Baseline, Feature Store & XGBoost"]
-    S24 -->|"Immutable Snapshots"| M3
+    M1["Module 1: HF Raw & Sanitizer"] -->|"Bronze (Immutable)"| S24["step_2_4: HDFS History (B-S-G)"]
+    S24 -->|"Gold Release / Baseline"| S21["step_2_1: SQLite (GTFS tĩnh + Gold Receiver)"]
+    M1 -->|"Dev/Legacy staging"| S22["step_2_2: Local Parquet Lakehouse"]
+    S24 -->|"Silver/Gold Snapshots"| M3["Module 3: Baseline, Feature Store & XGBoost"]
+    S21 -->|"Metadata & Baseline nhẹ"| WEB["Web Demo App"]
 ```
 
 ## Các Sub-module
 
 | Sub-module | Nhiệm vụ | Tài liệu |
 | --- | --- | --- |
-| `step_2_1_sqlite_operational_store` | Quản trị schema và kết nối SQLite (`OperationalDatabaseManager`) | [README.md](step_2_1_sqlite_operational_store/README.md) |
-| `step_2_2_parquet_medallion_lakehouse` | Xuất Bronze/Silver Parquet phân vùng Hive và kiểm toán chất lượng Silver | [README.md](step_2_2_parquet_medallion_lakehouse/README.md) |
-| `step_2_3_columnar_query_engine` | Thư mục giữ chỗ (chỉ có `__init__.py`, truy vấn columnar đọc trực tiếp bằng `pyarrow`/`duckdb`) | [README.md](step_2_3_columnar_query_engine/README.md) |
-| `step_2_4_hdfs_history` | Đường ống lịch sử trên cụm HDFS/Spark (Bronze spool, Silver P2 transform, Gold snapshot) | [README.md](step_2_4_hdfs_history/README.md) |
+| `step_2_4_hdfs_history` | Kho lưu trữ lịch sử chính trên cụm HDFS/Spark (Bronze spool, Silver P2 transform, Gold snapshot) | [README.md](step_2_4_hdfs_history/README.md) |
+| `step_2_2_parquet_medallion_lakehouse` | Xuất Bronze/Silver Parquet cục bộ và kiểm toán chất lượng Silver | [README.md](step_2_2_parquet_medallion_lakehouse/README.md) |
+| `step_2_1_sqlite_operational_store` | Nền nhẹ cho Web App: lưu GTFS chuẩn & hứng kết quả tổng hợp từ HDFS Gold *(từng lưu raw/silver ở giai đoạn thử nghiệm)* | [README.md](step_2_1_sqlite_operational_store/README.md) |
+| `step_2_3_columnar_query_engine` | Thư mục giữ chỗ (chỉ có `__init__.py`, truy vấn columnar đọc trực tiếp bằng `pyarrow`) | [README.md](step_2_3_columnar_query_engine/README.md) |
