@@ -7,7 +7,7 @@
 ## 1. Sơ đồ phân tầng Bronze – Silver – Gold
 
 ```mermaid
-flowchart LR
+flowchart TD
     HF["Hugging Face Raw Batches"] -->|"Bronze (Immutable)"| HBR["HDFS /bus-eta/v1/bronze/hf_raw & data/lakehouse/bronze/"]
     HBR -->|"Spark P2 / Frenet Projection"| HSIL["HDFS Silver P2 & data/lakehouse/silver/"]
     HSIL -->|"Baseline & Feature Aggregation"| HGOLD["HDFS Gold Release & data/lakehouse/gold/"]

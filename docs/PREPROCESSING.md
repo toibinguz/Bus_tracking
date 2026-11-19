@@ -7,7 +7,7 @@
 ## 1. Quy trình tiền xử lý
 
 ```mermaid
-flowchart LR
+flowchart TD
     PING["Ping GPS thô (lat, lon, speed, direction, ts)"] --> BBOX{"Trong HANOI_BBOX 4 biên?"}
     BBOX -->|"Không"| OOB["OUT_OF_BOUNDS"]
     BBOX -->|"Có"| KIN{"Vận tốc nhảy > 100 km/h?"}

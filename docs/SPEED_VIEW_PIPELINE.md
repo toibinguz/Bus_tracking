@@ -7,7 +7,7 @@
 ## 1. Sơ đồ luồng Speed View
 
 ```mermaid
-flowchart LR
+flowchart TD
     BM["BusMap Live API (live_feed.py)"] --> MERGE["BusMapServingService._sync_single_direction"]
     TB["TimBus Central API (TimBusClient)"] --> MERGE
     MERGE -->|"RouteHMM + ShapeProjectionModel"| PROJ["Chiếu s_bus_m & Guard vượt trạm"]

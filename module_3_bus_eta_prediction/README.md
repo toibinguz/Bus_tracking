@@ -7,7 +7,7 @@
 ## Sơ đồ luồng
 
 ```mermaid
-flowchart LR
+flowchart TD
     S31["step_3_1: Historical Baseline Matrix"] --> S32["step_3_2: CausalFeatures (36 vars)"]
     S32 --> S33["step_3_3: Residual XGBoost (causal-eta.v1)"]
     S33 -->|"model.json + manifest.json"| S34["step_3_4: Serving & ModelRuntime"]

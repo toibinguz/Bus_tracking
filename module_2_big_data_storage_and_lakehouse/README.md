@@ -7,7 +7,7 @@
 ## Sơ đồ luồng
 
 ```mermaid
-flowchart LR
+flowchart TD
     M1["Module 1: HF Raw & Sanitizer"] -->|"Bronze (Immutable)"| S24["step_2_4: HDFS History (B-S-G)"]
     S24 -->|"Gold Release / Baseline"| S21["step_2_1: SQLite (GTFS tĩnh + Gold Receiver)"]
     M1 -->|"Local Parquet"| S22["step_2_2: Local Parquet Lakehouse"]

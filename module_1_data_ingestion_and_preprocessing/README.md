@@ -7,7 +7,7 @@
 ## Sơ đồ luồng
 
 ```mermaid
-flowchart LR
+flowchart TD
     S11["step_1_1: Crawler & HF Relay"] -->|"JSONL"| S13["step_1_3: Kinematic Sanitizer & Trip Segmenter"]
     S15["step_1_5: Canonical GTFS Migration"] -->|"Shapes & Stations"| S14["step_1_4: Frenet & HMM Spatial Projection"]
     S13 -->|"Cleaned Pings & Trips"| S14

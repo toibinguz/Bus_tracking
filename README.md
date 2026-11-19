@@ -7,7 +7,7 @@
 ## Sơ đồ kiến trúc tổng quan
 
 ```mermaid
-flowchart LR
+flowchart TD
     A["BusMap / TimBus / TomTom Incidents"] --> B["Module 1: Crawler & Preprocessing"]
     B -->|"Batch JSONL (HF / data/raw)"| C["Module 2: SQLite + Parquet Lakehouse + HDFS"]
     C -->|"Silver / Gold Parquet"| D["Module 3: Baseline + CausalFeatures + XGBoost"]
