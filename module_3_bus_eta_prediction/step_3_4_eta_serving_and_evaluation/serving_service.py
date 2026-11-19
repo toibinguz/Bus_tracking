@@ -2,8 +2,7 @@
 Step 3.4 — Orchestrator serving (BusMapServingService) + facade cho app.py.
 Module: module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/serving_service.py
 
-Ghép: data_access + live_feed + frenet + online_features + model_runtime + eta_policy.
-Đây là implementation thay thế `busmap_service.py` cũ (sẽ retire ở task 10).
+Ghép: data_access + live_feed + frenet + projection_tracker + model_runtime + eta_policy.
 """
 
 from concurrent.futures import ThreadPoolExecutor
@@ -32,9 +31,15 @@ from config.system_config import (
     TIMBUS_HOLD_FRESH_SEC,
     TIMBUS_LIVE_CACHE_TTL_SEC,
     TIMBUS_QUERY_TIMEOUT_SEC,
+    TOMTOM_DEFAULT_TTL_SEC,
+    TOMTOM_MIN_COS_THETA,
     TZ_HANOI,
 )
 from experiments.timbus.timbus_tracker import TimBusClient
+from module_1_data_ingestion_and_preprocessing.step_1_4_frenet_spatial_projection.tomtom_incident_projector import (
+    compute_linestring_kinematics,
+    split_matched_vertices_into_runs,
+)
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.data_access import DataAccess, IncidentsProvider
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.dto import (
     ApproachingBusDTO,
@@ -57,9 +62,13 @@ from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.live_feed i
     now_hanoi_iso,
     parse_ping_epoch,
 )
-from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CausalFeatures, Observation
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import (
+    CausalFeatures,
+    Observation,
+    RouteIncidentInterval,
+)
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.model_runtime import ModelRuntime
-from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.online_features import OnlineFeatureExtractor
+from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.projection_tracker import RouteProjectionTracker
 
 logger = logging.getLogger(__name__)
 
@@ -270,7 +279,7 @@ class BusMapServingService:
             self.source_info = dict(mode='local', artifact_id=None, snapshot_id=None,
                                     baseline_routes=sorted(self._da.route_idx_by_code),
                                     model_status='candidate_unverified' if self._runtime.available else 'unavailable')
-        self._extractor = OnlineFeatureExtractor(self._da, self._incidents)
+        self._extractor = RouteProjectionTracker(self._da)
         self._causal = CausalFeatures(self._da)
         self._causal_lock = threading.Lock()
         self.source_info['model'] = self._runtime.identity
@@ -889,6 +898,32 @@ class BusMapServingService:
         candidates = []
         speeds: List[float] = []
 
+        inc_list, inc_at = self.get_live_incidents_for_route(route_id, dir_int, now_epoch)
+        inc_epoch = float(getattr(self, "_live_incidents_epoch", 0.0) or 0.0)
+        if inc_list and inc_epoch > 0.0:
+            inc_exp = inc_epoch + float(TOMTOM_DEFAULT_TTL_SEC)
+            inc_intervals = []
+            for inc in inc_list:
+                if inc.delay_seconds <= 0.0:
+                    continue
+                span_route = max(0.0, inc.s_max_m - inc.s_min_m)
+                if span_route <= 0.0:
+                    continue
+                eff_inc_span = max(inc.length_meters, span_route, 25.0)
+                inc_intervals.append(
+                    RouteIncidentInterval(
+                        s_min_m=inc.s_min_m,
+                        s_max_m=inc.s_max_m,
+                        delay_seconds=inc.delay_seconds * (span_route / eff_inc_span),
+                        crawled_epoch=inc_epoch,
+                        expires_epoch=inc_exp,
+                    )
+                )
+        else:
+            inc_intervals = []
+        with self._causal_lock:
+            self._causal.observe_incidents(route_id, dir_int, inc_intervals)
+
         for v in vehicles:
             v=self._prepare_vehicle(route_id,dir_int,v,now_epoch)
             bus_state = project_filter_extrapolate(v, shape_model, s_target, now_epoch)
@@ -1075,6 +1110,7 @@ class BusMapServingService:
         matched: List[RouteIncidentDTO] = []
         for inc in raw_list:
             polylines = self._extract_incident_polylines(inc.get("geometry_type", ""), inc.get("coordinates"))
+            inc_len_m = float(inc.get("length_meters") or 0.0)
             s_hits: List[float] = []
             for pts in polylines:
                 if len(pts) == 1:
@@ -1082,26 +1118,23 @@ class BusMapServingService:
                     if ct_val <= MAX_CORRIDOR_CROSS_TRACK_M:
                         s_hits.append(s_val)
                     continue
-                # LineString / MultiLineString: kiểm tra hướng tiếp tuyến cos_theta >= 0.5 và dãy tăng s
-                aligned_s: List[float] = []
+                if len(pts) < 2:
+                    continue
+                coords = [(lon, lat) for lat, lon in pts]
+                pt_unit_vecs, pt_step_dists = compute_linestring_kinematics(coords)
+                matched_vertices = []
                 for idx, (lat, lon) in enumerate(pts):
-                    p_next = pts[idx + 1] if idx + 1 < len(pts) else pts[idx]
-                    p_prev = pts[idx] if idx + 1 < len(pts) else pts[idx - 1]
-                    cos_lat = math.cos(math.radians((p_prev[0] + p_next[0]) * 0.5))
-                    vx = (p_next[1] - p_prev[1]) * 111320.0 * cos_lat
-                    vy = (p_next[0] - p_prev[0]) * 110540.0
-                    norm = math.hypot(vx, vy)
-                    if norm < 1e-6:
+                    ux, uy = pt_unit_vecs[idx]
+                    if ux == 0.0 and uy == 0.0:
                         continue
-                    s_val, ct_val, seg_idx = shape_model.project_point(lat, lon)
-                    if ct_val > MAX_CORRIDOR_CROSS_TRACK_M:
-                        continue
-                    tx, ty = shape_model.segment_unit_tangent(seg_idx)
-                    cos_theta = (vx / norm) * tx + (vy / norm) * ty
-                    if cos_theta >= 0.5 and (not aligned_s or s_val >= aligned_s[-1] - 20.0):
-                        aligned_s.append(s_val)
-                if len(aligned_s) >= 2:
-                    s_hits.extend(aligned_s)
+                    proj = shape_model.project_directed_point(
+                        lat, lon, ux, uy, min_cos_theta=TOMTOM_MIN_COS_THETA, max_d_perp_m=MAX_CORRIDOR_CROSS_TRACK_M
+                    )
+                    if proj is not None:
+                        s_val, ct_val, _ = proj
+                        matched_vertices.append((idx, s_val, ct_val))
+                for s_min, s_max, _ in split_matched_vertices_into_runs(matched_vertices, pt_step_dists, inc_len_m):
+                    s_hits.extend((s_min, s_max))
 
             if s_hits:
                 matched.append(
@@ -1111,7 +1144,7 @@ class BusMapServingService:
                         icon_category=int(inc.get("icon_category") or 0),
                         magnitude_of_delay=int(inc.get("magnitude_of_delay") or 0),
                         delay_seconds=float(inc.get("delay_seconds") or 0.0),
-                        length_meters=float(inc.get("length_meters") or 0.0),
+                        length_meters=inc_len_m,
                         s_min_m=round(min(s_hits), 1),
                         s_max_m=round(max(s_hits), 1),
                     )
@@ -1161,7 +1194,7 @@ class BusMapServingService:
     def ingest_speed_layer_vehicles(
         self, route_id: int, dir_int: int, vehicles: List[BusVehicleDTO], now_epoch: float
     ) -> List[BusVehicleDTO]:
-        """Nạp snapshot BusMap từ Speed Layer vào OnlineFeatureExtractor + CausalFeatures."""
+        """Nạp snapshot BusMap từ Speed Layer vào RouteProjectionTracker + MacroSpeedTracker."""
         if not vehicles:
             return []
         prepared = [self._prepare_vehicle(route_id, dir_int, v, now_epoch) for v in vehicles]

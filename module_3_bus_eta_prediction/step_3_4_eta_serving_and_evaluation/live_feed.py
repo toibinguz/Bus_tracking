@@ -2,7 +2,7 @@
 Step 3.4 — Live feed BusMap + cache RAM + parse ping.
 Module: module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/live_feed.py
 
-Kế thừa logic `busmap_service.py:175-335`, đã sửa blocker B2: dùng đúng key HANOI_BBOX
+Client fetch tọa độ xe buýt trực tiếp từ TimBus/BusMap (dùng đúng key HANOI_BBOX
 (`min_lat/max_lat/min_lon/max_lon`) thay vì `lat_min/...` gây KeyError.
 """
 

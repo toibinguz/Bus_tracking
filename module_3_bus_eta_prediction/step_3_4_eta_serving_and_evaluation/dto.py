@@ -3,7 +3,7 @@ Step 3.4 — Hợp đồng DTO công khai (public API schema) cho tầng ETA ser
 Module: module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/dto.py
 
 Chỉ định nghĩa schema (Pydantic). Không chứa logic nghiệp vụ/IO.
-Đã sửa các trường zombie so với `busmap_service.py` cũ:
+Chuẩn hóa các DTO phục vụ ETA live serving:
   - BusVehicleDTO: bỏ `lon` (alias trùng `lng`), bỏ `distance_to_next_m` (luôn None).
   - SafeWindowDTO: `conservative_eta_seconds`/`buffer_seconds`/`is_delayed`/`delay_seconds` mang giá trị thực.
   - ApproachingBusDTO: `eta_minutes:int` (lượng tử hóa) + `eta_minutes_precise:float` (hiển thị song song).

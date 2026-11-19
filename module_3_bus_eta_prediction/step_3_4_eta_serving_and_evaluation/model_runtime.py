@@ -61,11 +61,11 @@ class ModelRuntime:
                 "model_sha256": _sha256(model_path),
                 "metadata_sha256": _sha256(manifest_path) if os.path.exists(manifest_path) else None,
                 "best_iteration": residual.best_iteration,
-                "features": list(FEATURES),
+                "features": list(residual.features),
             }
             logger.info(
                 "Đã nạp causal-eta.v1 (%d feature, best_iteration=%s, %d tuyến)",
-                len(FEATURES),
+                len(residual.features),
                 residual.best_iteration,
                 len(runtime._known_routes),
             )

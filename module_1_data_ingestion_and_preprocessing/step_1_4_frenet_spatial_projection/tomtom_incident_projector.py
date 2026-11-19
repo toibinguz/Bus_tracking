@@ -135,7 +135,41 @@ def project_linestring_to_route_grid(
     if not matched_vertices:
         return []
 
-    # Group matched vertices into contiguous monotonic runs along s
+    return split_matched_vertices_into_runs(matched_vertices, pt_step_dists, inc_length_m)
+
+
+def compute_linestring_kinematics(coords: list):
+    """Tính vector đơn vị tại mỗi đỉnh và khoảng cách bước giữa các đỉnh liên tiếp."""
+    n_pts = len(coords) if coords else 0
+    pt_unit_vecs = []
+    pt_step_dists = []
+    for j in range(n_pts):
+        if j < n_pts - 1:
+            lon1, lat1 = coords[j][0], coords[j][1]
+            lon2, lat2 = coords[j + 1][0], coords[j + 1][1]
+        else:
+            lon1, lat1 = coords[j - 1][0], coords[j - 1][1]
+            lon2, lat2 = coords[j][0], coords[j][1]
+        cos_lat = math.cos(math.radians((lat1 + lat2) / 2.0))
+        vx = (lon2 - lon1) * 111320.0 * cos_lat
+        vy = (lat2 - lat1) * 110540.0
+        vlen = math.hypot(vx, vy)
+        pt_unit_vecs.append((vx / vlen, vy / vlen) if vlen > 1e-3 else (0.0, 0.0))
+        if j > 0:
+            pt_step_dists.append(haversine(coords[j - 1][1], coords[j - 1][0], coords[j][1], coords[j][0]))
+        else:
+            pt_step_dists.append(0.0)
+    return pt_unit_vecs, pt_step_dists
+
+
+def split_matched_vertices_into_runs(
+    matched_vertices: list,
+    pt_step_dists: list,
+    inc_length_m: float,
+) -> list:
+    """Gom các đỉnh đã khớp thành từng run liên tiếp đơn điệu dọc s_m và kiểm tra max_allowed_span."""
+    if not matched_vertices:
+        return []
     runs = []
     cur_run = [matched_vertices[0]]
     for m_v in matched_vertices[1:]:

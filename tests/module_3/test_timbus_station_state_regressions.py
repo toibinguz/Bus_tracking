@@ -3,11 +3,12 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 import threading
 
+import numpy as np
 import pytest
 
 from experiments.timbus.timbus_tracker import TimBusClient
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.dto import BusVehicleDTO, RouteLiveResponse
-from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.online_features import OnlineFeatureExtractor
+from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.projection_tracker import RouteProjectionTracker
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.serving_service import BusMapServingService
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.serving_service import MacroSpeedTracker
 
@@ -23,6 +24,17 @@ def vehicle(vid, distance):
 
 
 class Shape:
+    kx = 1000.0
+    ky = 1000.0
+    _x1 = np.array([0.0])
+    _y1 = np.array([0.0])
+    _dx = np.array([0.0])
+    _dy = np.array([200.0])
+    _safe_lens_sq = np.array([200.0 ** 2])
+    _seg_lens = np.array([200.0])
+    _cum_starts = np.array([0.0])
+    _total_len = 200.0
+
     def project_point(self, lat, lng):
         return lat * 1000, abs(lng) * 1000, 0
 
@@ -101,24 +113,28 @@ def test_off_corridor_position_does_not_poison_pass_guard(service):
 
 @pytest.fixture
 def extractor():
-    extractor = OnlineFeatureExtractor.__new__(OnlineFeatureExtractor)
-    extractor._obs_lock = threading.Lock()
-    extractor._obs = {}
-    extractor._fleet = {}
+    extractor = RouteProjectionTracker.__new__(RouteProjectionTracker)
+    extractor._match_lock = threading.RLock()
+    extractor._shape_models = {(1, "go"): Shape()}
+    extractor._matchers = {}
+    extractor._matched = {}
+    extractor._directions = {}
+    extractor._generations = {}
     extractor._da = SimpleNamespace(
         get_corridor_stations=lambda *args: [(0, 0, 0, 0), (1, 0, 0, 200)],
         get_route_profile=lambda *args: (20, 200, 200),
+        get_shape_points=lambda *args: [],
     )
-    extractor._get_shape_model = lambda *args: Shape()
-    extractor._segment_array = lambda *args, **kwargs: [36]
-    extractor._matchers={}
-    extractor.project_vehicle=lambda route,direction,v,now:v.model_copy(update={
-        'projection_checked':True,'matched_projection':Shape().project_point(v.lat,v.lng)})
     return extractor
 
 
 def test_station_requests_preserve_full_fleet_and_leading_bus(service, extractor):
     service._extractor = extractor
+    snapshots = []
+    service._causal = SimpleNamespace(
+        observe=lambda *a, **k: None,
+        observe_snapshot=lambda r, d, t, vehicles, valid=True: snapshots.append(set(vehicles)),
+    )
     buses = [vehicle(1, 90), vehicle(2, 110)]
     for bus in buses:
         service._tb_last_valid[(1, 0, bus.plate)] = (NOW, bus.lat * 1000, bus)
@@ -132,10 +148,7 @@ def test_station_requests_preserve_full_fleet_and_leading_bus(service, extractor
             s_target=target, pre_live_resp=response,
         )
         assert [bus.id for bus in approaching] == expected_ids
-        fleet = extractor._fleet[(1, 0)]
-        assert set(fleet) == {1, 2}
-        assert fleet[2][1] - fleet[1][1] == pytest.approx(20)
-        assert set(extractor._obs) == {(1, 0, 1), (1, 0, 2)}
+        assert snapshots[-1] == {"29A00001", "29A00002"}
 
 
 def test_cache_does_not_override_newer_busmap_position(service):
@@ -174,10 +187,11 @@ def test_out_of_order_packet_does_not_reset_ml_observations(extractor):
     })
     extractor.update_observation(1, 0, [first], NOW)
     extractor.update_observation(1, 0, [latest], NOW)
-    history = list(extractor._obs[(1, 0, 1)])
+    history = extractor.projection_history(1, 0, 1)
+    assert sorted(history.values()) == [90, 110]
     stale = vehicle(1, 10).model_copy(update={
         "updated_at": datetime.fromtimestamp(NOW - 5, timezone.utc).isoformat(),
     })
     extractor.update_observation(1, 0, [stale], NOW + 1)
-    assert extractor._obs[(1, 0, 1)] == history
-    assert extractor._fleet[(1, 0)][1][1] == pytest.approx(110)
+    assert extractor.projection_history(1, 0, 1) == history
+    assert extractor._matched[(1, 0, 1)][2].matched_projection[0] == pytest.approx(110)

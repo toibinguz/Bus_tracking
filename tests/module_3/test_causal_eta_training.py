@@ -4,8 +4,14 @@ from copy import deepcopy
 import pytest
 
 from config.system_config import METERS_PER_DEG_LON_EQUATOR
-from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CausalFeatures, FEATURES, Observation
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import (
+    CausalFeatures,
+    FEATURES,
+    Observation,
+    RouteIncidentInterval,
+)
 from module_3_bus_eta_prediction.step_3_3_machine_learning_models.causal_eta_training import (
+    MONOTONE_INCIDENT_FEATURES,
     MONOTONE_SPEED_FEATURES,
     ResidualETA,
     TrainingReplay,
@@ -51,7 +57,7 @@ def test_fleet_uses_unlabeled_pings_and_future_only_adds_label():
     replay.forecast(1, 0, 'ego', 20, 1040)
     original = deepcopy(replay.examples[0])
     assert tuple(original['features']) == FEATURES
-    assert len(FEATURES) == 36
+    assert len(FEATURES) == 40
     assert original['features']['lead_bus_dist_ahead_m'] == 180
     assert original['features']['lead_bus_speed_kmh'] == pytest.approx(7.2)
     assert original['features']['follow_bus_dist_behind_m'] is None
@@ -115,7 +121,7 @@ def test_xgb_monotone_and_unknown_route_fallback():
     reg = build_xgb_regressor(rounds=50, early_stopping_rounds=10)
     assert reg.early_stopping_rounds == 10
     for idx, feat in enumerate(FEATURES):
-        expected = -1 if feat in MONOTONE_SPEED_FEATURES else 0
+        expected = -1 if feat in MONOTONE_SPEED_FEATURES else (1 if feat in MONOTONE_INCIDENT_FEATURES else 0)
         assert reg.monotone_constraints[idx] == expected
 
     class _DummyModel:
@@ -136,3 +142,41 @@ def test_xgb_monotone_and_unknown_route_fallback():
     assert runner.predict_one(row_unknown) == pytest.approx(120.0)
     row_known = dict(row_unknown, route_id_idx=0)
     assert runner.predict_one(row_known) == pytest.approx(135.0)
+
+
+def test_tomtom_incident_features_causal_and_legacy_compat():
+    engine = CausalFeatures(StraightRoute())
+    engine.observe(ping('ego', 1000, 100))
+    engine.observe(ping('ego', 1040, 200))
+
+    empty_feats, *_ = engine.features(1, 0, 'ego', 30, 1040)
+    assert empty_feats['inc_ahead_total_delay_sec'] == 0.0
+    assert empty_feats['inc_dist_to_nearest_m'] == 25000.0
+    assert empty_feats['inc_ahead_jam_length_m'] == 0.0
+    assert empty_feats['inc_info_age_sec'] is None
+
+    engine.observe_incidents(1, 0, [
+        RouteIncidentInterval(0.0, 200.0, 90.0, 900.0, 1800.0),      # chạm biên s_cur=200 (ov_l=0) -> bỏ
+        RouteIncidentInterval(250.0, 350.0, 0.0, 900.0, 1800.0),    # delay=0 (roadworks) -> bỏ
+        RouteIncidentInterval(250.0, 350.0, 90.0, 1100.0, 1800.0),  # tương lai (crawled > now) -> bỏ
+        RouteIncidentInterval(250.0, 350.0, 90.0, 500.0, 1000.0),   # hết hạn (expires < now) -> bỏ
+        RouteIncidentInterval(300.0, 700.0, 120.0, 900.0, 1800.0),  # active toàn phần: 120s, jam=400m, age=140s
+        RouteIncidentInterval(1400.0, 1800.0, 200.0, 1000.0, 1800.0),  # active 1 phần tới target=1600: frac=0.5 -> 100s, jam=200m, age=40s
+    ])
+    feats, *_ = engine.features(1, 0, 'ego', 30, 1040)
+    assert feats['inc_ahead_total_delay_sec'] == pytest.approx(220.0)
+    assert feats['inc_dist_to_nearest_m'] == pytest.approx(100.0)
+    assert feats['inc_ahead_jam_length_m'] == pytest.approx(600.0)
+    assert feats['inc_info_age_sec'] == pytest.approx((120.0 * 140.0 + 100.0 * 40.0) / 220.0)
+
+    class _LegacyDummyModel:
+        def predict(self, frame, iteration_range=None):
+            assert tuple(frame.columns) == FEATURES[:36]
+            return frame['baseline_eta_p50_sec'].to_numpy() * 0.0 + 10.0
+
+    legacy_runner = ResidualETA(
+        _LegacyDummyModel(),
+        {'route_id_idx': [0], 'direction_id': [0, 1], 'day_type': [0, 1, 2], 'hour_slot': list(range(5, 22))},
+        features=FEATURES[:36],
+    )
+    assert legacy_runner.predict_one(feats) == pytest.approx(feats['baseline_eta_p50_sec'] + 10.0)

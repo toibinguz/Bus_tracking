@@ -26,6 +26,9 @@ MONOTONE_SPEED_FEATURES = frozenset({
     'ego_speed_avg_5min_kmh',
     'lead_bus_speed_kmh',
 })
+MONOTONE_INCIDENT_FEATURES = frozenset({
+    'inc_ahead_total_delay_sec',
+})
 
 
 def build_xgb_regressor(
@@ -33,8 +36,11 @@ def build_xgb_regressor(
     early_stopping_rounds: int = 30,
     max_depth: int = 4,
 ) -> xgb.XGBRegressor:
-    """XGBRegressor với early stopping và ràng buộc đơn điệu âm cho nhóm tốc độ."""
-    constraints = tuple(-1 if f in MONOTONE_SPEED_FEATURES else 0 for f in FEATURES)
+    """XGBRegressor với early stopping và ràng buộc đơn điệu (-1 tốc độ, +1 delay sự cố)."""
+    constraints = tuple(
+        -1 if f in MONOTONE_SPEED_FEATURES else (1 if f in MONOTONE_INCIDENT_FEATURES else 0)
+        for f in FEATURES
+    )
     return xgb.XGBRegressor(
         objective='reg:absoluteerror',
         eval_metric='mae',
@@ -142,18 +148,20 @@ class TrainingReplay:
             yield {**row, 'split': splits[split], 'eta_seconds': eta, 'label': asdict(crossing)}
 
 
-def feature_frame(rows, domains):
-    frame = pd.DataFrame(rows, columns=FEATURES, dtype=float)
+def feature_frame(rows, domains, columns=FEATURES):
+    frame = pd.DataFrame(rows, columns=columns, dtype=float)
     for column in CATEGORICAL:
-        frame[column] = pd.Categorical(frame[column], categories=domains[column])
+        if column in frame.columns:
+            frame[column] = pd.Categorical(frame[column], categories=domains[column])
     return frame
 
 
 class ResidualETA:
-    def __init__(self, model, domains, best_iteration=None):
+    def __init__(self, model, domains, best_iteration=None, features=FEATURES):
         self.model = model
         self.domains = domains
         self.best_iteration = best_iteration
+        self.features = tuple(features)
 
     def _predict_raw(self, frame):
         if self.best_iteration is not None:
@@ -164,9 +172,9 @@ class ResidualETA:
         rows = list(rows)
         if not rows:
             return np.empty(0)
-        if any(set(row) != set(FEATURES) or row[BASE] is None or not math.isfinite(row[BASE]) for row in rows):
+        if any(not set(self.features).issubset(row) or row[BASE] is None or not math.isfinite(row[BASE]) for row in rows):
             raise ValueError('features do not conform to ETA schema')
-        frame = feature_frame(rows, self.domains)
+        frame = feature_frame(rows, self.domains, columns=self.features)
         unknown_mask = frame['route_id_idx'].isna().to_numpy()
         if unknown_mask.any() and not allow_unknown_routes:
             raise ValueError('model has no training examples for at least one route')
@@ -184,14 +192,21 @@ class ResidualETA:
     def load(cls, root):
         root = Path(root)
         metadata = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
-        if (metadata['schema'] != 'causal-eta.v1' or tuple(metadata['features']) != FEATURES
+        model_features = tuple(metadata.get('features') or ())
+        if (metadata.get('schema') != 'causal-eta.v1' or not model_features
+                or not set(model_features).issubset(FEATURES)
                 or digest(root / 'model.json') != metadata['hashes']['model']):
             raise ValueError('ETA model contract or hash mismatch')
         model = xgb.XGBRegressor()
         model.load_model(root / 'model.json')
-        if tuple(model.get_booster().feature_names) != FEATURES:
+        if tuple(model.get_booster().feature_names) != model_features:
             raise ValueError('ETA model feature order is invalid')
-        return cls(model, metadata['category_domains'], best_iteration=metadata.get('best_iteration'))
+        return cls(
+            model,
+            metadata['category_domains'],
+            best_iteration=metadata.get('best_iteration'),
+            features=model_features,
+        )
 
 
 def metrics(actual, prediction, groups):
@@ -205,7 +220,7 @@ def metrics(actual, prediction, groups):
                 crossings=len(by_crossing), crossing_balanced_mae=float(np.mean([np.mean(x) for x in by_crossing.values()])))
 
 
-def fit_bundle(rows, output, provenance, rounds):
+def fit_bundle(rows, output, provenance, rounds, max_depth: int = 4):
     if provenance.get('input_mode') != 'busmap_lakehouse_silver' or any(row['source'] != 'busmap' for row in rows):
         raise ValueError('ETA training requires a BusMap lakehouse Silver replay')
     splits = {name: [row for row in rows if row['split'] == name] for name in ('train', 'validation', 'test')}
@@ -233,7 +248,7 @@ def fit_bundle(rows, output, provenance, rounds):
 
     x, y, weights = input_data(train)
     xv, yv, wv = input_data(validation)
-    model = build_xgb_regressor(rounds)
+    model = build_xgb_regressor(rounds, max_depth=max_depth)
     model.fit(x, y, sample_weight=weights, eval_set=[(x, y), (xv, yv)],
               sample_weight_eval_set=[weights, wv], verbose=50)
     history = model.evals_result()

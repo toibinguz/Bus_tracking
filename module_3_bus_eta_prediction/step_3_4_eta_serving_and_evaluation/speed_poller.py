@@ -3,7 +3,7 @@ Step 3.4 — Speed Layer Background Poller (chu kỳ 45s).
 Module: module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/speed_poller.py
 
 Nhiệm vụ:
-  1. Quét BusMap `route_query` 48 tuyến baseline mỗi 45s để làm ấm `CausalFeatures` & `OnlineFeatureExtractor`
+  1. Quét BusMap `route_query` 48 tuyến baseline mỗi 45s để làm ấm `MacroSpeedTracker` & `RouteProjectionTracker`
      (triệt tiêu cold-start 3-5 phút khi người dùng mở trang).
   2. Trám TimBus dàn trải (2 workers, `anchors[:1]`) cho xe trễ >= 60s hoặc biến mất giữa tuyến,
      tự động bỏ qua các xe mà Serving Layer vừa focus (< 45s) trong `_tb_last_valid`.

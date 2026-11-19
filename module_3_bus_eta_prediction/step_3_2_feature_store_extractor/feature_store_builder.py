@@ -160,12 +160,12 @@ def _process_single_route(args: Tuple[Any, ...]) -> Tuple[str, int, int, float]:
     tel_df = tel_df.sort_values(["direction", "vehicle_id", "device_epoch"]).reset_index(drop=True)
 
     # Load route TomTom incidents if partition exists
-    inc_by_dir: Dict[str, List[Tuple[float, float, float, float, float, float, float]]] = {}
+    inc_by_dir: Dict[str, List[Tuple[float, float, float, float, float, float, float, str]]] = {}
     r_inc_dir = os.path.join(SILVER_INC_DIR, f"route_code={r_code}")
     if os.path.exists(r_inc_dir):
         inc_ds = ds_pa.dataset(r_inc_dir, format="parquet")
         inc_df = inc_ds.to_table(
-            columns=["direction", "t_start_epoch", "t_end_epoch", "s_min_m", "s_max_m", "delay_seconds", "magnitude_of_delay", "overlap_length_m"]
+            columns=["direction", "t_start_epoch", "t_end_epoch", "s_min_m", "s_max_m", "delay_seconds", "magnitude_of_delay", "overlap_length_m", "incident_id"]
         ).to_pandas()
         if not inc_df.empty:
             inc_df = inc_df.sort_values(["direction", "t_start_epoch"]).reset_index(drop=True)
@@ -179,6 +179,7 @@ def _process_single_route(args: Tuple[Any, ...]) -> Tuple[str, int, int, float]:
                         igrp["delay_seconds"].fillna(0.0).astype(float).tolist(),
                         igrp["magnitude_of_delay"].fillna(0.0).astype(float).tolist(),
                         igrp["overlap_length_m"].fillna(0.0).astype(float).tolist(),
+                        igrp["incident_id"].fillna("").astype(str).tolist(),
                     )
                 )
 
@@ -381,7 +382,7 @@ def _process_single_route(args: Tuple[Any, ...]) -> Tuple[str, int, int, float]:
         inc_list = inc_by_dir.get(d_str, [])
         n_inc = len(inc_list)
         inc_ptr = 0
-        active_incidents: List[Tuple[float, float, float, float, float, float, float]] = []
+        active_incidents: List[Tuple[float, float, float, float, float, float, float, str]] = []
 
         for (
             t_cur,
@@ -518,14 +519,20 @@ def _process_single_route(args: Tuple[Any, ...]) -> Tuple[str, int, int, float]:
                 inc_jam_len = 0.0
                 inc_near_dist = 25000.0
                 if active_incidents:
-                    for _, _, ep_s0, ep_s1, ep_del, ep_mag, _ in active_incidents:
+                    seen_inc_ids = set()
+                    for _, _, ep_s0, ep_s1, ep_del, ep_mag, _, ep_id in active_incidents:
+                        if ep_del <= 0.0:
+                            continue
                         ov_s0 = max(s_cur, ep_s0)
                         ov_s1 = min(s_target, ep_s1)
                         ov_l = ov_s1 - ov_s0
-                        if ov_l >= 0.0:
-                            inc_cnt += 1
+                        if ov_l > 0.0:
+                            if ep_id:
+                                seen_inc_ids.add(ep_id)
+                            else:
+                                inc_cnt += 1
                             span_l = max(20.0, ep_s1 - ep_s0)
-                            frac = min(1.0, max(0.1, ov_l / span_l))
+                            frac = min(1.0, ov_l / span_l)
                             inc_tot_delay += ep_del * frac
                             if ep_del > inc_max_delay:
                                 inc_max_delay = ep_del
@@ -535,6 +542,8 @@ def _process_single_route(args: Tuple[Any, ...]) -> Tuple[str, int, int, float]:
                             d_near = max(0.0, ep_s0 - s_cur)
                             if d_near < inc_near_dist:
                                 inc_near_dist = d_near
+                    if seen_inc_ids:
+                        inc_cnt += len(seen_inc_ids)
 
                 # (f) Physics-guided interaction features (Shrinkage Probe + Decaying Ego Speed + Incident Delay)
                 phys_kin_eta = min(7200.0, rem_dist / eff_ego_mps)

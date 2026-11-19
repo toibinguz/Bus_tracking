@@ -14,7 +14,12 @@ import pyarrow.parquet as pq
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import MAX_POSITION_AGE, CausalFeatures, Observation
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import (
+    MAX_POSITION_AGE,
+    CausalFeatures,
+    Observation,
+    RouteIncidentInterval,
+)
 from module_3_bus_eta_prediction.step_3_3_machine_learning_models.causal_eta_training import TrainingReplay, baseline_cutoff_epoch, digest, epoch, fit_bundle
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.data_access import DataAccess
 
@@ -48,9 +53,46 @@ def silver_rows(paths):
                               row['lat'], row['lon'], '')
 
 
-def replay_silver(replay, partitions, baseline_end, cadence):
+def load_incident_timeline(incidents_root: Path | None, data: DataAccess):
+    """Đọc Silver fact_route_tomtom_incidents và sắp theo (route_id, direction, t_start_epoch)."""
+    timeline = defaultdict(list)
+    if not incidents_root or not incidents_root.is_dir():
+        return timeline
+    for route_dir in sorted(incidents_root.glob('route_code=*')):
+        route_code = route_dir.name.removeprefix('route_code=')
+        route_id = data.resolve_route_id(route_code)
+        if route_id is None:
+            continue
+        for parquet_path in sorted(route_dir.glob('*.parquet')):
+            table = pq.ParquetFile(parquet_path).read(
+                columns=['direction', 't_start_epoch', 't_end_epoch', 's_min_m', 's_max_m', 'delay_seconds']
+            )
+            for row in table.to_pylist():
+                direction_str = row.get('direction')
+                if direction_str not in ('go', 're'):
+                    continue
+                delay = float(row.get('delay_seconds') or 0.0)
+                if delay <= 0.0:
+                    continue
+                timeline[(int(route_id), int(direction_str == 're'))].append(
+                    RouteIncidentInterval(
+                        s_min_m=float(row['s_min_m']),
+                        s_max_m=float(row['s_max_m']),
+                        delay_seconds=delay,
+                        crawled_epoch=float(row['t_start_epoch']),
+                        expires_epoch=float(row['t_end_epoch']),
+                    )
+                )
+    for key in timeline:
+        timeline[key].sort(key=lambda iv: iv.crawled_epoch)
+    return timeline
+
+
+def replay_silver(replay, partitions, baseline_end, cadence, incident_timeline=None):
     members = defaultdict(dict)
     next_forecast = {}
+    inc_ptrs = defaultdict(int)
+    active_incidents = defaultdict(list)
     last_time = -float('inf')
 
     def group_key(row):
@@ -71,6 +113,19 @@ def replay_silver(replay, partitions, baseline_end, cadence):
             if now < next_forecast.get(key, 0):
                 continue
             next_forecast[key] = now + cadence
+            if incident_timeline is not None:
+                route_inc = incident_timeline.get(key, ())
+                ptr = inc_ptrs[key]
+                cur_active = active_incidents[key]
+                while ptr < len(route_inc) and route_inc[ptr].crawled_epoch <= now:
+                    if route_inc[ptr].expires_epoch >= now:
+                        cur_active.append(route_inc[ptr])
+                    ptr += 1
+                inc_ptrs[key] = ptr
+                if cur_active:
+                    cur_active = [iv for iv in cur_active if iv.expires_epoch >= now]
+                    active_incidents[key] = cur_active
+                replay.engine.observe_incidents(route, direction, cur_active)
             for vehicle in sorted(active):
                 for order, *_ in replay.engine.corridor(route, direction):
                     replay.forecast(route, direction, vehicle, order, now)
@@ -90,8 +145,10 @@ def run(args):
         raise ValueError('baseline fit overlaps the Silver replay dates')
     partitions = select_partitions(args.silver, first_day, last_day, args.route)
     data = DataAccess(db_path=str(args.catalog), baseline_db_path=str(args.baseline))
+    incidents_root = args.incidents if args.incidents is not None else (args.silver.parent / 'fact_route_tomtom_incidents')
+    incident_timeline = load_incident_timeline(incidents_root, data)
     replay = TrainingReplay(CausalFeatures(data))
-    replay_silver(replay, partitions, baseline_cutoff_epoch(fit_day), args.forecast_every)
+    replay_silver(replay, partitions, baseline_cutoff_epoch(fit_day), args.forecast_every, incident_timeline)
     rows = list(replay.labeled(validation, test))
     files = [path for paths in partitions.values() for path in paths]
     source_manifest = args.silver.parent.parent / 'source.json'
@@ -107,7 +164,7 @@ def run(args):
                       test_start_epoch=test, routes=args.route, counts=dict(replay.counts),
                       forecast_every=args.forecast_every)
     print(json.dumps(provenance['counts']), flush=True)
-    result = fit_bundle(rows, args.output, provenance, args.rounds)
+    result = fit_bundle(rows, args.output, provenance, args.rounds, max_depth=args.max_depth)
     print(json.dumps(result['evaluation']['overall'], indent=2))
 
 
@@ -122,8 +179,10 @@ def main():
     parser.add_argument('--test-start', required=True)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--route', action='append', help='Lakehouse route_code partition, e.g. 02')
-    parser.add_argument('--rounds', type=int, default=300)
+    parser.add_argument('--rounds', type=int, default=1200)
+    parser.add_argument('--max-depth', type=int, default=6)
     parser.add_argument('--forecast-every', type=float, default=30)
+    parser.add_argument('--incidents', type=Path, default=None, help='Optional Lakehouse Silver fact_route_tomtom_incidents root')
     run(parser.parse_args())
 
 
