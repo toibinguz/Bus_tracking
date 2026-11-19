@@ -9,14 +9,14 @@
 ```mermaid
 flowchart TD
     PING["Ping GPS thô (lat, lon, speed, direction, device_update_time)"] --> BBOX{"Trong HANOI_BBOX 4 biên?\n(19.50..22.50, 104.50..107.50)"}
-    BBOX -->|"Không"| OOB["OUT_OF_BOUNDS"]
-    BBOX -->|"Có"| KIN{"Vận tốc nhảy > 100 km/h?"}
-    KIN -->|"Có"| DRIFT["GPS_DRIFT_JUMP (không cập nhật kinematic_cache)"]
-    KIN -->|"Không"| DEPOT{"Đứng yên < 50m tại bến?\n(TERMINAL_STATIONARY_TOL_M)"}
+    BBOX -->|"Không"| OOB["OUT_OF_BOUNDS\n(không ghi kinematic_cache)"]
+    BBOX -->|"Có"| KIN{"dist >= 250m &\nv_calc > 80.0 km/h?"}
+    KIN -->|"Có"| DRIFT["GPS_DRIFT_JUMP (không cập nhật cache)"]
+    KIN -->|"Không"| DEPOT{"(dir==0 hoặc route<=0)\n& speed == 0?"}
     DEPOT -->|"Có"| IDLE["IDLE_DEPOT"]
     DEPOT -->|"Không"| VALID["ACTIVE_VALID / STALE_PING"]
-    VALID --> SEG["trip_segmenter.py\n(Gap > 900s, đổi direction, hoặc s < prev_s - 120m)"]
-    SEG --> PROJ["step_1_4: Chiếu 1D Frenet thuần\n(multi_route_projector.py / projection_boundary.py)"]
+    VALID --> SEG["trip_segmenter.py\n(dt > 300s / detour 1800s, lùi > 200m, terminal reset)"]
+    SEG --> PROJ["step_1_4: RouteHMM(horizon=300.0) + ShapeProjectionModel\n(multi_route_projector.py / projection_boundary.py)"]
     INC["TomTom Incidents JSONL"] --> INCPROJ["tomtom_incident_projector.py\n(Chiếu lưới đoạn 100m theo tuyến)"]
     PROJ -->|"cross_track_m <= 35.0m"| SIL["Silver Telemetry (route_projected_telemetry)"]
     INCPROJ --> SILINC["Silver Incidents (fact_route_tomtom_incidents)"]
@@ -27,12 +27,12 @@ flowchart TD
 | Tham số / Quy tắc | Giá trị / Logic hiện hành |
 | --- | --- |
 | `HANOI_BBOX` (4 biên) | `min_lat=19.50`, `max_lat=22.50`, `min_lon=104.50`, `max_lon=107.50` (bao phủ cả tuyến buýt liên tỉnh quanh Hà Nội) |
-| `MAX_BUS_SPEED_KMPH` | `100.0` km/h — vượt ngưỡng bị đánh dấu `GPS_DRIFT_JUMP` và **không** ghi đè `kinematic_cache[vid]` |
-| `TERMINAL_STATIONARY_TOL_M` | `50.0` m — dùng để xác định xe đứng yên tại bãi/bến (`IDLE_DEPOT`) |
-| `TRIP_MAX_TIME_GAP_SEC` | `900` giây — ngắt chuyến nếu mất tín hiệu quá 15 phút |
-| `MAX_BACKWARD_JITTER_M` | `120.0` m — trong `trip_segmenter.py`, reset đầu-cuối chỉ kích hoạt khi `s < (prev_s - 120.0)` |
+| `GPS_DRIFT_MAX_SPEED_KMPH` & `GPS_DRIFT_MIN_DIST_M` | `80.0` km/h & `250.0` m — chỉ đánh dấu `GPS_DRIFT_JUMP` khi đồng thời vượt cả 2 ngưỡng (chống jitter `dt` nhỏ), không cập nhật cache khi `OUT_OF_BOUNDS` hoặc drift |
+| `TERMINAL_STATIONARY_TOL_M` | `15.0` m — ngưỡng dịch chuyển tối thiểu phân biệt đứng yên / cắt đuôi tại bến |
+| `MAX_CONTINUOUS_GAP_SEC` / `MAX_BRIDGEABLE_DETOUR_GAP_SEC` | `300.0` s / `1800.0` s — nối chuyến qua detour nếu `ds > 100m` và vận tốc `2..60 km/h` |
+| `MAX_BACKWARD_RESET_M` | `200.0` m — ngưỡng lùi `s` xác nhận quay đầu / ngắt chuyến (`MAX_GPS_BACKWARD_JITTER_M = 20.0` m) |
 | `MAX_CORRIDOR_CROSS_TRACK_M` | `35.0` m — ngưỡng tối đa cho phép khi xuất telemetry lên Silver Lakehouse |
-| `ShapeProjectionModel` & `RouteHMM` | `ShapeProjectionModel` chiếu 1D Frenet cho Batch (`multi_route_projector.py`); `RouteHMM` chỉ chạy ở Speed Layer (`step_3_4`) |
+| `RouteHMM` (`BATCH_HMM_HORIZON_SEC = 300.0`) | Dùng chung `ShapeProjectionModel` + `RouteHMM` giữa Batch (`multi_route_projector.py`, `horizon=300.0`) và Speed Layer (`step_3_4`) |
 
 ## 3. Kiểm thử
 

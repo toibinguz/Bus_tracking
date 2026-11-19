@@ -9,9 +9,9 @@
 ```mermaid
 flowchart TD
     BM["BusMap & TomTom Incidents API"] --> S11["step_1_1: Crawler & HF Sync\n(cloud_crawler_runner.py, socket_client.py, incident_client.py)"]
-    S11 -->|"Raw JSONL (HF / HDFS Bronze)"| S13["step_1_3: Sanitizer & Trip Segmenter\n(HANOI_BBOX, Drift >100km/h, Idle <50m, Gap >900s)"]
+    S11 -->|"Raw JSONL (HF / HDFS Bronze)"| S13["step_1_3: Sanitizer & Trip Segmenter\n(HANOI_BBOX, Drift >=250m & >80km/h, OOB isolated)"]
     GTFS["data/ground_truth/busmap_canonical/"] --> S15["step_1_5: Canonical GTFS Migration\n(canonical_routes, canonical_shapes, canonical_stations)"]
-    S13 -->|"Cleaned Pings & Trips"| S14["step_1_4: Chiếu 1D Frenet thuần\n(multi_route_projector.py, tomtom_incident_projector.py)"]
+    S13 -->|"Cleaned Pings & Trips"| S14["step_1_4: RouteHMM(300s) & Frenet 1D\n(multi_route_projector.py, tomtom_incident_projector.py)"]
     S15 -->|"Shapes & Stations"| S14
     S14 -->|"Silver Telemetry (cross_track <= 35m) & Incidents"| M2["Module 2: HDFS & Parquet Lakehouse"]
 ```

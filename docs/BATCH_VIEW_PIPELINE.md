@@ -53,8 +53,8 @@ flowchart TD
 | Bước | Module / Symbol | Đầu vào -> Đầu ra | Ràng buộc chính (SSOT) |
 | --- | --- | --- | --- |
 | 0. Nạp GTFS chuẩn | `step_1_5_busmap_canonical_migration/ingest_busmap_canonical.py` | `busmap_canonical/*` -> `canonical_routes`, `canonical_shapes`, `canonical_stations` | Chiếu trạm lên `s_station_m` trong SQLite |
-| 1. Nhập HDFS Bronze | `step_2_4_hdfs_history` (`hf_bronze.py`, `spool.py`, `receipt.py`, `contract.py`) | HF Raw + `telemetry_sanitizer.py` -> HDFS `/bus-eta/v1/bronze/hf_raw` | Bất biến, băm SHA-256, `HANOI_BBOX` 4 biên (`19.50..22.50`, `104.50..107.50`), `TERMINAL_STATIONARY_TOL_M = 50.0m` |
-| 2. HDFS Silver P2 | `step_2_4` (`p2_transform.py`, `history_execution.py`) & `step_1_4` (`projection_boundary.py`, `route_matcher.py`) | HDFS Bronze -> HDFS Silver P2 | Lọc `cross_track_m <= 35.0m`, `MAX_BACKWARD_JITTER_M = 120.0m` |
+| 1. Nhập HDFS Bronze | `step_2_4_hdfs_history` (`hf_bronze.py`, `spool.py`, `receipt.py`, `contract.py`) | HF Raw + `telemetry_sanitizer.py` -> HDFS `/bus-eta/v1/bronze/hf_raw` | Bất biến, SHA-256, `HANOI_BBOX` 4 biên (`19.50..22.50`, `104.50..107.50`), `GPS_DRIFT_MIN_DIST_M = 250.0m`, `OUT_OF_BOUNDS` không ghi cache |
+| 2. HDFS Silver P2 | `step_2_4` (`p2_transform.py`, `history_execution.py`) & `step_1_4` (`projection_boundary.py`, `route_matcher.py`) | HDFS Bronze -> HDFS Silver P2 | `RouteHMM(horizon=300.0)`, lọc `cross_track_m <= 35.0m`, `MAX_BACKWARD_RESET_M = 200.0m` |
 | 3. HDFS Gold Baseline | `step_3_1_historical_baseline_model/baseline_matrix_builder.py` & `step_2_4/eta_snapshot.py` | HDFS Silver + `train_test_split_v1.json` -> HDFS Gold & SQLite baseline | `MIN_SAMPLES_FOR_BASELINE = 5`, `MAX_SEGMENT_TRAVEL_TIME_SEC = 1800.0` |
 | 4. Huấn luyện ML | `step_3_3_machine_learning_models/silver_replay_trainer.py` | HDFS Silver + Gold Baseline + `CausalFeatures` -> `data/models/causal_eta_v1/` | 36 features nhân quả, residual XGBoost |
 
@@ -63,16 +63,16 @@ flowchart TD
 ```mermaid
 flowchart TD
     IN["Raw Ping (vid, lat, lon, speed, dir, ts)"] --> BBOX{"Trong HANOI_BBOX?\n19.50<=lat<=22.50\n104.50<=lon<=107.50"}
-    BBOX -->|"Sai"| OOB["Gắn OUT_OF_BOUNDS"]
+    BBOX -->|"Sai"| OOB["Gắn OUT_OF_BOUNDS\n(KHÔNG cập nhật kinematic_cache)"]
     BBOX -->|"Đúng"| DT{"dt = ts - prev_ts > 0?"}
     DT -->|"Sai"| STALE["Gắn STALE_PING"]
-    DT -->|"Đúng"| VCALC{"v_calc = haversine / dt\n> 100.0 km/h?"}
+    DT -->|"Đúng"| VCALC{"dist >= 250.0m &\nv_calc > 80.0 km/h?"}
     VCALC -->|"Đúng"| DRIFT["Gắn GPS_DRIFT_JUMP\n(KHÔNG cập nhật kinematic_cache)"]
-    VCALC -->|"Sai"| DEPOT{"dist < 50.0m &\nở vùng bến?"}
+    VCALC -->|"Sai"| DEPOT{"dist < 15.0m &\n(dir==0 hoặc route<=0)?"}
     DEPOT -->|"Đúng"| IDLE["Gắn IDLE_DEPOT"]
     DEPOT -->|"Sai"| ACT["Gắn ACTIVE_VALID\n& cập nhật kinematic_cache"]
 
-    ACT --> SEG{"Kiểm tra ngắt chuyến:\ndt > 900s HOẶC đổi dir\nHOẶC s < prev_s - 120m?"}
+    ACT --> SEG{"Kiểm tra ngắt chuyến:\ndt > 300s (không đủ nối detour 1800s)\nHOẶC lùi > 200m / terminal reset?"}
     SEG -->|"Có"| NEWTRIP["Tách Trip mới +\ntrim_terminal_stationary_ends()"]
     SEG -->|"Không"| SAME["Nối vào Trip hiện tại"]
 

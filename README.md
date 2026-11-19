@@ -70,7 +70,8 @@ flowchart TD
 
 - `DEFAULT_DB_PATH = "data/hanoi_bus_system.db"`, `DEFAULT_LAKEHOUSE_ROOT = "data/lakehouse"`
 - `HANOI_BBOX`: `19.50..22.50` lat, `104.50..107.50` lon (bao phủ vùng liên tỉnh miền Bắc)
-- `MAX_CORRIDOR_CROSS_TRACK_M = 35.0`, `TERMINAL_STATIONARY_TOL_M = 50.0`
+- `MAX_CORRIDOR_CROSS_TRACK_M = 35.0`, `TERMINAL_STATIONARY_TOL_M = 15.0`
+- `GPS_DRIFT_MAX_SPEED_KMPH = 80.0`, `GPS_DRIFT_MIN_DIST_M = 250.0`, `BATCH_HMM_HORIZON_SEC = 300.0`
 - `SESSION_DURATION_SEC = 540` (phiên cloud crawler 9 phút), `BUS_POLL_INTERVAL_SEC = 75`
 
 ## Cách chạy & Kiểm thử
