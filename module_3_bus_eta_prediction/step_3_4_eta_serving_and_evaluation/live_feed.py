@@ -6,6 +6,7 @@ Kế thừa logic `busmap_service.py:175-335`, đã sửa blocker B2: dùng đú
 (`min_lat/max_lat/min_lon/max_lon`) thay vì `lat_min/...` gây KeyError.
 """
 
+import threading
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Tuple
@@ -31,12 +32,16 @@ def parse_ping_epoch(ts_val: Any, default_epoch: float) -> Tuple[float, str]:
         dt = datetime.fromtimestamp(default_epoch, tz=TZ_HANOI)
         return default_epoch, dt.isoformat()
 
-    if isinstance(ts_val, (int, float)):
-        epoch = float(ts_val)
-        if epoch > 1e11:  # milliseconds
-            epoch /= 1000.0
-        dt = datetime.fromtimestamp(epoch, tz=TZ_HANOI)
-        return epoch, dt.isoformat()
+    if isinstance(ts_val, (int, float)) and not isinstance(ts_val, bool):
+        try:
+            epoch = float(ts_val)
+            if epoch > 1e11:  # milliseconds
+                epoch /= 1000.0
+            dt = datetime.fromtimestamp(epoch, tz=TZ_HANOI)
+            return epoch, dt.isoformat()
+        except (ValueError, OverflowError, OSError):
+            dt = datetime.fromtimestamp(default_epoch, tz=TZ_HANOI)
+            return default_epoch, dt.isoformat()
 
     s = str(ts_val).strip()
     if not s:
@@ -49,7 +54,7 @@ def parse_ping_epoch(ts_val: Any, default_epoch: float) -> Tuple[float, str]:
             val /= 1000.0
         dt = datetime.fromtimestamp(val, tz=TZ_HANOI)
         return val, dt.isoformat()
-    except ValueError:
+    except (ValueError, OverflowError, OSError):
         pass
 
     try:
@@ -67,6 +72,7 @@ def parse_ping_epoch(ts_val: Any, default_epoch: float) -> Tuple[float, str]:
 
 # Cache RAM ngắn hạn (TTL = LIVE_CACHE_TTL_SEC) bảo đảm SLA < 20ms và bảo vệ upstream BusMap.
 live_cache: Dict[Tuple[int, int], Tuple[float, RouteLiveResponse]] = {}
+_live_cache_lock = threading.Lock()
 
 
 def fetch_live_vehicles_for_route(route_id: int, direction: int = 0) -> RouteLiveResponse:
@@ -83,21 +89,20 @@ def fetch_live_vehicles_for_route(route_id: int, direction: int = 0) -> RouteLiv
 
     cache_key = (route_id, direction)
     now_mono = time.monotonic()
-    if cache_key in live_cache:
-        cached_ts, cached_res = live_cache[cache_key]
-        if now_mono - cached_ts < LIVE_CACHE_TTL_SEC:
-            return cached_res
+    with _live_cache_lock:
+        if cache_key in live_cache:
+            cached_ts, cached_res = live_cache[cache_key]
+            if now_mono - cached_ts < LIVE_CACHE_TTL_SEC:
+                return cached_res
 
     raw_items = fetch_route_buses_live(route_id=route_id, direction=direction)
     timestamp_str = now_hanoi_iso()
     now_fetch_epoch = datetime.now(TZ_HANOI).timestamp()
 
     if not raw_items or not isinstance(raw_items, list):
-        empty_res = RouteLiveResponse(
+        return RouteLiveResponse(
             route_id=route_id, direction=direction, count=0, timestamp=timestamp_str, vehicles=[]
         )
-        live_cache[cache_key] = (now_mono, empty_res)
-        return empty_res
 
     seen_ids = set()
     cleaned_vehicles: List[BusVehicleDTO] = []
@@ -170,5 +175,6 @@ def fetch_live_vehicles_for_route(route_id: int, direction: int = 0) -> RouteLiv
         route_id=route_id, direction=direction, count=len(cleaned_vehicles),
         timestamp=timestamp_str, vehicles=cleaned_vehicles,
     )
-    live_cache[cache_key] = (now_mono, resp)
+    with _live_cache_lock:
+        live_cache[cache_key] = (now_mono, resp)
     return resp

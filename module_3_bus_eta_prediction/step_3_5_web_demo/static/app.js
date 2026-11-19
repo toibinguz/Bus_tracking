@@ -226,7 +226,7 @@
 
     const debug = presentationMode === 'debug';
     const rows = [
-      { label: 'Vận tốc ổn định:', valHtml: `${escapeHtml(speed)} km/h`, valClass: 'traffic-ok' },
+      { label: 'Vận tốc ổn định:', valHtml: `${escapeHtml(speed)} km/h` },
       { label: 'Hướng đi:', valHtml: `${Math.round(vehicle.deg || 0)}&deg;` },
       { label: 'Trạm tiếp theo:', valHtml: escapeHtml(stationInfo) },
       { label: 'Cập nhật GPS:', valHtml: `${escapeHtml(timeFormatted)}${escapeHtml(ageStr)}` },
@@ -561,8 +561,15 @@
   }
 
   function buildEtaInfoRows(bus, debug, ageElementId) {
-    const p10m = bus.safe_window.p10_minutes !== undefined ? bus.safe_window.p10_minutes : Math.ceil(bus.safe_window.p10_seconds / 60.0);
-    const p90m = bus.safe_window.p90_minutes !== undefined ? bus.safe_window.p90_minutes : Math.ceil(bus.safe_window.p90_seconds / 60.0);
+    const sw = bus.safe_window || {};
+    const p10Sec = typeof sw.p10_seconds === 'number' ? sw.p10_seconds : (bus.eta_seconds || 0);
+    const p50Sec = typeof sw.p50_seconds === 'number' ? sw.p50_seconds : (bus.eta_seconds || 0);
+    const p90Sec = typeof sw.p90_seconds === 'number' ? sw.p90_seconds : (bus.eta_seconds || 0);
+    const p10m = sw.p10_minutes !== undefined ? sw.p10_minutes : Math.ceil(p10Sec / 60.0);
+    const p90m = sw.p90_minutes !== undefined ? sw.p90_minutes : Math.ceil(p90Sec / 60.0);
+    const delaySec = typeof sw.delay_seconds === 'number' ? sw.delay_seconds : 0;
+    const bufSec = typeof sw.buffer_seconds === 'number' ? sw.buffer_seconds : 0;
+    const consSec = typeof sw.conservative_eta_seconds === 'number' ? sw.conservative_eta_seconds : (p50Sec + bufSec);
     const traffic = formatTrafficMeta(bus.traffic_status);
     const arrivalClock = formatEstimatedArrival(bus);
     const p50Remain = formatRemainingDuration(bus.eta_seconds);
@@ -600,15 +607,15 @@
       rows.push({ label: 'Nguồn dự báo ETA:', valHtml: escapeHtml(bus.prediction_source) });
       rows.push({
         label: 'Độ trễ thực tế:',
-        valHtml: `+${bus.safe_window.delay_seconds}s (${bus.safe_window.is_delayed ? 'Cảnh báo trễ' : 'Đúng lịch'})`
+        valHtml: `+${delaySec}s (${sw.is_delayed ? 'Cảnh báo trễ' : 'Đúng lịch'})`
       });
       rows.push({
         label: 'P10 / P50 / P90:',
-        valHtml: `${bus.safe_window.p10_seconds}s / ${bus.safe_window.p50_seconds}s / ${bus.safe_window.p90_seconds}s`
+        valHtml: `${p10Sec}s / ${p50Sec}s / ${p90Sec}s`
       });
       rows.push({
         label: 'Đệm (B) / Lạc quan / Bảo thủ:',
-        valHtml: `-${bus.safe_window.buffer_seconds}s &rarr; ${Math.round(optSec)}s | +${bus.safe_window.buffer_seconds}s &rarr; ${bus.safe_window.conservative_eta_seconds}s`
+        valHtml: `-${bufSec}s &rarr; ${Math.round(optSec)}s | +${bufSec}s &rarr; ${consSec}s`
       });
     }
     return { rows, dividerIdx };

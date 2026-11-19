@@ -125,9 +125,9 @@ class DataAccess:
         # (route_id, dir_int) -> (timbus_enabled, [primary_sid, backup_sid])
         self._timbus_anchors: Dict[Tuple[int, int], Tuple[bool, List[int]]] = {}
 
+        self.load_timbus_anchors()
         self.load_catalog()
         self.load_baseline_matrix()
-        self.load_timbus_anchors()
 
     # ------------------------------------------------------------------ IO
     @contextmanager

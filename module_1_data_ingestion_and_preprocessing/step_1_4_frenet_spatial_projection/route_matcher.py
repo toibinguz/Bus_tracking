@@ -171,7 +171,7 @@ class RouteHMM:
                 transitions=[]
                 for a in self.states:
                     ds=b.s-a.s
-                    terminal=(self.shape._total_len>1000 and a.s>=self.shape._total_len-TERMINAL_RESET_ZONE_M and b.s<=TERMINAL_RESET_ZONE_M)
+                    terminal=(self.shape._total_len>1000 and a.s>=self.shape._total_len-TERMINAL_RESET_ZONE_M and b.s<=TERMINAL_RESET_ZONE_M and b.s<a.s-MAX_GPS_BACKWARD_JITTER_M)
                     if terminal:
                         distance=self.shape._total_len-a.s+b.s
                         penalty=4.

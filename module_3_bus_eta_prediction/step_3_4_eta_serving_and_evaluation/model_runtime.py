@@ -84,9 +84,9 @@ class ModelRuntime:
         if not self.available or not feature_row:
             return None
         r_idx = feature_row.get("route_id_idx")
-        if r_idx is None or int(r_idx) not in self._known_routes:
-            return None
         try:
+            if r_idx is None or int(r_idx) not in self._known_routes:
+                return None
             eta = float(self._residual_eta.predict([feature_row], allow_unknown_routes=False)[0])
             base = float(feature_row["baseline_eta_p50_sec"])
             from .request_trace import record

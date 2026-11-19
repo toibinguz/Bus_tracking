@@ -283,15 +283,16 @@ class BusMapServingService:
 
     def _prepare_vehicle(self,route_id,dir_int,vehicle,now_epoch):
         vehicle=self._extractor.project_vehicle(route_id,dir_int,vehicle,now_epoch)
-        plate=TimBusClient.normalize_plate(vehicle.plate);key=(route_id,plate)
+        plate=TimBusClient.normalize_plate(vehicle.plate) or f"id:{vehicle.id}"
+        key=(route_id,dir_int,plate)
         with self._tb_lock:
             previous=self._projection_generations.get(key,0)
             if vehicle.projection_generation!=previous:
                 self._speed_tracker.reset_vehicle(route_id,plate)
                 for cached_key in list(self._tb_last_valid):
-                    if cached_key[0]==route_id and cached_key[2]==plate:self._tb_last_valid.pop(cached_key,None)
+                    if cached_key==(route_id,dir_int,plate):self._tb_last_valid.pop(cached_key,None)
                 for passed_key in list(self._passed_station_plates):
-                    if passed_key[0]==route_id and passed_key[3]==plate:self._passed_station_plates.pop(passed_key,None)
+                    if passed_key[0]==route_id and passed_key[1]==dir_int and passed_key[3]==plate:self._passed_station_plates.pop(passed_key,None)
                 from .request_trace import record
                 record('projection_reset',route_id=route_id,direction=dir_int,vehicle_id=vehicle.id,
                        generation=vehicle.projection_generation,reason=vehicle.projection_status)
