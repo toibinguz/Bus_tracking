@@ -64,10 +64,10 @@ def _get_live_route_headers():
         "proof": proof_hash
     }
 
-def fetch_route_buses_live(route_id: int, direction: int = 0):
+def fetch_route_buses_live_status(route_id: int, direction: int = 0):
     """
     Truy vấn trực tiếp toàn bộ xe buýt đang hoạt động trên tuyến bằng API route_bus_gps.
-    direction: 0 (Chiều về / B->A) hoặc 1 (Chiều đi / A->B)
+    Trả về (items, error_message) để caller phân biệt được tuyến rỗng với lỗi upstream.
     """
     url = f"https://api.busmap.city/v2/public/busmap/route_bus_gps?regionCode=hn&routeId={route_id}&direction={direction}"
     req = urllib.request.Request(url, headers=_get_live_route_headers(), method="GET")
@@ -79,17 +79,28 @@ def fetch_route_buses_live(route_id: int, direction: int = 0):
             capture('busmap',dict(route_id=route_id,direction=direction,endpoint='route_bus_gps'),
                     data,resp.status,dict(resp.headers),sent_at=sent_at)
             if not data:
-                return []
-            return json.loads(data.decode('utf-8'))
+                return [], None
+            parsed = json.loads(data.decode('utf-8'))
+            return (parsed if isinstance(parsed, list) else []), None
     except Exception as e:
+        err_msg = f"{type(e).__name__}: {e}"
         if isinstance(e,urllib.error.HTTPError):
             capture('busmap',dict(route_id=route_id,direction=direction,endpoint='route_bus_gps'),
                     e.read(),e.code,dict(e.headers),error=type(e).__name__,sent_at=sent_at)
         else:
             capture('busmap',dict(route_id=route_id,direction=direction,endpoint='route_bus_gps'),
-                    error=type(e).__name__+': '+str(e),sent_at=sent_at)
+                    error=err_msg,sent_at=sent_at)
         print(f"      [!] Lỗi truy vấn route_bus_gps tuyến {route_id} hướng {direction}: {e}", flush=True)
-        return []
+        return [], err_msg
+
+
+def fetch_route_buses_live(route_id: int, direction: int = 0):
+    """
+    Truy vấn trực tiếp toàn bộ xe buýt đang hoạt động trên tuyến bằng API route_bus_gps.
+    direction: 0 (Chiều về / B->A) hoặc 1 (Chiều đi / A->B)
+    """
+    items, _ = fetch_route_buses_live_status(route_id=route_id, direction=direction)
+    return items
 
 def _parse_hours_since_update(raw):
     """Số giờ kể từ lastUpdateTime của xe (None nếu không đọc được)."""

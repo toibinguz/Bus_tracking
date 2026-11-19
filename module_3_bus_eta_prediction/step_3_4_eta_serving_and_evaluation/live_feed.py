@@ -78,10 +78,10 @@ _live_cache_lock = threading.Lock()
 def fetch_live_vehicles_for_route(route_id: int, direction: int = 0) -> RouteLiveResponse:
     """
     Truy vấn xe đang chạy trực tiếp từ BusMap, lọc bản ghi không hợp lệ / ngoài phạm vi Hà Nội.
-    Trả về RouteLiveResponse chứa danh sách BusVehicleDTO.
+    Trả về RouteLiveResponse chứa danh sách BusVehicleDTO kèm trạng thái upstream.
     """
     from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.catalog_refresher import (
-        fetch_route_buses_live,
+        fetch_route_buses_live_status,
     )
 
     if direction not in (0, 1):
@@ -95,13 +95,29 @@ def fetch_live_vehicles_for_route(route_id: int, direction: int = 0) -> RouteLiv
             if now_mono - cached_ts < LIVE_CACHE_TTL_SEC:
                 return cached_res
 
-    raw_items = fetch_route_buses_live(route_id=route_id, direction=direction)
+    raw_items, upstream_err = fetch_route_buses_live_status(route_id=route_id, direction=direction)
     timestamp_str = now_hanoi_iso()
     now_fetch_epoch = datetime.now(TZ_HANOI).timestamp()
 
+    if upstream_err is not None:
+        return RouteLiveResponse(
+            route_id=route_id,
+            direction=direction,
+            count=0,
+            timestamp=timestamp_str,
+            upstream_status="upstream_error",
+            upstream_error=upstream_err,
+            vehicles=[],
+        )
+
     if not raw_items or not isinstance(raw_items, list):
         return RouteLiveResponse(
-            route_id=route_id, direction=direction, count=0, timestamp=timestamp_str, vehicles=[]
+            route_id=route_id,
+            direction=direction,
+            count=0,
+            timestamp=timestamp_str,
+            upstream_status="empty",
+            vehicles=[],
         )
 
     seen_ids = set()
