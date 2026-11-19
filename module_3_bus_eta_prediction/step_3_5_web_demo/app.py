@@ -33,7 +33,7 @@ speed_poller = SpeedLayerPoller(service)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    if os.environ.get("DISABLE_SPEED_POLLER") != "1":
+    if os.environ.get("DISABLE_SPEED_POLLER") != "1" and hasattr(service, "get_poller_route_ids"):
         speed_poller.start()
     try:
         yield
@@ -100,11 +100,20 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.get("/", response_class=FileResponse)
 def get_root():
-    """Phục vụ trang Web Demo chính."""
+    """Phục vụ trang Hành khách (tối giản)."""
     index_path = STATIC_DIR / "index.html"
     if not index_path.exists():
-        raise HTTPException(status_code=404, detail="Giao diện Web Demo chưa được tạo.")
+        raise HTTPException(status_code=404, detail="Giao diện Hành khách chưa được tạo.")
     return FileResponse(index_path)
+
+
+@app.get("/debug", response_class=FileResponse)
+def get_debug():
+    """Phục vụ trang Debug & Giám sát tách biệt."""
+    debug_path = STATIC_DIR / "debug.html"
+    if not debug_path.exists():
+        raise HTTPException(status_code=404, detail="Giao diện Debug chưa được tạo.")
+    return FileResponse(debug_path)
 
 
 @app.get("/api/health")

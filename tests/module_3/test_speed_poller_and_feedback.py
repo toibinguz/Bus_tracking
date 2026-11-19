@@ -235,3 +235,13 @@ def test_explicit_feedback_upstream_error_and_health(monkeypatch):
     assert body["status"] == "degraded"
     assert body["healthy"] is False
     assert body["poller"]["circuit_state"] == "OPEN"
+
+    r_root = client.get("/")
+    assert r_root.status_code == 200
+    assert "passenger.js" in r_root.text
+    assert "debug.js" not in r_root.text
+
+    r_dbg = client.get("/debug")
+    assert r_dbg.status_code == 200
+    assert "debug.js" in r_dbg.text
+    assert 'role="tablist"' in r_dbg.text
