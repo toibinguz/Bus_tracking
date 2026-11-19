@@ -779,6 +779,14 @@ class BusMapServingService:
                 timbus_supported=timbus_ok, poll_interval_sec=poll_sec,
             )
 
+        # Ca Biên 2: Tuyến nằm ngoài phạm vi baseline & mô hình khả dụng.
+        if not self._is_route_eta_feasible(route_id, route_code):
+            return self._response(
+                route_id, route_code, dir_int, dir_str, target_st, now_iso, day_type, hour_slot,
+                "THONG_THOANG", [], "Tuyến nằm ngoài phạm vi dự báo ETA (chưa có dữ liệu baseline hoặc mô hình khả dụng).",
+                timbus_supported=timbus_ok, poll_interval_sec=poll_sec,
+            )
+
         live_resp = fetch_live_vehicles_for_route(route_id=route_id, direction=dir_int)
         if live_resp.count == 0:
             return self._response(
@@ -900,6 +908,16 @@ class BusMapServingService:
             traffic_cond, approaching, message,
             timbus_supported=timbus_ok, poll_interval_sec=poll_sec,
         )
+
+    def _is_route_eta_feasible(self, route_id: int, route_code: str) -> bool:
+        """True nếu tuyến có baseline quan sát hoặc thuộc miền huấn luyện của ModelRuntime."""
+        baseline_routes = set(getattr(self, "source_info", {}).get("baseline_routes") or ())
+        if route_code in baseline_routes:
+            return True
+        route_idx = self._da.get_route_idx(route_id)
+        if route_idx is not None and self._runtime.available and route_idx in self._runtime._known_routes:
+            return True
+        return False
 
     @staticmethod
     def _response(

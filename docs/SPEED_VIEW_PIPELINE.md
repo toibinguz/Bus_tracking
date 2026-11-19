@@ -29,7 +29,9 @@ flowchart TD
         MR["ModelRuntime.predict_p50 (causal-eta.v1)"]
         CHECK{"route_id_idx thuộc _known_routes?"}
         XGB["max(5.0, baseline_p50 + residual_XGBoost)"]
+        CHK_BASE{"Tuyến có Baseline khả dụng?"}
         BASE["Fallback: baseline_eta_p50_sec"]
+        OOS["Trả về: Tuyến nằm ngoài phạm vi dự báo ETA"]
         POL["eta_policy (P1-P10, proximity cap, SafeWindowDTO)"]
         API["FastAPI Web Demo (/api/station-eta, /api/live-buses)"]
     end
@@ -39,7 +41,9 @@ flowchart TD
     INC --> CAUSAL
     CAUSAL --> MR --> CHECK
     CHECK -->|"Có"| XGB --> POL
-    CHECK -->|"Không"| BASE --> POL
+    CHECK -->|"Không"| CHK_BASE
+    CHK_BASE -->|"Có"| BASE --> POL
+    CHK_BASE -->|"Không"| OOS --> API
     POL --> API
 ```
 
@@ -52,7 +56,7 @@ flowchart TD
 | `route_matcher.py` (`RouteHMM`) | Chiếu tọa độ GPS lên 1D Frenet (`s_m`, `cross_track_m`) theo Viterbi nhân quả | Không I/O, dùng chung giữa replay và serving |
 | `BusMapServingService` | Duy trì `_passed_station_plates` (pass guard), `_tb_last_valid`, `_causal` | Đảm bảo xe đã qua trạm không bị hồi sinh bởi cache cũ |
 | `CausalFeatures` | Cập nhật quan sát từng xe (`_observe_causal_snapshot`) và xuất 36 features | Dùng chung 100% logic với lúc train (`step_3_2/causal_eta.py`) |
-| `ModelRuntime` | Nạp `data/models/causal_eta_v1/`, kiểm tra `_known_routes`, dự báo residual + baseline | Trả `None` để fallback baseline nếu tuyến ngoài miền train |
+| `ModelRuntime` | Nạp `data/models/causal_eta_v1/`, kiểm tra `_known_routes`, dự báo residual + baseline | Nếu ngoài `_known_routes` nhưng tuyến có baseline thì fallback baseline; nếu cả hai đều không có, trả thông báo ngoài phạm vi ETA |
 | `eta_policy.py` | Ổn định hiển thị ETA (làm tròn, cửa sổ an toàn `SafeWindowDTO`, giới hạn gần trạm) | Tránh nhảy ETA bất thường khi xe dừng đèn đỏ sát trạm |
 
 ## 3. Giới hạn & Cơ chế Fallback
