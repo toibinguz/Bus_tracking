@@ -18,7 +18,7 @@ flowchart TD
     subgraph M1["Module 1: Thu thập & Tiền xử lý"]
         CRAWL["step_1_1: Cloud/Local Crawler + HF Sync"]
         SAN["step_1_3: Sanitizer & Trip Segmenter"]
-        PROJ["step_1_4: Frenet 1D & RouteHMM"]
+        PROJ["step_1_4: Frenet 1D Spatial Projection"]
         MIG["step_1_5: Canonical GTFS Migration"]
     end
 
@@ -58,7 +58,7 @@ flowchart TD
 | Luồng Batch View | [docs/BATCH_VIEW_PIPELINE.md](docs/BATCH_VIEW_PIPELINE.md) |
 | Luồng Speed View (Live) | [docs/SPEED_VIEW_PIPELINE.md](docs/SPEED_VIEW_PIPELINE.md) |
 | Thu thập dữ liệu (Crawler) | [docs/CRAWLER.md](docs/CRAWLER.md) |
-| Tiền xử lý & Chiếu Frenet/HMM | [docs/PREPROCESSING.md](docs/PREPROCESSING.md) |
+| Tiền xử lý & Chiếu Frenet 1D | [docs/PREPROCESSING.md](docs/PREPROCESSING.md) |
 | Lưu trữ HDFS & Lakehouse (B-S-G) | [docs/HDFS_LAKEHOUSE.md](docs/HDFS_LAKEHOUSE.md), [docs/HDFS_RUNBOOK.md](docs/HDFS_RUNBOOK.md) |
 | Mô hình dự báo ETA | [docs/ETA_MODEL.md](docs/ETA_MODEL.md) |
 | Web Demo & Tích hợp TimBus | [docs/DEMO_APP.md](docs/DEMO_APP.md), [experiments/timbus/README.md](experiments/timbus/README.md) |

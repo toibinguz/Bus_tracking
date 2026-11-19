@@ -15,7 +15,7 @@ flowchart TD
 
     subgraph MATCH["2. Hợp nhất, Chiếu tuyến & Guard"]
         MERGE["BusMapServingService._sync_and_merge_timbus"]
-        HMM["step_1_4: ShapeProjectionModel + RouteHMM (Viterbi nhân quả)"]
+        HMM["Speed Layer: RouteHMM (Viterbi nhân quả)\n(dùng ShapeProjectionModel từ route_matcher.py)"]
         GUARD["Pass Guard (_passed_station_plates) & _tb_last_valid"]
     end
 
@@ -53,7 +53,7 @@ flowchart TD
 | --- | --- | --- |
 | `live_feed.py` | Gọi BusMap API, cache RAM theo tuyến, parse thời gian ping (`parse_ping_epoch`) | Tránh gọi lặp liên tục khi nhiều client hỏi cùng tuyến |
 | `TimBusClient` | Truy vấn GPS thời gian thực theo biển số/tuyến (`_sync_and_merge_timbus`) | Bù trễ và bổ sung tốc độ thực tế khi BusMap đứng nhịp |
-| `route_matcher.py` (`RouteHMM`) | Chiếu tọa độ GPS lên 1D Frenet (`s_m`, `cross_track_m`) theo Viterbi nhân quả | Không I/O, dùng chung giữa replay và serving |
+| `RouteHMM` (Speed Layer) | Chiếu & lọc quỹ đạo nhân quả trên 1D Frenet (`s_m`, `cross_track_m`) theo Viterbi | Chỉ áp dụng ở Speed Layer (Batch Layer dùng chiếu Frenet 1D thuần) |
 | `BusMapServingService` | Duy trì `_passed_station_plates` (pass guard), `_tb_last_valid`, `_causal` | Đảm bảo xe đã qua trạm không bị hồi sinh bởi cache cũ |
 | `CausalFeatures` | Cập nhật quan sát từng xe (`_observe_causal_snapshot`) và xuất 36 features | Dùng chung 100% logic với lúc train (`step_3_2/causal_eta.py`) |
 | `ModelRuntime` | Nạp `data/models/causal_eta_v1/`, kiểm tra `_known_routes`, dự báo residual + baseline | Nếu ngoài `_known_routes` nhưng tuyến có baseline thì fallback baseline; nếu cả hai đều không có, trả thông báo ngoài phạm vi ETA |

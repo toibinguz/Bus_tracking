@@ -1,7 +1,7 @@
 # Tài liệu Tiền xử lý & Chiếu Không gian (Preprocessing)
 
 - **Trạng thái:** Current
-- **Phạm vi:** Làm sạch động học ping GPS, phân đoạn chuyến đi, nạp dữ liệu chuẩn GTFS và chiếu tọa độ 2D sang hệ tọa độ đường 1D Frenet / HMM.
+- **Phạm vi:** Làm sạch động học ping GPS, phân đoạn chuyến đi, nạp dữ liệu chuẩn GTFS và chiếu tọa độ 2D sang hệ tọa độ đường 1D Frenet.
 - **Nguồn sự thật (Code paths):** `module_1_data_ingestion_and_preprocessing/step_1_3_telemetry_kinematic_sanitizer/`, `step_1_4_frenet_spatial_projection/`, `step_1_5_busmap_canonical_migration/`, `config/system_config.py`.
 
 ## 1. Quy trình tiền xử lý
@@ -16,7 +16,7 @@ flowchart TD
     DEPOT -->|"Có"| IDLE["IDLE_DEPOT"]
     DEPOT -->|"Không"| VALID["ACTIVE_VALID / STALE_PING"]
     VALID --> SEG["trip_segmenter.py\n(Gap > 900s, đổi direction, hoặc s < prev_s - 120m)"]
-    SEG --> PROJ["step_1_4: ShapeProjectionModel + RouteHMM\n(multi_route_projector.py / projection_boundary.py)"]
+    SEG --> PROJ["step_1_4: Chiếu 1D Frenet thuần\n(multi_route_projector.py / projection_boundary.py)"]
     INC["TomTom Incidents JSONL"] --> INCPROJ["tomtom_incident_projector.py\n(Chiếu lưới đoạn 100m theo tuyến)"]
     PROJ -->|"cross_track_m <= 35.0m"| SIL["Silver Telemetry (route_projected_telemetry)"]
     INCPROJ --> SILINC["Silver Incidents (fact_route_tomtom_incidents)"]
@@ -32,7 +32,7 @@ flowchart TD
 | `TRIP_MAX_TIME_GAP_SEC` | `900` giây — ngắt chuyến nếu mất tín hiệu quá 15 phút |
 | `MAX_BACKWARD_JITTER_M` | `120.0` m — trong `trip_segmenter.py`, reset đầu-cuối chỉ kích hoạt khi `s < (prev_s - 120.0)` |
 | `MAX_CORRIDOR_CROSS_TRACK_M` | `35.0` m — ngưỡng tối đa cho phép khi xuất telemetry lên Silver Lakehouse |
-| `ShapeProjectionModel` & `RouteHMM` | Dùng chung cho cả `multi_route_projector.py` (Batch) và `BusMapServingService` (Speed View) |
+| `ShapeProjectionModel` & `RouteHMM` | `ShapeProjectionModel` chiếu 1D Frenet cho Batch (`multi_route_projector.py`); `RouteHMM` chỉ chạy ở Speed Layer (`step_3_4`) |
 
 ## 3. Kiểm thử
 
