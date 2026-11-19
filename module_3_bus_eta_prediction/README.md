@@ -1,17 +1,25 @@
-# MODULE 3: MÔ HÌNH DỰ BÁO ETA XE BUÝT TOÀN MẠNG (UNIFIED BUS ETA PREDICTION ENGINE)
-> **Current status (2026-11-10):** Offline pieces/artifacts exist. Split serving modules are present but not wired by the app, and no current tests are stored. Where a feature count is required, the canonical full model has 54 features.
-> **Phần 3 - Dự án**: Hanoi Bus Big Data & Real-time ETA Prediction System  
-> **Lộ trình thiết kế**: [docs/01_MASTER_WORK_BREAKDOWN_STRUCTURE_ROADMAP.md](../docs/01_MASTER_WORK_BREAKDOWN_STRUCTURE_ROADMAP.md)
+# Module 3: Dự báo ETA Xe buýt & Web Demo (`module_3_bus_eta_prediction`)
 
----
+- **Vai trò:** Xây dựng ma trận thời gian di chuyển chuẩn (Baseline Matrix), trích xuất 36 đặc trưng nhân quả (`CausalFeatures`), huấn luyện mô hình residual XGBoost `causal-eta.v1`, phục vụ dự báo ETA thời gian thực và hiển thị qua Web Demo.
+- **Đầu vào:** Silver Lakehouse (`data/lakehouse/silver/`), SQLite (`data/hanoi_bus_system.db`), nguồn live BusMap & TimBus.
+- **Đầu ra:** Baseline artifacts (`data/lakehouse/gold/`), mô hình `data/models/causal_eta_v1/`, FastAPI Web Demo (`step_3_5_web_demo/`).
 
-## TRẠNG THÁI HIỆN TẠI: ĐÃ TRIỂN KHAI (PHASE 3 – PHASE 7)
+## Sơ đồ luồng
 
-Toàn bộ mã nguồn thí nghiệm cũ (48 mô hình rời rạc, bóc tách dwell-time vi mô, cấu trúc Weekly SLA 2-stage) đã được lưu trữ để ngăn chặn triệt để hiện tượng ô nhiễm ngữ cảnh (Context Poisoning) và đã được tái cấu trúc theo SPEC-15/SPEC-16.
+```mermaid
+flowchart LR
+    S31["step_3_1: Historical Baseline Matrix"] --> S32["step_3_2: CausalFeatures (36 vars)"]
+    S32 --> S33["step_3_3: Residual XGBoost (causal-eta.v1)"]
+    S33 -->|"model.json + manifest.json"| S34["step_3_4: Serving & ModelRuntime"]
+    S34 --> S35["step_3_5: FastAPI Web Demo"]
+```
 
-Module 3 được tái cấu trúc trên nền dữ liệu **Silver Parquet sạch (số liệu thay đổi theo thời điểm — xem docs/specs/16) trên 48 tuyến chuẩn cụm HUST** theo đúng 5 phân khu chuẩn tắc:
-1. `step_3_1_historical_baseline_model/`: Ma trận thời gian di chuyển phân vị lịch sử chỉ tính trên tập Train ($\le$ `2026-11-01`), có gắn nhãn `quality_tier` và `sample_count`.
-2. `step_3_2_feature_store_extractor/`: Trích xuất Unified Feature Store toàn mạng (Macroscopic link travel time, không tách dwell time vi mô).
-3. `step_3_3_machine_learning_models/`: Huấn luyện mô hình Unified Network Residual Gradient Boosting dự báo đa phân vị ($P_{10}, P_{50}, P_{90}$).
-4. `step_3_4_eta_serving_and_evaluation/`: Dịch vụ phục vụ ETA thời gian thực (`dto`, `data_access`, `live_feed`, `frenet`, `online_features`, `model_runtime`, `eta_policy`, `serving_service`).
-5. `step_3_5_web_demo/`: Web App Demo Contract-First (FastAPI `app.py` + SPA Leaflet tĩnh trong `static/`).
+## Các Sub-module
+
+| Sub-module | Nhiệm vụ | Tài liệu |
+| --- | --- | --- |
+| `step_3_1_historical_baseline_model` | Tính ma trận phân vị thời gian đi/dừng giữa các trạm theo khung giờ & loại ngày | [README.md](step_3_1_historical_baseline_model/README.md) |
+| `step_3_2_feature_store_extractor` | Bộ trích xuất 36 đặc trưng nhân quả dùng chung cho replay huấn luyện và inference | [README.md](step_3_2_feature_store_extractor/README.md) |
+| `step_3_3_machine_learning_models` | Huấn luyện & đánh giá mô hình residual XGBoost (`causal-eta.v1`) | [README.md](step_3_3_machine_learning_models/README.md) |
+| `step_3_4_eta_serving_and_evaluation` | Orchestrator serving (`BusMapServingService`), `ModelRuntime`, `eta_policy`, trộn live BusMap+TimBus | [README.md](step_3_4_eta_serving_and_evaluation/README.md) |
+| `step_3_5_web_demo` | Server FastAPI và giao diện bản đồ (`index.html`, `app.js`, `style.css`) | [README.md](step_3_5_web_demo/README.md) |

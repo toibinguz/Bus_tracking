@@ -1,6 +1,6 @@
 # Chạy trên cụm HDFS hiện có
 
-Chạy tại root repository; Docker Desktop Linux containers, Python `.venv` có dependencies. [Trạng thái và giới hạn](HDFS_README.md).
+Chạy tại root repository; Docker Desktop Linux containers, Python `.venv` có dependencies. Xem kiến trúc tại [HDFS_LAKEHOUSE.md](HDFS_LAKEHOUSE.md).
 
 ## 1. Bật/tắt cụm
 

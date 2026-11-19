@@ -1,34 +1,26 @@
-# BƯỚC 1.4: CHIẾU KHÔNG GIAN 1D FRENET & ĐỘNG HỌC KINEMATIC
-> **Thư mục**: `module_1_data_ingestion_and_preprocessing/step_1_4_frenet_spatial_projection/`  
-> **Nguyên tắc**: Linear Referencing dọc theo tim đường BusMap Canonical chính thức.  
-> **Tuân thủ quy tắc**: [AGENTS.md](../../AGENTS.md) (Điều 5: Không dùng speed GPS thô).
+# Step 1.4: Chiếu Không gian 1D Frenet & HMM Route Matching
 
----
+- **Vai trò:** Chiếu tọa độ GPS `(lat, lon)` lên hình học tuyến 1D Frenet (`s_bus_m`, `cross_track_m`) cho cả Batch View (đa tiến trình) và Speed View (`RouteHMM` nhân quả).
+- **Đầu vào:** `raw_bus_pings`, `canonical_shapes`, `canonical_routes` từ SQLite và TomTom Incidents JSONL.
+- **Đầu ra:** `route_projected_telemetry`, `fact_route_tomtom_incidents` trong `data/hanoi_bus_system.db` và đối tượng `Match` cho tầng serving.
 
-## 1. MỤC TIÊU & MÔ HÌNH TOÁN
+## Thành phần chính
 
-Chuyển đổi tọa độ 2D WGS84 $(lat, lon)$ rời rạc của các bản ghi xe buýt sang hệ quy chiếu cung 1D Frenet dọc tim đường:
-- **$s$ (Along-Track Distance)**: Khoảng cách tích lũy tính bằng mét từ đầu bến xuất phát đến hình chiếu vuông góc của xe buýt trên tim đường.
-- **$d_\perp$ (Cross-Track Error)**: Độ lệch vuông góc tính bằng mét từ tọa độ xe buýt đến đoạn tim đường gần nhất. Dùng để lọc các ping bất thường hoặc xe đi chệch tuyến ($d_\perp > 35\text{m}$).
-- **$\bar{v}$ (Derived Speed)**: Vận tốc vi phân không gian - thời gian:
-  $$\bar{v} = \frac{\Delta s}{\Delta t} \times 3.6 \quad (\text{km/h})$$
+| File / Symbol | Vai trò | Input -> Output |
+| --- | --- | --- |
+| `route_matcher.py` (`ShapeProjectionModel`, `RouteHMM`, `Match`) | Hình học tuyến 1D Frenet + bộ lọc HMM Viterbi nhân quả không I/O (dùng chung Batch & Speed View) | `(lat, lon, epoch)` -> `Match(s_m, cross_track_m, ...)` |
+| `multi_route_projector.py` (`run_parallel_projection`, `project_points_to_shape`) | Chiếu song song đa nhân toàn bộ ping hợp lệ (`HANOI_BBOX` 4 biên) vào `route_projected_telemetry` | `raw_bus_pings` -> `route_projected_telemetry` |
+| `projection_boundary.py` (`project_route_events`, `ProjectableEvent`, `ProjectedEvent`) | Ranh giới chiếu độc lập với tầng lưu trữ (dùng cho pipeline Spark/HDFS) | `ProjectableEvent` -> `ProjectedEvent` |
+| `tomtom_incident_projector.py` (`project_linestring_to_route_grid`, `main`) | Chiếu chuỗi tọa độ sự cố TomTom lên lưới đoạn 100m của từng tuyến | Incidents JSONL -> `fact_route_tomtom_incidents` |
 
----
+## Tham số SSOT (`config/system_config.py`)
 
-## 2. CÁC THÀNH PHẦN MÃ NGUỒN
+- `MAX_CORRIDOR_CROSS_TRACK_M = 35.0`, `MAX_CORRIDOR_SPEED_KMH = 90.0`
+- `MIN_DIRECTION_CHANGE_STEP_M = 5.0`
 
-| Tệp Mã Nguồn | Chức Năng Chính |
-| :--- | :--- |
-| [`multi_route_projector.py`](file:///z:/Desktop/Bus_tracking/module_1_data_ingestion_and_preprocessing/step_1_4_frenet_spatial_projection/multi_route_projector.py) | Module vector hóa (NumPy) chiếu trực giao pings GPS lên hình học tim đường `canonical_shape_master`. Lưu trữ vào bảng `route_projected_telemetry`. |
-
----
-
-## 3. CÁCH CHẠY & KIỂM THỬ
+## Cách chạy & Kiểm thử
 
 ```bash
-python scripts/parallel_multi_route_projector.py
+python -m module_1_data_ingestion_and_preprocessing.step_1_4_frenet_spatial_projection.multi_route_projector
+python -m pytest tests/test_hmm_route_matcher.py --basetemp=runtime/pytest_tmp -q
 ```
-
-### Kết quả đầu ra:
-- **Bảng `route_projected_telemetry`**: Dữ liệu telemetry đã được chiếu thành công tọa độ $s_{\text{bus}}$, $d_\perp$, vận tốc dẫn xuất $\bar{v}$.
-- **View phân tích `v_bus_to_next_station`**: Tự động tính khoảng cách còn lại `remaining_m` đến trạm dừng tiếp theo cho mọi tuyến.

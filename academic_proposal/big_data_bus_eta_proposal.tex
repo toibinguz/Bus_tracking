@@ -47,8 +47,8 @@ Tuy nhiên, các dịch vụ mở hiện nay (như BusMap API) chủ yếu chỉ
 \section{Phân Tích Đặc Trưng Dữ Liệu Lớn (Mô Hình 4V)}
 Dự án được xây dựng dựa trên nguồn dữ liệu thực nghiệm đã và đang được thu thập liên tục từ mạng lưới xe buýt Hà Nội kết hợp dịch vụ dữ liệu giao thông TomTom:
 \begin{itemize}[leftmargin=*,noitemsep,topsep=1.5pt]
-    \item \textbf{Volume (Quy mô dữ liệu):} Hệ thống theo dõi 504 xe buýt trên 49 tuyến nội đô, vận hành liên tục 17 giờ mỗi ngày (05:00 -- 22:00) theo chu kỳ quét 75--80 giây. Mỗi ngày phát sinh khoảng 350.000--400.000 bản ghi định vị GPS; đồng thời thu thập định kỳ các sự kiện giao thông từ TomTom Traffic Incidents, tích lũy thành hàng triệu bản ghi sau nhiều tuần vận hành.
-    \item \textbf{Velocity (Tốc độ phát sinh):} Dòng dữ liệu định vị phát sinh với tần suất trung bình 6--7 bản ghi/giây theo từng đợt quét. Hệ thống đòi hỏi cơ chế thu nạp bền bỉ, không nghẽn hàng đợi và độ trễ chuyển tiếp thấp để phục vụ theo dõi thời gian thực.
+    \item \textbf{Volume (Quy mô dữ liệu):} Hệ thống theo dõi 777 xe buýt trên 49 tuyến hành lang Hà Nội, vận hành liên tục 17 giờ mỗi ngày (05:00 -- 22:00) theo chu kỳ quét 75 giây qua GitHub Actions 24/7. Mỗi ngày phát sinh hàng trăm nghìn bản ghi định vị GPS; đồng thời thu thập định kỳ các sự kiện giao thông từ TomTom Traffic Incidents, tích lũy thành hàng triệu bản ghi trên Hugging Face và Lakehouse.
+    \item \textbf{Velocity (Tốc độ phát sinh):} Dòng dữ liệu định vị được thu thập theo micro-batch 15 xe với độ trễ thấp, kết hợp nguồn trực tuyến BusMap và TimBus phục vụ theo dõi thời gian thực.
     \item \textbf{Variety (Đa dạng cấu trúc):} Hệ thống tích hợp ba nguồn dữ liệu khác nhau: (1) Chuỗi thời gian viễn thám GPS từ xe buýt (bán cấu trúc JSON); (2) Dữ liệu sự cố và ùn ứ từ TomTom Traffic Incidents API (vị trí sự cố, mức độ trễ, phạm vi ảnh hưởng); (3) Dữ liệu hạ tầng mạng lưới tuyến và trạm dừng cố định (bảng quan hệ có cấu trúc).
     \item \textbf{Value (Giá trị thực tiễn):} Chuyển đổi chuỗi tọa độ rời rạc và cảnh báo sự cố thô thành thông tin hữu ích cho hành khách: dự báo thời gian chờ thực tế tại từng trạm và cảnh báo trước tình trạng ùn ứ trên tuyến.
 \end{itemize}
@@ -58,46 +58,39 @@ Hệ thống được thiết kế theo mô hình Lambda nhằm giải quyết b
 
 \subsection{Khâu Thu Thập và Tiếp Nhận Dữ Liệu (Ingestion Pipeline)}
 \begin{itemize}[leftmargin=*,noitemsep,topsep=1.5pt]
-    \item \textbf{Thu thập dữ liệu thực tế (Crawl Layer):} Bộ thu thập chạy tự động theo lịch trình: liên tục truy vấn tọa độ của 504 xe buýt đang hoạt động, đồng thời quét API sự cố giao thông TomTom Traffic Incidents dọc theo các hành lang tuyến nhằm ghi nhận các điểm tắc nghẽn, công trường hoặc sự cố va chạm.
-    \item \textbf{Đệm hàng đợi phân tán (Apache Kafka):} Đóng vai trò lớp trung gian tách rời hoàn toàn tiến trình thu thập (Producers) khỏi các tầng xử lý hạ nguồn (Consumers). Kafka tiếp nhận dòng sự kiện telemetry và cảnh báo sự cố, đảm bảo dữ liệu không bị thất thoát khi có đột biến lưu lượng và hỗ trợ phân phối đồng thời sang cả hai luồng xử lý (Batch và Streaming).
+    \item \textbf{Thu thập dữ liệu thực tế (Crawl Layer):} Bộ thu thập chạy tiếp sức 24/7 trên GitHub Actions (phiên 9 phút) truy vấn tọa độ 777 xe buýt bằng raw SSL socket, đồng thời quét API sự cố TomTom Traffic Incidents dọc theo các hành lang tuyến.
+    \item \textbf{Đệm phân vùng \& Đồng bộ Lake (Hugging Face \& Local Spool):} Dữ liệu từng phiên được đóng gói JSONL đẩy lên Hugging Face Dataset và spool cục bộ kèm kiểm tra động học (lọc \texttt{HANOI\_BBOX}, \texttt{GPS\_DRIFT\_JUMP}, \texttt{IDLE\_DEPOT}) trước khi phân phối sang Batch View và HDFS.
 \end{itemize}
 
 \newpage
 \subsection{Khâu Lưu Trữ Phân Tán Bất Biến (Distributed Storage Layer)}
 \begin{itemize}[leftmargin=*,noitemsep,topsep=1.5pt]
-    \item \textbf{Hồ dữ liệu gốc trên Hadoop HDFS:} Toàn bộ dữ liệu viễn thám thô sau khi thu thập được định kỳ lưu trữ bền vững vào cụm HDFS dưới định dạng Parquet nén Snappy. Định dạng hướng cột (columnar) giúp tiết kiệm dung lượng đĩa và tối ưu hóa tốc độ đọc lọc dữ liệu. Dữ liệu được tổ chức theo cấu trúc phân vùng thời gian (\texttt{dt=YYYY-MM-DD/hr=HH}) nhằm hỗ trợ cơ chế loại bỏ phân vùng không liên quan (Partition Pruning) khi truy vấn.
-    \item \textbf{Quản trị danh mục dữ liệu qua Apache Hive (Schema-on-Read):} Sử dụng Hive Metastore để ánh xạ cấu trúc bảng lên các tệp Parquet lưu trên HDFS. Điều này cho phép người dùng và các tác vụ phân tích truy vấn dữ liệu lịch sử bằng cú pháp SQL quen thuộc mà không cần nhân bản hay sao chép dữ liệu.
+    \item \textbf{Kiến trúc Medallion Lakehouse (Bronze -- Silver -- Gold):} Dữ liệu thô từ Hugging Face được nhập bất biến vào cụm Hadoop HDFS (\texttt{/bus-eta/v1/bronze/hf\_raw}) kèm SHA-256 receipt và xuất song song ra Parquet nén Snappy phân vùng theo tuyến/ngày (\texttt{route\_code=.../dt=YYYY-MM-DD}) phục vụ Partition Pruning.
+    \item \textbf{Kho vận hành SQLite (\texttt{hanoi\_bus\_system.db}):} Lưu trữ danh mục tuyến/trạm GTFS chuẩn, dữ liệu chiếu Frenet và bảng baseline phục vụ tra cứu nhanh cho tầng Web Serving.
 \end{itemize}
 
 \subsection{Khâu Xử Lý Dữ Liệu (Processing Layer: 2 Luồng Thực Thi)}
 Kiến trúc phân tách rạch ròi hai luồng xử lý bổ trợ lẫn nhau:
 \begin{enumerate}[leftmargin=*,noitemsep,topsep=1.5pt]
-    \item \textbf{Luồng Xử lý Lô (Batch Layer -- PySpark):}
+    \item \textbf{Luồng Xử lý Lô (Batch Layer -- PySpark \& PyArrow):}
     \begin{itemize}[leftmargin=*,noitemsep]
-        \item Định kỳ chạy trên tập dữ liệu lịch sử bất biến được lưu trên HDFS.
-        \item Thực hiện các tác vụ nặng: lọc bỏ bản ghi GPS sai lệch do lỗi thiết bị, kết hợp dữ liệu tọa độ với danh bạ trạm dừng và lịch sử sự cố giao thông TomTom.
-        \item Xây dựng \textbf{Ma trận thời gian di chuyển cơ sở (Batch View)}: tính toán giá trị trung bình/phân vị thời gian di chuyển giữa các cặp trạm dừng liên tiếp ($S_k \to S_{k+1}$) ứng với từng khung giờ trong ngày và từng thứ trong tuần.
+        \item Chạy trên dữ liệu lịch sử HDFS/Lakehouse: lọc nhiễu GPS, tách chuyến liên tục (\texttt{trip\_segmenter}), chiếu tọa độ 1D Frenet (\texttt{cross\_track\_m} $\le$ 35\,m) và liên kết sự cố TomTom Incidents.
+        \item Xây dựng \textbf{Ma trận thời gian di chuyển cơ sở (Baseline Matrix)} theo phân vị ($p_{10}, p_{50}, p_{90}$) và huấn luyện mô hình \textbf{Residual XGBoost (\texttt{causal-eta.v1})} với 36 đặc trưng nhân quả.
     \end{itemize}
-    \item \textbf{Luồng Xử lý Thời gian thực (Speed Layer -- Spark Structured Streaming):}
+    \item \textbf{Luồng Xử lý Thời gian thực (Speed Layer -- FastAPI \& RouteHMM):}
     \begin{itemize}[leftmargin=*,noitemsep]
-        \item Tiếp nhận liên tục luồng gói tin GPS từ Kafka để duy trì vị trí mới nhất và vận tốc tức thời của các xe buýt đang vận hành trên tuyến.
-        \item Tiếp nhận tức thời các sự kiện ùn tắc từ TomTom Traffic Incidents để cập nhật trạng thái giao thông trên từng đoạn hành lang.
-        \item Xuất ra \textbf{Trạng thái thời gian thực (Real-time View)}: phản ánh độ lệch vận tốc và mức độ trễ tức thời so với điều kiện thông thường, phục vụ tra cứu tức thì với độ trễ thấp.
+        \item Hợp nhất trực tuyến dữ liệu BusMap và TimBus Central API theo từng tuyến, lọc quỹ đạo nhân quả bằng mô hình ẩn Markov (\texttt{RouteHMM}).
+        \item Cập nhật đồng bộ bộ trích xuất 36 đặc trưng nhân quả (\texttt{CausalFeatures}) dùng chung mã nguồn với luồng huấn luyện để tạo vector trạng thái thời gian thực.
     \end{itemize}
 \end{enumerate}
 
 \subsection{Khâu Giải Quyết Bài Toán Dự Báo ETA (Serving Layer \& Solution Idea)}
 \begin{itemize}[leftmargin=*,noitemsep,topsep=1.5pt]
-    \item \textbf{Ý tưởng giải quyết bài toán ETA:} Khi người dùng tra cứu thời gian xe buýt đến trạm đích $S_{\text{dest}}$, hệ thống chia hành trình thành chuỗi các phân đoạn liên tiếp. Thời gian dự báo được tổng hợp từ hai luồng theo nguyên lý:
+    \item \textbf{Mô hình Residual ETA nhân quả:} Khi người dùng tra cứu thời gian xe đến trạm đích, \texttt{ModelRuntime} tính toán phần dư điều chỉnh từ 36 đặc trưng trực tuyến cộng vào mỏ neo lịch sử:
     \begin{equation}
-        \text{ETA} = f(\text{Batch View}, \text{Real-time View})
+        \text{ETA} = \max\bigl(5.0,\ \text{baseline\_eta\_p50\_sec} + \Delta_{\text{XGBoost}}(\text{CausalFeatures}_{36})\bigr)
     \end{equation}
-    Trong đó:
-    \begin{itemize}[leftmargin=*,noitemsep]
-        \item \textbf{Batch View} cung cấp thời gian di chuyển mỏ neo (baseline) dựa trên quy luật lịch sử của đoạn đường tại khung giờ tương ứng.
-        \item \textbf{Real-time View} cung cấp mức hiệu chỉnh động học dựa trên vận tốc thực tế của các xe đang chạy phía trước trên cùng hành lang và các cảnh báo tắc nghẽn tức thời từ dữ liệu sự cố TomTom.
-    \end{itemize}
-    \item \textbf{Định hướng mở rộng (Roadmap):} Trong giai đoạn triển khai cốt lõi của môn học, hệ thống tập trung hoàn thiện hạ tầng dữ liệu lớn vững chắc (Kafka $\to$ HDFS $\to$ Hive $\to$ Spark). Khi kho dữ liệu lịch sử trên HDFS tích lũy đủ lớn, hàm kết hợp $f$ có thể được mở rộng từ các luật trọng số điều chỉnh sang các mô hình học máy (Machine Learning) để tự động học các tương tác phi tuyến phức tạp giữa điều kiện thời tiết, sự cố TomTom và độ trễ xe buýt.
+    \item \textbf{Chính sách ổn định \& Fallback an toàn:} Với tuyến ngoài miền huấn luyện, hệ thống tự động fallback về Baseline Matrix; tầng \texttt{eta\_policy} áp dụng các quy tắc ổn định hiển thị (pass guard, proximity cap) trước khi trả về Web Demo FastAPI.
 \end{itemize}
 
 \end{document}

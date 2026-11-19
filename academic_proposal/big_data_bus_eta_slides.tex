@@ -125,16 +125,16 @@
     % Volume
     \node[box] (vol) at (0, 1.9) {
         \textcolor{HustBlue}{\textbf{\large 1. Volume (Quy mô Dữ liệu)}}\\[2pt]
-        $\bullet$ Theo dõi \textbf{504 xe buýt} trên \textbf{49 tuyến nội đô} Hà Nội.\\
-        $\bullet$ Vận hành 17h/ngày (05:00 -- 22:00), chu kỳ 75--80s.\\
-        $\bullet$ Phát sinh \textbf{350.000 -- 400.000 bản ghi/ngày}; tích lũy hàng triệu bản ghi cùng dữ liệu sự cố giao thông.
+        $\bullet$ Theo dõi \textbf{777 xe buýt} trên \textbf{49 tuyến hành lang} Hà Nội.\\
+        $\bullet$ Vận hành 17h/ngày (05:00 -- 22:00), chu kỳ 75s.\\
+        $\bullet$ Phát sinh hàng trăm nghìn bản ghi/ngày; tích lũy hàng triệu bản ghi trên Hugging Face \& Lakehouse.
     };
 
     % Velocity
     \node[box] (vel) at (7.8, 1.9) {
         \textcolor{HustBlue}{\textbf{\large 2. Velocity (Tốc độ Dòng xe)}}\\[2pt]
-        $\bullet$ Tần suất nạp đạt \textbf{6--7 gói tin/giây} theo từng đợt quét.\\
-        $\bullet$ Đòi hỏi cơ chế thu nạp bền bỉ, hàng đợi đệm phân tán không gây nghẽn và độ trễ chuyển tiếp thấp ($<1$s).
+        $\bullet$ Thu thập micro-batch 15 xe/lượt qua GitHub Actions 24/7.\\
+        $\bullet$ Kết hợp nguồn live BusMap \& TimBus với độ trễ thấp phục vụ tra cứu thời gian thực.
     };
 
     % Variety
@@ -170,39 +170,39 @@
     % Ingestion
     \node[layer, text width=2.4cm] (crawl) at (-5.8, 0) {
         \textbf{CRAWL LAYER}\\
-        Telemetry 504 xe\\
-        + TomTom API\\
-        (Thu thập 24/7)
+        Telemetry 777 xe\\
+        + TomTom Incidents\\
+        (GitHub Actions 24/7)
     };
 
     \node[layer, text width=2.3cm] (kafka) at (-2.7, 0) {
-        \textbf{QUEUE LAYER}\\
-        \textbf{Apache Kafka}\\
-        Hàng đợi phân tán,\\
-        đệm tải, chia luồng
+        \textbf{SYNC LAYER}\\
+        \textbf{HF \& Spool}\\
+        Đóng gói JSONL,\\
+        lọc động học, chia luồng
     };
 
     % Batch Stream Split
     \node[batch, text width=4.3cm] (hdfs) at (1.5, 1.5) {
-        \textbf{BATCH LAYER (HDFS \& Hive)}\\
-        Lưu trữ Parquet Snappy phân vùng\\
-        + Quản lý Schema-on-Read qua Hive\\
-        + \textbf{PySpark}: Ma trận cơ sở lịch sử
+        \textbf{BATCH LAYER (HDFS \& Parquet)}\\
+        Medallion Lakehouse (B--S--G)\\
+        + \textbf{PySpark}: Chiếu Frenet \& P2 Silver\\
+        + \textbf{Baseline + XGBoost} (\texttt{causal-eta.v1})
     };
 
     \node[speed, text width=4.3cm] (speednode) at (1.5, -1.5) {
-        \textbf{SPEED LAYER (Spark Streaming)}\\
-        Xử lý sự kiện GPS \& TomTom thời gian thực\\
-        + Duy trì vị trí tức thời 504 xe\\
-        + Tính độ lệch vận tốc hành lang
+        \textbf{SPEED LAYER (FastAPI \& HMM)}\\
+        Hợp nhất BusMap \& TimBus trực tuyến\\
+        + Lọc quỹ đạo \textbf{RouteHMM}\\
+        + 36 đặc trưng \textbf{CausalFeatures}
     };
 
     % Serving
     \node[layer, text width=2.4cm] (serving) at (5.8, 0) {
         \textbf{SERVING LAYER}\\
-        Tổng hợp kết quả\\
-        $\text{ETA} = f(\text{Batch}, \text{Real})$\\
-        Tra cứu $< 100$ms
+        \textbf{ModelRuntime}\\
+        Baseline + Residual\\
+        + \texttt{eta\_policy}
     };
 
     % Arrows
@@ -229,15 +229,15 @@
     \begin{column}{0.50\textwidth}
         \begin{block}{1. Thu thập Tự động (Crawl Layer)}
             \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
-                \item \textbf{Telemetry 504 xe buýt (49 tuyến):} Quét định kỳ mỗi 75--80s, trích xuất tọa độ GPS, vận tốc tức thời, định danh xe và lộ trình.
-                \item \textbf{TomTom Traffic Incidents API:} Quét liên tục các sự kiện dọc tuyến đường (tai nạn, tắc đường, công trường, thời gian chậm trễ).
+                \item \textbf{Telemetry 777 xe buýt (49 tuyến):} Quét định kỳ mỗi 75s trên GitHub Actions, trích xuất tọa độ GPS, vận tốc, định danh xe và lộ trình.
+                \item \textbf{TomTom Traffic Incidents API:} Quét sự cố dọc tuyến đường (tai nạn, tắc đường, công trường, độ trễ).
             \end{itemize}
         \end{block}
         \vspace{2pt}
-        \begin{block}{2. Hàng đợi Phân tán (Apache Kafka)}
+        \begin{block}{2. Đồng bộ \& Kiểm tra Động học}
             \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
-                \item \textbf{Lớp đệm chịu tải (Buffer):} Tách rời Producers (Crawler) khỏi Consumers (Hạ tầng lưu trữ \& xử lý).
-                \item \textbf{Chống quá tải:} Hấp thụ các đợt bùng nổ dữ liệu (bursts) mà không gây rớt gói tin.
+                \item \textbf{Hugging Face \& Spool:} Lưu trữ batch JSONL bất biến theo ngày, tách biệt tiến trình thu thập khỏi xử lý hạ nguồn.
+                \item \textbf{Sanitizer:} Lọc ngoại lệ \texttt{HANOI\_BBOX}, \texttt{GPS\_DRIFT\_JUMP} và \texttt{IDLE\_DEPOT}.
             \end{itemize}
         \end{block}
     \end{column}
@@ -247,7 +247,7 @@
         \begin{tikzpicture}[scale=0.82, every node/.style={transform shape}]
             \node[draw=HustBlue, fill=HustBlue!10, rounded corners, text width=4.5cm, align=center, font=\scriptsize] (src1) {
                 \textbf{Bus Telemetry Crawler}\\
-                504 xe buýt nội đô Hà Nội (24/7)
+                777 xe buýt Hà Nội (GitHub Actions 24/7)
             };
             \node[below=0.25cm of src1, draw=AccentAmber!80!black, fill=AccentAmber!15, rounded corners, text width=4.5cm, align=center, font=\scriptsize] (src2) {
                 \textbf{TomTom Traffic Incidents API}\\
@@ -255,16 +255,16 @@
             };
 
             \node[below=0.45cm of src2, draw=HustRed, fill=HustRed!10, rounded corners=6pt, text width=4.8cm, align=center, font=\scriptsize, line width=1pt] (kafka) {
-                \textbf{APACHE KAFKA BROKER}\\
-                Đệm hàng đợi phân tán\\
-                $\downarrow$ Phân phối đồng thời
+                \textbf{HUGGING FACE \& LOCAL SPOOL}\\
+                Lưu trữ JSONL + Sanitizer\\
+                $\downarrow$ Phân phối hai luồng
             };
 
             \draw[-{Latex[length=2mm]}, thick, HustBlue] (src1) -- (kafka);
             \draw[-{Latex[length=2mm]}, thick, AccentAmber!80!black] (src2) -- (kafka);
 
-            \node[below left=0.5cm and -0.8cm of kafka, draw=HustRed!80, fill=HustRed!10, rounded corners, font=\tiny\bfseries, text width=2.1cm, align=center] (b) {Tầng Lưu trữ / Lô (HDFS)};
-            \node[below right=0.5cm and -0.8cm of kafka, draw=DarkGreen!80, fill=DarkGreen!10, rounded corners, font=\tiny\bfseries, text width=2.1cm, align=center] (s) {Tầng Tốc độ (Streaming)};
+            \node[below left=0.5cm and -0.8cm of kafka, draw=HustRed!80, fill=HustRed!10, rounded corners, font=\tiny\bfseries, text width=2.1cm, align=center] (b) {Batch View (HDFS / Lakehouse)};
+            \node[below right=0.5cm and -0.8cm of kafka, draw=DarkGreen!80, fill=DarkGreen!10, rounded corners, font=\tiny\bfseries, text width=2.1cm, align=center] (s) {Speed View (Live Serving)};
 
             \draw[-{Latex[length=2mm]}, thick, HustRed] (kafka.south) -| (b.north);
             \draw[-{Latex[length=2mm]}, thick, DarkGreen] (kafka.south) -| (s.north);
@@ -288,10 +288,10 @@
             \end{itemize}
         \end{block}
         \vspace{2pt}
-        \begin{block}{Quản Trị Bảng với Apache Hive}
+        \begin{block}{Phân vùng Medallion (Bronze -- Silver -- Gold)}
             \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
-                \item \textbf{Schema-on-Read}: Định nghĩa cấu trúc bảng ngoài (\textit{External Table}) trỏ trực tiếp đến Parquet trên HDFS.
-                \item Không sao chép dữ liệu, hỗ trợ truy vấn phân tích bằng SQL chuẩn.
+                \item \textbf{Hive-style Partitioning:} \texttt{route\_code=.../dt=YYYY-MM-DD/} hỗ trợ Partition Pruning, đọc lọc trực tiếp bằng PyArrow/PySpark.
+                \item \textbf{SQLite Operational Store:} Lưu metadata tuyến/trạm GTFS chuẩn và bảng baseline cho tầng Serving.
             \end{itemize}
         \end{block}
     \end{column}
@@ -301,20 +301,20 @@
         \begin{tikzpicture}[scale=0.82, every node/.style={transform shape}]
             % HDFS Tree
             \node[draw=HustBlue, fill=HustBlue!15, rounded corners, font=\scriptsize\bfseries, text width=5cm, align=center] (root) {
-                Hadoop HDFS Data Lake
+                HDFS \& Medallion Parquet Lakehouse
             };
             
             \node[below=0.3cm of root, draw=BorderGray, fill=LightGray, rounded corners, font=\tiny\ttfamily, text width=5cm] (part) {
-                /hust\_bus/master\_data/\\
-                \ \ $\llcorner$ dt=2026-10-14/\\
-                \ \ \ \ \ \ $\llcorner$ hr=08/ $\to$ part-000.snappy.parquet\\
-                \ \ \ \ \ \ $\llcorner$ hr=09/ $\to$ part-001.snappy.parquet
+                /bus-eta/v1/bronze/hf\_raw/\\
+                data/lakehouse/silver/\\
+                \ \ $\llcorner$ route\_code=02/dt=2026-11-19/\\
+                \ \ \ \ \ \ $\llcorner$ part-00000.snappy.parquet
             };
 
             \node[below=0.35cm of part, draw=DarkGreen!80, fill=DarkGreen!10, rounded corners, font=\scriptsize, text width=5cm, align=center] (hive) {
-                \textbf{Apache Hive Metastore}\\
-                Ánh xạ Schema-on-Read\\
-                \textit{(External Table: bus\_telemetry\_dw)}
+                \textbf{SQLite Operational Store}\\
+                GTFS Canonical + Serving Metadata\\
+                \textit{(data/hanoi\_bus\_system.db)}
             };
 
             \node[below=0.25cm of hive, draw=BorderGray, fill=white, rounded corners, font=\tiny, text width=5cm, align=center] (note) {
@@ -355,13 +355,13 @@
 
     % Luồng Thời Gian Thực
     \begin{column}{0.49\textwidth}
-        \begin{exampleblock}{\textbf{Luồng Tức Thời (Speed Layer -- Spark Streaming)}}
+        \begin{exampleblock}{\textbf{Luồng Tức Thời (Speed Layer -- FastAPI \& HMM)}}
             \begin{itemize}\setlength{\itemsep}{2pt}\footnotesize
-                \item \textbf{Chu kỳ}: Xử lý liên tục luồng sự kiện từ Kafka.
-                \item \textbf{Động học}: Theo dõi vị trí và vận tốc tức thời của các xe đang lăn bánh.
-                \item \textbf{Sự cố}: Tiếp nhận cảnh báo tắc nghẽn TomTom tức thời trên từng đoạn đường.
+                \item \textbf{Chu kỳ}: Truy vấn live BusMap + TimBus theo từng request/cache RAM.
+                \item \textbf{Chiếu tuyến}: Lọc quỹ đạo nhân quả bằng \texttt{RouteHMM} và guard vượt trạm.
+                \item \textbf{Đặc trưng}: Cập nhật 36 biến \texttt{CausalFeatures} dùng chung logic với lúc train.
                 \item \textbf{Đầu ra: Real-time View}:
-                $$\text{Hệ số bù vận tốc \& sự cố tức thời } \Delta_{\text{real}}$$
+                $$\text{ETA} = \max(5.0, T_{\text{base}} + \Delta_{\text{XGBoost}})$$
             \end{itemize}
         \end{exampleblock}
         \vspace{2pt}
@@ -436,12 +436,12 @@
 \begin{frame}{8. Định Hướng Mở Rộng \& Tổng Kết Đề Tài}
 \begin{columns}[T]
     \begin{column}{0.49\textwidth}
-        \begin{block}{Lộ Trình Phát Triển (Roadmap)}
+        \begin{block}{Trạng thái Hoàn thiện Thực tế}
             \begin{itemize}\setlength{\itemsep}{3pt}\footnotesize
-                \item \textbf{Giai đoạn 1 (Trọng tâm Học phần):}\\
-                Hoàn thiện hạ tầng Dữ liệu Lớn chuẩn mực: Kafka $\to$ HDFS $\to$ Hive $\to$ Spark Batch \& Streaming. Đảm bảo tính toán ổn định và lưu trữ mở rộng.
-                \item \textbf{Giai đoạn 2 (Mở rộng Tương lai):}\\
-                Khi kho HDFS tích lũy đủ dữ liệu lớn (vài tháng) $\to$ Huấn luyện mô hình \textbf{Machine Learning} tự động học tương tác phi tuyến phức tạp (thời tiết, mật độ, sự cố TomTom).
+                \item \textbf{Hạ tầng Dữ liệu Lớn:}\\
+                Hoàn thiện chuỗi GitHub Actions 24/7 $\to$ Hugging Face $\to$ HDFS Medallion (Bronze--Silver--Gold) $\to$ PySpark P2 \& Parquet Lakehouse.
+                \item \textbf{Mô hình Học máy (\texttt{causal-eta.v1}):}\\
+                Đã huấn luyện và triển khai Residual XGBoost trên 36 đặc trưng nhân quả dùng chung code path giữa replay và FastAPI serving.
             \end{itemize}
         \end{block}
     \end{column}
