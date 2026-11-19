@@ -10,7 +10,7 @@
 flowchart LR
     M1["Module 1: HF Raw & Sanitizer"] -->|"Bronze (Immutable)"| S24["step_2_4: HDFS History (B-S-G)"]
     S24 -->|"Gold Release / Baseline"| S21["step_2_1: SQLite (GTFS tĩnh + Gold Receiver)"]
-    M1 -->|"Dev/Legacy staging"| S22["step_2_2: Local Parquet Lakehouse"]
+    M1 -->|"Local Parquet"| S22["step_2_2: Local Parquet Lakehouse"]
     S24 -->|"Silver/Gold Snapshots"| M3["Module 3: Baseline, Feature Store & XGBoost"]
     S21 -->|"Metadata & Baseline nhẹ"| WEB["Web Demo App"]
 ```
@@ -21,5 +21,5 @@ flowchart LR
 | --- | --- | --- |
 | `step_2_4_hdfs_history` | Kho lưu trữ lịch sử chính trên cụm HDFS/Spark (Bronze spool, Silver P2 transform, Gold snapshot) | [README.md](step_2_4_hdfs_history/README.md) |
 | `step_2_2_parquet_medallion_lakehouse` | Xuất Bronze/Silver Parquet cục bộ và kiểm toán chất lượng Silver | [README.md](step_2_2_parquet_medallion_lakehouse/README.md) |
-| `step_2_1_sqlite_operational_store` | Nền nhẹ cho Web App: lưu GTFS chuẩn & hứng kết quả tổng hợp từ HDFS Gold *(từng lưu raw/silver ở giai đoạn thử nghiệm)* | [README.md](step_2_1_sqlite_operational_store/README.md) |
+| `step_2_1_sqlite_operational_store` | Nền nhẹ cho Web App: lưu GTFS chuẩn & hứng kết quả tổng hợp từ HDFS Gold | [README.md](step_2_1_sqlite_operational_store/README.md) |
 | `step_2_3_columnar_query_engine` | Thư mục giữ chỗ (chỉ có `__init__.py`, truy vấn columnar đọc trực tiếp bằng `pyarrow`) | [README.md](step_2_3_columnar_query_engine/README.md) |

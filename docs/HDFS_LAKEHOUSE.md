@@ -14,16 +14,14 @@ flowchart LR
     HGOLD -->|"Hứng kết quả tổng hợp"| SQL["SQLite (GTFS tĩnh + Baseline nhẹ cho Web App)"]
 ```
 
-## 2. Chuyển dịch vai trò lưu trữ: Thử nghiệm -> Sản phẩm
+## 2. Vai trò các kho lưu trữ hiện tại
 
-- **Giai đoạn thử nghiệm (dev/local ban đầu):** SQLite (`data/hanoi_bus_system.db`) từng đóng vai trò kho lưu trữ duy nhất (chứa cả `raw_bus_pings`, `route_projected_telemetry`, `fact_route_tomtom_incidents`).
-- **Kiến trúc sản phẩm hoàn thiện:**
-  - **HDFS (`step_2_4_hdfs_history`) & Medallion Parquet (`data/lakehouse/`):** Đảm nhiệm vai trò **kho lưu trữ chính** cho toàn bộ dữ liệu lịch sử thô (Bronze), dữ liệu đã lọc & chiếu Frenet (Silver), và tổng hợp phân tích/huấn luyện (Gold).
-  - **SQLite (`step_2_1_sqlite_operational_store`):** Nhường toàn bộ việc lưu `raw` và `silver` cho HDFS/Lakehouse, **chỉ còn 2 vai trò nhẹ**:
-    1. Lưu metadata tĩnh GTFS chuẩn (`canonical_routes`, `canonical_shapes`, `canonical_stations`) làm nền nhẹ cho Web App (`step_3_4`, `step_3_5`).
-    2. Làm nơi hứng kết quả tổng hợp từ HDFS Gold (như bảng baseline `eta_baseline_*` / `baseline_segment_travel_times`) để phục vụ tra cứu độ trễ thấp trên Web App.
+| Kho lưu trữ | Vai trò | Dữ liệu chứa |
+| --- | --- | --- |
+| **HDFS (`step_2_4_hdfs_history`) & Parquet Lakehouse (`data/lakehouse/`)** | **Kho lưu trữ chính** cho toàn bộ dữ liệu lịch sử thô (Bronze), đã lọc & chiếu Frenet (Silver), và tổng hợp phân tích/huấn luyện (Gold) | `/bus-eta/v1/bronze/hf_raw`, Silver P2 / `route_projected_telemetry`, `fact_route_tomtom_incidents`, Gold snapshots |
+| **SQLite (`step_2_1_sqlite_operational_store`)** | **Nền nhẹ cho Web App** và **nơi hứng kết quả tổng hợp từ HDFS Gold** để tra cứu độ trễ thấp | `canonical_routes`, `canonical_shapes`, `canonical_stations`, bảng baseline ETA |
 
 ## 3. Ràng buộc chất lượng & Vận hành
 
 - `step_2_2/lakehouse_exporter.py`: lọc `cross_track_m <= MAX_CORRIDOR_CROSS_TRACK_M` (`35.0m`), đồng bộ kiểm tra partition tăng dần, ghi nguyên tử qua `.tmp` + `os.replace`.
-- Trên HDFS: Web Demo không truy vấn HDFS trực tiếp trong mỗi request; thay vào đó đọc từ release pointer / SQLite nhẹ đã hứng kết quả Gold và verify hash cục bộ (xem [HDFS_RUNBOOK.md](HDFS_RUNBOOK.md)).
+- Web Demo không truy vấn HDFS trực tiếp trong mỗi request; thay vào đó đọc từ release pointer / SQLite nhẹ đã hứng kết quả Gold và verify hash cục bộ (xem [HDFS_RUNBOOK.md](HDFS_RUNBOOK.md)).

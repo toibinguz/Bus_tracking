@@ -30,9 +30,8 @@ flowchart LR
 | `ModelRuntime` | Nạp `data/models/causal_eta_v1/`, kiểm tra `_known_routes`, dự báo residual + baseline | Trả `None` để fallback baseline nếu tuyến ngoài miền train |
 | `eta_policy.py` | Ổn định hiển thị ETA (làm tròn, cửa sổ an toàn `SafeWindowDTO`, giới hạn gần trạm) | Tránh nhảy ETA bất thường khi xe dừng đèn đỏ sát trạm |
 
-## 3. Điểm đã chốt & Giới hạn hiện tại
+## 3. Giới hạn & Cơ chế Fallback
 
-- **Đã sửa:** Khắc phục các lỗi đồng bộ cache/trộn nguồn (`live_feed.py`, `route_matcher.py`, `serving_service.py`, `model_runtime.py`, `data_access.py`) và bổ sung bảo vệ `_causal_lock` cho snapshot.
-- **Giới hạn đã biết:**
-  - `TimBusClient` phụ thuộc API ngoài `timbus.vn`; khi nguồn TimBus mất kết nối hoặc trễ, hệ thống tự fallback về BusMap thuần.
-  - Giao diện web demo (`step_3_5_web_demo/static/`) vẫn còn một số điểm hiển thị cần tinh chỉnh UI ở các vòng sau, nhưng không ảnh hưởng API contract.
+- `TimBusClient` phụ thuộc API ngoài `timbus.vn`; khi nguồn TimBus mất kết nối hoặc trễ, hệ thống tự fallback về BusMap thuần.
+- `_observe_causal_snapshot` dùng `_causal_lock` để đảm bảo đồng bộ luồng khi cập nhật trạng thái đội xe.
+- Giao diện web demo (`step_3_5_web_demo/static/`) giữ hợp đồng API chuẩn, không phụ thuộc chế độ hiển thị ở client.
