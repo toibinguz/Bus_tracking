@@ -161,6 +161,8 @@ MAX_CORRIDOR_CROSS_TRACK_M = 35.0            # Ngưỡng lệch tim đường d_
 MAX_GPS_BACKWARD_JITTER_M = 20.0             # Dung sai nhiễu GPS giật lùi tại chỗ khi xe dừng đỗ (m)
 FRENET_MIN_FORWARD_WINDOW_M = 1500.0         # Cửa sổ tìm kiếm tiến tối thiểu trên tim đường (m)
 GPS_DRIFT_MAX_SPEED_KMPH = 80.0              # Vận tốc tối đa vật lý xe buýt đô thị Hà Nội (km/h)
+GPS_DRIFT_MIN_DIST_M = 250.0                 # Dịch chuyển tối thiểu (m) mới kết luận GPS_DRIFT_JUMP (chống jitter dt nhỏ)
+BATCH_HMM_HORIZON_SEC = 300.0                # Cửa sổ thời gian RouteHMM cho chu kỳ Batch 75s
 FRENET_MAX_SPEED_MPS = GPS_DRIFT_MAX_SPEED_KMPH / 3.6  # Vận tốc tối đa mở cửa sổ tiến (~22.22 m/s)
 TERMINAL_RESET_ZONE_M = 800.0                # Vùng đầu/cuối bến cho phép quay đầu bắt đầu chuyến mới (m)
 

@@ -26,6 +26,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 sys.path.insert(0, BASE_DIR)
 
 from config.system_config import (
+    BATCH_HMM_HORIZON_SEC,
     DEFAULT_DB_PATH,
     CANONICAL_START_DATE,
     MIN_CLUSTER_ROUTE_DAYS,
@@ -41,7 +42,7 @@ def project_points_to_shape(vehicle_pings, shape_pts):
     if not vehicle_pings or len(shape_pts)<2:
         return []
     from .route_matcher import ShapeProjectionModel, RouteHMM
-    matcher=RouteHMM(ShapeProjectionModel.build(shape_pts))
+    matcher=RouteHMM(ShapeProjectionModel.build(shape_pts), horizon=BATCH_HMM_HORIZON_SEC)
     output=[]
     previous_epoch=None
     for index,(ping_id,lat,lon,epoch) in enumerate(vehicle_pings):

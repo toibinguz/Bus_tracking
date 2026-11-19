@@ -13,6 +13,7 @@ from .kinematic_engine import haversine_distance
 from config import (
     HANOI_BBOX,
     GPS_DRIFT_MAX_SPEED_KMPH,
+    GPS_DRIFT_MIN_DIST_M,
     TERMINAL_STATIONARY_TOL_M,
     STALE_DELTA_T_MIN_SEC,
     STALE_DELTA_T_MAX_SEC,
@@ -52,13 +53,18 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
         except Exception:
             pass
 
+    in_bounds = (
+        HANOI_BBOX["min_lat"] <= std_lat <= HANOI_BBOX["max_lat"]
+        and HANOI_BBOX["min_lon"] <= std_lon <= HANOI_BBOX["max_lon"]
+    )
+
     # 2. Nội suy vận tốc động học (Kinematic Velocity) & Làm mịn EMA
     calc_speed = raw_speed
     smoothed_speed = raw_speed
     is_drift_jump = False
     is_stale = False
 
-    if vid in kinematic_cache:
+    if in_bounds and vid in kinematic_cache:
         prev = kinematic_cache[vid]
         prev_lat = prev["lat"]
         prev_lon = prev["lon"]
@@ -77,7 +83,7 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
                 smoothed_speed = 0.0
             else:
                 v_derived = (dist / delta_t) * 3.6
-                if v_derived > GPS_DRIFT_MAX_SPEED_KMPH:  # Vượt quá giới hạn vật lý nội đô
+                if dist >= GPS_DRIFT_MIN_DIST_M and v_derived > GPS_DRIFT_MAX_SPEED_KMPH:
                     is_drift_jump = True
                     calc_speed = prev_smoothed
                     smoothed_speed = prev_smoothed
@@ -88,7 +94,7 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
             calc_speed = raw_speed
             smoothed_speed = raw_speed
 
-    if not is_drift_jump:
+    if in_bounds and not is_drift_jump and (vid not in kinematic_cache or curr_epoch >= kinematic_cache[vid]["epoch"]):
         kinematic_cache[vid] = {
             "lat": std_lat,
             "lon": std_lon,
@@ -100,8 +106,7 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
     # 3. Phân loại chất lượng dữ liệu
     quality_status = "ACTIVE_VALID"
 
-    if not (HANOI_BBOX["min_lat"] <= std_lat <= HANOI_BBOX["max_lat"] and
-            HANOI_BBOX["min_lon"] <= std_lon <= HANOI_BBOX["max_lon"]):
+    if not in_bounds:
         quality_status = "OUT_OF_BOUNDS"
     # Trong BusMap: direction 1 = go, -1 = return (re), 0 = unassigned/depot
     elif (direction == 0 or route_id <= 0) and smoothed_speed == 0.0:
