@@ -626,6 +626,7 @@ class BusMapServingService:
                                 "speed_kmh": float(tb_rec.speed_kmh),
                                 "raw_speed_kmh": float(tb_rec.speed_kmh),
                                 "updated_at": tb_iso,
+                                "busmap_updated_at": bm_v.updated_at,
                                 "telemetry_source": "timbus",
                             }
                         )
@@ -933,7 +934,12 @@ class BusMapServingService:
                     ml_p50=capped_p50,
                     prediction_source=prediction_source,
                 ).model_copy(update={"fallback_reason": fb_reason})
-            dto = dto.model_copy(update={"telemetry_source": v.telemetry_source})
+            dto = dto.model_copy(
+                update={
+                    "telemetry_source": v.telemetry_source,
+                    "busmap_updated_at": v.busmap_updated_at or (v.updated_at if v.telemetry_source == "busmap" else None),
+                }
+            )
             from .request_trace import record
             record('eta_result', route_id=route_id, direction=dir_int, station_order=station_order,
                    query_epoch=now_epoch, s_bus_m=bus_state.s_now, s_target_m=s_target,
@@ -1053,6 +1059,7 @@ class BusMapServingService:
                 "speed_kmh": float(tb_rec.speed_kmh),
                 "raw_speed_kmh": float(tb_rec.speed_kmh),
                 "updated_at": tb_iso,
+                "busmap_updated_at": bm_v.updated_at,
                 "telemetry_source": "timbus",
             }
         )

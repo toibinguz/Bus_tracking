@@ -3,155 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hà Nội Bus Live — Theo dõi xe buýt thời gian thực</title>
+  <title>Hà Nội Bus Live — Tra cứu xe buýt Hành khách</title>
   <link rel="icon" type="image/svg+xml" href="/static/bus_icon.svg">
-
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-
-  <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="/static/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/passenger.css">
 </head>
 <body>
-  <div class="app-layout">
-    <!-- Full-bleed Map Canvas (Esri preserved in app.js) -->
-    <main class="map-container">
+  <div class="app-shell" id="appShell">
+    <main class="map-stage" aria-label="Bản đồ tuyến xe buýt">
       <div id="map"></div>
+      <button type="button" class="btn-expand-panel" id="btnExpandPanel" hidden aria-label="Mở bảng tra cứu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m9 18 6-6-6-6"/>
+        </svg>
+        <span>Tra cứu tuyến</span>
+      </button>
     </main>
 
-    <!-- Floating Apple Maps / Transit Style Panel -->
-    <aside class="sidebar" aria-label="Bảng điều khiển tuyến xe buýt">
-      <header class="sidebar-header">
+    <aside class="panel" id="passengerPanel" aria-label="Tra cứu tuyến và dự báo giờ xe đến">
+      <div class="sheet-handle-row">
+        <button type="button" class="sheet-handle" id="btnSheetCycle" aria-label="Thay đổi chiều cao bảng"></button>
+      </div>
+
+      <header class="panel-header">
         <div class="brand">
-          <div class="brand-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8 6v6"/>
-              <path d="M16 6v6"/>
-              <path d="M2 12h19.6"/>
-              <path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/>
-              <circle cx="7" cy="18" r="2"/>
-              <path d="M9 18h5"/>
-              <circle cx="16" cy="18" r="2"/>
-            </svg>
-          </div>
-          <div class="brand-text">
+          <span class="brand-badge" aria-hidden="true">BUS</span>
+          <div>
             <h1 class="brand-title">Hà Nội Bus Live</h1>
-            <span class="brand-subtitle">BusMap &amp; TimBus trực tuyến</span>
+            <p class="brand-sub" id="routeSummaryText">Chọn tuyến và chạm trạm để xem giờ đến</p>
           </div>
         </div>
-        <div class="mode-pill-wrap">
-          <label for="presentationMode" class="sr-only">Chế độ hiển thị</label>
-          <select id="presentationMode" class="mode-select" title="Chế độ hiển thị">
-            <option value="debug" selected>Debug</option>
-            <option value="passenger">Hành khách</option>
-          </select>
-        </div>
+        <button type="button" class="btn-icon" id="btnCollapsePanel" title="Thu gọn bảng" aria-label="Thu gọn bảng">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
       </header>
 
-      <section class="controls-section">
-        <div class="form-group">
-          <label for="routeSelect" class="form-label">Tuyến xe buýt</label>
-          <div class="select-wrapper">
-            <select id="routeSelect" class="form-select">
-              <option value="" disabled selected>Đang tải danh mục tuyến...</option>
-            </select>
-            <svg class="select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="m6 9 6 6 6-6"/>
-            </svg>
+      <section class="route-controls" aria-label="Chọn tuyến và chiều">
+        <div class="combobox" id="routeCombobox">
+          <label for="routeSearchInput" class="sr-only">Tìm tuyến xe buýt</label>
+          <input type="text" id="routeSearchInput" class="route-input" placeholder="Tìm số hiệu hoặc tên tuyến (vd: 32, E03)..." autocomplete="off" />
+          <button type="button" class="btn-clear-input" id="btnClearRouteSearch" hidden aria-label="Xóa từ khóa tuyến">✕</button>
+          <div class="route-dropdown" id="routeDropdown" role="listbox" aria-label="Danh sách tuyến" hidden></div>
+        </div>
+
+        <div class="combobox" id="stationCombobox">
+          <label for="stationSearchInput" class="sr-only">Chọn trạm trên tuyến</label>
+          <input type="text" id="stationSearchInput" class="route-input" placeholder="Chọn hoặc tìm trạm trên tuyến..." autocomplete="off" />
+          <button type="button" class="btn-clear-input" id="btnClearStationSearch" hidden aria-label="Xóa từ khóa trạm">✕</button>
+          <div class="route-dropdown" id="stationDropdown" role="listbox" aria-label="Danh sách trạm" hidden></div>
+        </div>
+
+        <div class="direction-row">
+          <div class="dir-switch" role="group" aria-label="Chiều hành trình">
+            <button type="button" class="btn-dir active" data-dir="0" id="dirGoBtn">Chiều đi</button>
+            <button type="button" class="btn-dir" data-dir="1" id="dirBackBtn">Chiều về</button>
+          </div>
+          <div class="live-meta">
+            <span class="live-pill" id="liveStatusPill">
+              <span class="dot" aria-hidden="true"></span>
+              <span id="vehicleCount">0 xe</span>
+            </span>
+            <button type="button" class="btn-refresh" id="btnManualRefresh" title="Làm mới ngay" aria-label="Làm mới dữ liệu">
+              <span id="countdown">15s</span>
+            </button>
           </div>
         </div>
 
-        <div class="form-group">
-          <span class="form-label">Chiều hành trình</span>
-          <div class="direction-toggle" id="directionToggle" role="group" aria-label="Chọn chiều hành trình">
-            <button type="button" class="btn-dir active" data-dir="0" id="dirGoBtn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-              </svg>
-              <span>Chiều đi</span>
-            </button>
-            <button type="button" class="btn-dir" data-dir="1" id="dirBackBtn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
-              </svg>
-              <span>Chiều về</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="status-strip">
-          <div class="status-pill">
-            <span class="pulse-dot" aria-hidden="true"></span>
-            <span id="vehicleCount" class="status-value">0 xe hoạt động</span>
-          </div>
-          <div class="status-refresh">
-            <span class="status-label">Làm mới</span>
-            <span id="countdown" class="countdown-badge">15s</span>
-          </div>
-        </div>
+        <div class="alert-banner" id="upstreamAlert" hidden role="status"></div>
       </section>
 
-      <nav class="sidebar-tab-nav" id="sidebarTabNav" aria-label="Chế độ xem">
-        <button type="button" class="tab-btn active" id="tabBtnStation" data-tab="station">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
-          <span>Trạm theo dõi</span>
-        </button>
-        <button type="button" class="tab-btn" id="tabBtnFleet" data-tab="fleet">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="4" width="18" height="12" rx="2"/>
-            <path d="M7 20h10"/>
-            <path d="M9 16v4"/>
-            <path d="M15 16v4"/>
-          </svg>
-          <span>Đoàn xe</span>
-          <span id="listCounterBadge" class="tab-badge">0 xe</span>
-        </button>
-      </nav>
-
-      <div class="sidebar-scroll">
-        <!-- Tab 1: Station Focus -->
-        <div id="tabPaneStation" class="tab-pane active">
-          <section id="stationFocusCard" class="station-focus-card" style="display: none;"></section>
-          <div id="stationEmptyGuide" class="station-empty-guide">
-            <div class="empty-guide-icon" aria-hidden="true">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-            </div>
-            <div class="empty-guide-title">Chưa ghim trạm theo dõi</div>
-            <p class="empty-guide-desc">Chạm vào một trạm trên bản đồ để xem dự báo giờ xe đến và ghim theo dõi liên tục.</p>
-          </div>
-        </div>
-
-        <!-- Tab 2: Live Fleet -->
-        <div id="tabPaneFleet" class="tab-pane" style="display: none;">
-          <section class="vehicles-section">
-            <div class="vehicle-list" id="vehicleList">
-              <div class="empty-state">Đang tải dữ liệu trực tiếp...</div>
-            </div>
-          </section>
+      <div class="panel-body">
+        <!-- Trạm đang ghim (tự ghim khi click trạm, không popup bản đồ) -->
+        <section class="pinned-card" id="pinnedCard" hidden aria-live="polite"></section>
+        <div class="eta-idle-hint" id="etaIdleHint">
+          Chạm vào một trạm trên bản đồ hoặc chọn trạm ở ô phía trên để theo dõi giờ xe đến.
         </div>
       </div>
 
-      <footer class="sidebar-footer">
-        <span>Nguồn GPS: <a href="https://busmap.city" target="_blank" rel="noopener">BusMap</a> &amp; TimBus</span>
-        <span>ETA causal-eta.v1</span>
+      <footer class="panel-footer">
+        <span>Dữ liệu BusMap &amp; TimBus</span>
+        <a href="/debug" class="debug-link">Debug</a>
       </footer>
+      <div class="panel-resizer" id="panelResizer" role="separator" aria-orientation="vertical" aria-label="Kéo để thay đổi chiều rộng bảng"></div>
     </aside>
   </div>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="/static/app.js"></script>
+  <script src="/static/bus_core.js"></script>
+  <script src="/static/passenger.js"></script>
 </body>
 </html>

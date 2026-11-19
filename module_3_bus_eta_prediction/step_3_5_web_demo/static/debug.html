@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bus ETA Debug Console — Giám sát & Telemetry</title>
+  <link rel="icon" type="image/svg+xml" href="/static/bus_icon.svg">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/debug.css">
+</head>
+<body>
+  <div class="debug-shell">
+    <header class="topbar">
+      <div class="topbar-left">
+        <a href="/" class="back-link" title="Về trang Hành khách">&larr; Hành khách</a>
+        <div class="console-title">
+          <span class="console-badge">DEBUG</span>
+          <h1>Bus ETA Operations Console</h1>
+        </div>
+      </div>
+
+      <div class="topbar-controls">
+        <div class="combobox" id="dbgRouteCombobox">
+          <label for="dbgRouteInput" class="sr-only">Chọn tuyến</label>
+          <input type="text" id="dbgRouteInput" class="dbg-input" placeholder="Tìm tuyến (vd: 32, E03)..." autocomplete="off" />
+          <div class="dbg-dropdown" id="dbgRouteDropdown" role="listbox" hidden></div>
+        </div>
+
+        <div class="dir-group" role="group" aria-label="Chiều hành trình">
+          <button type="button" class="btn-seg active" data-dir="0" id="dbgDirGo">0: Đi</button>
+          <button type="button" class="btn-seg" data-dir="1" id="dbgDirBack">1: Về</button>
+        </div>
+
+        <button type="button" class="btn-ctrl" id="dbgPauseBtn">Tạm dừng</button>
+        <button type="button" class="btn-ctrl primary" id="dbgRefreshBtn">Làm mới (<span id="dbgCountdown">15s</span>)</button>
+      </div>
+
+      <div class="topbar-health" id="dbgHealthBadge">
+        <span class="health-dot"></span>
+        <span id="dbgHealthText">Đang kiểm tra /api/health...</span>
+      </div>
+    </header>
+
+    <main class="workspace" id="dbgWorkspace">
+      <section class="map-pane" aria-label="Bản đồ giám sát">
+        <div id="dbgMap"></div>
+        <div class="map-legend">
+          <span class="legend-item"><i class="swatch tb"></i> TimBus 5s</span>
+          <span class="legend-item"><i class="swatch bm"></i> BusMap 15s</span>
+          <span class="legend-item"><i class="swatch lead"></i> Xe gần trạm nhất</span>
+        </div>
+      </section>
+
+      <div class="workspace-splitter" id="dbgSplitter" role="separator" aria-orientation="vertical" aria-label="Kéo để thay đổi tỷ lệ bản đồ và bảng debug"></div>
+
+      <section class="inspector-pane" aria-label="Bảng phân tích kỹ thuật">
+        <div class="tablist" role="tablist" aria-label="Chế độ kiểm tra">
+          <button type="button" role="tab" id="tabBtnEta" aria-selected="true" tabindex="0" data-panel="panelEta">
+            Trạm &amp; ETA <span class="tab-count" id="cntApproaching">0</span>
+          </button>
+          <button type="button" role="tab" id="tabBtnFleet" aria-selected="false" tabindex="-1" data-panel="panelFleet">
+            Đoàn xe &amp; Telemetry <span class="tab-count" id="cntFleet">0</span>
+          </button>
+          <button type="button" role="tab" id="tabBtnSystem" aria-selected="false" tabindex="-1" data-panel="panelSystem">
+            Hệ thống &amp; Poller
+          </button>
+        </div>
+
+        <!-- Tab 1: Station & ETA -->
+        <div role="tabpanel" id="panelEta" aria-labelledby="tabBtnEta" class="tab-panel">
+          <div class="panel-inner">
+            <div class="eta-toolbar">
+              <div class="station-select-wrap">
+                <label for="dbgStationSelect" class="toolbar-label">Trạm ghim (click bản đồ để tự ghim):</label>
+                <select id="dbgStationSelect" class="dbg-select"></select>
+              </div>
+              <div class="status-chips" id="dbgEtaChips"></div>
+            </div>
+            <div id="dbgEtaAlert" class="dbg-alert" hidden></div>
+            <div tabindex="0" role="region" aria-label="Bảng dự báo ETA các xe tiếp cận" class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Biển số</th>
+                    <th scope="col">Khoảng cách</th>
+                    <th scope="col">ETA P50</th>
+                    <th scope="col">P10 – P90 (s)</th>
+                    <th scope="col">Đệm / Trễ</th>
+                    <th scope="col">Nguồn ML &amp; Fallback</th>
+                    <th scope="col">Thời gian gói tin (TB query / BM thiết bị)</th>
+                  </tr>
+                </thead>
+                <tbody id="dbgEtaTbody">
+                  <tr><td colspan="7" class="empty-cell">Chọn hoặc click vào một trạm trên bản đồ để xem ETA chi tiết.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Fleet & Telemetry -->
+        <div role="tabpanel" id="panelFleet" aria-labelledby="tabBtnFleet" class="tab-panel" hidden>
+          <div class="panel-inner">
+            <div class="eta-toolbar">
+              <span class="toolbar-label">Toàn bộ xe đang hoạt động trên chiều chọn (click dòng để định vị trên bản đồ)</span>
+              <div class="status-chips" id="dbgLiveChips"></div>
+            </div>
+            <div id="dbgLiveAlert" class="dbg-alert" hidden></div>
+            <div tabindex="0" role="region" aria-label="Bảng telemetry đoàn xe" class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Biển số</th>
+                    <th scope="col">Nguồn</th>
+                    <th scope="col">Thời gian gói tin (TB query / BM thiết bị)</th>
+                    <th scope="col">Vận tốc mượt</th>
+                    <th scope="col">Hộp đen gốc</th>
+                    <th scope="col">Cửa sổ Δt</th>
+                    <th scope="col">Trạm HT &rarr; Kế tiếp</th>
+                  </tr>
+                </thead>
+                <tbody id="dbgFleetTbody">
+                  <tr><td colspan="7" class="empty-cell">Đang tải dữ liệu đoàn xe...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: System & Poller Health -->
+        <div role="tabpanel" id="panelSystem" aria-labelledby="tabBtnSystem" class="tab-panel" hidden>
+          <div class="panel-inner system-grid" id="dbgSystemGrid">
+            <div class="empty-cell">Đang tải dữ liệu /api/health...</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/static/bus_core.js"></script>
+  <script src="/static/debug.js"></script>
+</body>
+</html>

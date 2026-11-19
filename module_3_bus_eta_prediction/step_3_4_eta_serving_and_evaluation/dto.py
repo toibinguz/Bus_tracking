@@ -26,6 +26,9 @@ class BusVehicleDTO(BaseModel):
     deg: float = Field(default=0.0, description="Góc xoay theo hướng di chuyển (0 - 360 độ)")
     speed_kmh: float = Field(default=0.0, description="Vận tốc hiện tại (km/h)")
     updated_at: str = Field(..., description="Mốc thời gian cập nhật của xe (ISO 8601)")
+    busmap_updated_at: Optional[str] = Field(
+        default=None, description="Mốc thời gian thiết bị gốc từ BusMap (ISO 8601)"
+    )
     # Internal projection result shared by speed, features and station filtering.
     matched_projection: Optional[Tuple[float,float,int]] = Field(default=None,exclude=True)
     projection_checked: bool = Field(default=False,exclude=True)
@@ -152,7 +155,10 @@ class ApproachingBusDTO(BaseModel):
     safe_window: SafeWindowDTO = Field(..., description="Cửa sổ an toàn bất đối xứng [P10, P90] và thông số đệm")
     speed_kmh: float = Field(..., description="Vận tốc dùng cho ETA sau làm mượt nếu có (km/h)")
     traffic_status: str = Field(default="BINH_THUONG", description="Điều kiện giao thông: THONG_THOANG, BINH_THUONG, UN_TAC")
-    ping_time: Optional[str] = Field(default=None, description="Mốc thời gian GPS thực tế của xe (ISO 8601)")
+    ping_time: Optional[str] = Field(default=None, description="Mốc thời gian GPS dùng tính ETA (ISO 8601)")
+    busmap_updated_at: Optional[str] = Field(
+        default=None, description="Mốc thời gian thiết bị gốc từ BusMap (ISO 8601)"
+    )
     ping_age_seconds: Optional[float] = Field(default=0.0, description="Độ trôi tuổi gói tin GPS tính bằng giây")
     arrival_time_epoch: Optional[float] = Field(default=None, description="Thời điểm xe cập bến dự kiến P50 (Unix epoch seconds)")
     estimated_arrival_time: str = Field(
