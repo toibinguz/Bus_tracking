@@ -8,7 +8,7 @@
 
 | File / Symbol | Vai trò | Input -> Output |
 | --- | --- | --- |
-| `causal_eta.py` (`CausalFeatures`, `Observation`, `VehicleState`, `Speed`) | Trạng thái từng xe theo thời gian thực/replay và hàm sinh 36 đặc trưng nhân quả | `Observation` stream -> 36-feature dict |
+| `causal_eta.py` (`CausalFeatures`, `Observation`, `VehicleState`, `Speed`) | Trạng thái từng xe (bảo vệ bằng `threading.RLock`) và hàm sinh 36 đặc trưng nhân quả | `Observation` stream -> 36-feature dict |
 | `feature_store_builder.py` (`build_gold_feature_store`, `_process_single_route`) | Trích xuất song song Gold Feature Store Parquet phục vụ phân tích batch | Silver Parquet -> `data/lakehouse/gold/eta_feature_store/` |
 
 ## Cách kiểm thử

@@ -2,7 +2,7 @@
 
 - **Vai trò:** Chỉ chứa **Thin CLI Entrypoints** gọi trực tiếp vào `module_1`, `module_2`, `module_3` và **Ops Runners** vận hành hạ tầng (GitHub Actions, Hugging Face, cụm HDFS/Spark). **Không** đặt nghiệp vụ cốt lõi trong thư mục này.
 
-## Danh sách Script hiện có (34 file)
+## Danh sách Script hiện có (38 file)
 
 ### 1. Module 1 — Thu thập & Tiền xử lý
 | Script | Gọi tới | Mục đích |
@@ -35,6 +35,8 @@
 | `build_gold_feature_store.py` | `step_3_2/feature_store_builder.py` | Xuất Gold Feature Store Parquet |
 | `train_causal_eta.py` | `step_3_3/silver_replay_trainer.py` | Huấn luyện mô hình Residual XGBoost `causal-eta.v1` |
 | `eta_history_baseline.py` | `step_3_1` / `step_2_4` | Chạy đánh giá baseline từ lịch sử local hoặc HDFS |
+| `start_demo_bg.ps1`, `start_demo_bg.bat` | `step_3_5_web_demo/app.py` | Khởi động ngầm Web Demo + `SpeedLayerPoller` (`--workers 1`, chống trùng port) |
+| `stop_demo_bg.ps1`, `stop_demo_bg.bat` | `runtime/demo_server.pid` | Dừng server demo chạy ngầm sau khi kết thúc |
 
 ### 4. Script tham chiếu / phụ thuộc kiểm thử (`tests/`)
 | Script | Được test tham chiếu |

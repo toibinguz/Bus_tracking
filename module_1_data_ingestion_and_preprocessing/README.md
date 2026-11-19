@@ -4,7 +4,7 @@
 - **Đầu vào:** BusMap API, TomTom Incidents API, Hugging Face Dataset (`Toibinguz/hust-bus-data`), `data/ground_truth/busmap_canonical/`.
 - **Đầu ra:** Batch JSONL lên Hugging Face (`Toibinguz/hust-bus-data`) / HDFS Bronze spool, dữ liệu đã làm sạch động học & chiếu 1D Frenet, cùng metadata GTFS chuẩn (`canonical_*`) trong SQLite.
 
-## Sơ đồ luồng
+## Sơ đồ Luồng Dữ liệu (Data Flow)
 
 ```mermaid
 flowchart TD

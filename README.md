@@ -4,7 +4,7 @@
 - **Đầu vào:** BusMap API, TimBus Central API (`experiments/timbus/`), TomTom Incidents API, dữ liệu GTFS chuẩn (`data/ground_truth/busmap_canonical/`)
 - **Đầu ra:** SQLite (`data/hanoi_bus_system.db`), Medallion Lakehouse Parquet (`data/lakehouse/`), HDFS (`step_2_4_hdfs_history/`), mô hình `causal-eta.v1` (`data/models/causal_eta_v1/`), Web Demo FastAPI (`step_3_5_web_demo/`)
 
-## Sơ đồ kiến trúc tổng quan
+## Sơ đồ Luồng Dữ liệu Tổng quan (Data Flow)
 
 ```mermaid
 flowchart TD
@@ -55,8 +55,9 @@ flowchart TD
 
 | Thành phần | Tài liệu |
 | --- | --- |
-| Luồng Batch View | [docs/BATCH_VIEW_PIPELINE.md](docs/BATCH_VIEW_PIPELINE.md) |
-| Luồng Speed View (Live) | [docs/SPEED_VIEW_PIPELINE.md](docs/SPEED_VIEW_PIPELINE.md) |
+| Luồng Batch Layer | [docs/BATCH_LAYER_PIPELINE.md](docs/BATCH_LAYER_PIPELINE.md) |
+| Luồng Speed Layer (Poller 45s) | [docs/SPEED_LAYER_PIPELINE.md](docs/SPEED_LAYER_PIPELINE.md) |
+| Tầng Serving Layer ETA & TimBus | [docs/SERVING_LAYER_PIPELINE.md](docs/SERVING_LAYER_PIPELINE.md) |
 | Thu thập dữ liệu (Crawler) | [docs/CRAWLER.md](docs/CRAWLER.md) |
 | Tiền xử lý & Chiếu Frenet 1D | [docs/PREPROCESSING.md](docs/PREPROCESSING.md) |
 | Lưu trữ HDFS & Lakehouse (B-S-G) | [docs/HDFS_LAKEHOUSE.md](docs/HDFS_LAKEHOUSE.md), [docs/HDFS_RUNBOOK.md](docs/HDFS_RUNBOOK.md) |
@@ -77,8 +78,10 @@ flowchart TD
 ## Cách chạy & Kiểm thử
 
 ```bash
-# Chạy Web Demo (FastAPI)
-uvicorn module_3_bus_eta_prediction.step_3_5_web_demo.app:app --host 0.0.0.0 --port 8000
+# Chạy Web Demo (khởi động ngầm trước demo ~15 phút để SpeedLayerPoller làm ấm trước)
+scripts\start_demo_bg.bat
+# Hoặc chạy trực tiếp (Trang Hành khách: /, Trang Debug: /debug)
+python -m uvicorn module_3_bus_eta_prediction.step_3_5_web_demo.app:app --host 127.0.0.1 --port 8000 --workers 1
 
 # Thử nghiệm Cloud Crawler cục bộ (1 vòng, không đẩy Hugging Face)
 python -m module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.cloud_crawler_runner --test --no-tomtom

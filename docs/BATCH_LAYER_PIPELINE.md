@@ -1,10 +1,10 @@
-# Batch View Pipeline (Luồng Xử lý Lô & Huấn luyện)
+# Batch Layer Pipeline (Luồng Xử lý Lô & Huấn luyện)
 
 - **Trạng thái:** Current
 - **Phạm vi:** Đường ống xử lý dữ liệu lịch sử đi qua **HDFS (Bronze – Silver – Gold)**, hứng kết quả tổng hợp vào SQLite nền nhẹ và huấn luyện mô hình `causal-eta.v1`.
 - **Nguồn sự thật (Code paths):** `config/system_config.py`, `module_1_data_ingestion_and_preprocessing/step_1_3_*`, `step_1_4_*`, `step_1_5_*`, `module_2_big_data_storage_and_lakehouse/step_2_4_hdfs_history/`, `module_3_bus_eta_prediction/step_3_1_*`, `step_3_2_*`, `step_3_3_*`.
 
-## 1. Sơ đồ luồng Batch View
+## 1. Sơ đồ Luồng Dữ liệu (Data Flow)
 
 ```mermaid
 flowchart TD
@@ -48,17 +48,7 @@ flowchart TD
     CF --> REP --> XGB --> ART
 ```
 
-## 2. Hợp đồng dữ liệu & Các bước thực thi
-
-| Bước | Module / Symbol | Đầu vào -> Đầu ra | Ràng buộc chính (SSOT) |
-| --- | --- | --- | --- |
-| 0. Nạp GTFS chuẩn | `step_1_5_busmap_canonical_migration/ingest_busmap_canonical.py` | `busmap_canonical/*` -> `canonical_routes`, `canonical_shapes`, `canonical_stations` | Chiếu trạm lên `s_station_m` trong SQLite |
-| 1. Nhập HDFS Bronze | `step_2_4_hdfs_history` (`hf_bronze.py`, `spool.py`, `receipt.py`, `contract.py`) | HF Raw + `telemetry_sanitizer.py` -> HDFS `/bus-eta/v1/bronze/hf_raw` | Bất biến, SHA-256, `HANOI_BBOX` 4 biên (`19.50..22.50`, `104.50..107.50`), `GPS_DRIFT_MIN_DIST_M = 250.0m`, `OUT_OF_BOUNDS` không ghi cache |
-| 2. HDFS Silver P2 | `step_2_4` (`p2_transform.py`, `history_execution.py`) & `step_1_4` (`projection_boundary.py`, `route_matcher.py`) | HDFS Bronze -> HDFS Silver P2 | `RouteHMM(horizon=300.0)`, lọc `cross_track_m <= 35.0m`, `MAX_BACKWARD_RESET_M = 200.0m` |
-| 3. HDFS Gold Baseline | `step_3_1_historical_baseline_model/baseline_matrix_builder.py` & `step_2_4/eta_snapshot.py` | HDFS Silver + `train_test_split_v1.json` -> HDFS Gold & SQLite baseline | `MIN_SAMPLES_FOR_BASELINE = 5`, `MAX_SEGMENT_TRAVEL_TIME_SEC = 1800.0` |
-| 4. Huấn luyện ML | `step_3_3_machine_learning_models/silver_replay_trainer.py` | HDFS Silver + Gold Baseline + `CausalFeatures` -> `data/models/causal_eta_v1/` | 36 features nhân quả, residual XGBoost |
-
-## 3. Sơ đồ Logic Xử lý Lô (Sanitizer, Trip Segmentation, Baseline & Residual ML)
+## 2. Sơ đồ Luồng Logic (Logic Flow)
 
 ```mermaid
 flowchart TD
@@ -89,3 +79,13 @@ flowchart TD
     PREFIX --> RESID["Target = eta_actual - baseline_eta_p50_sec\nSample Weight cân bằng theo (route, journey, target)"]
     RESID --> XGB["Huấn luyện XGBRegressor (reg:absoluteerror)\nTemporal Split: Train / Validation / Test -> causal-eta.v1"]
 ```
+
+## 3. Hợp đồng dữ liệu & Các bước thực thi
+
+| Bước | Module / Symbol | Đầu vào -> Đầu ra | Ràng buộc chính (SSOT) |
+| --- | --- | --- | --- |
+| 0. Nạp GTFS chuẩn | `step_1_5_busmap_canonical_migration/ingest_busmap_canonical.py` | `busmap_canonical/*` -> `canonical_routes`, `canonical_shapes`, `canonical_stations` | Chiếu trạm lên `s_station_m` trong SQLite |
+| 1. Nhập HDFS Bronze | `step_2_4_hdfs_history` (`hf_bronze.py`, `spool.py`, `receipt.py`, `contract.py`) | HF Raw + `telemetry_sanitizer.py` -> HDFS `/bus-eta/v1/bronze/hf_raw` | Bất biến, SHA-256, `HANOI_BBOX` 4 biên (`19.50..22.50`, `104.50..107.50`), `GPS_DRIFT_MIN_DIST_M = 250.0m`, `OUT_OF_BOUNDS` không ghi cache |
+| 2. HDFS Silver P2 | `step_2_4` (`p2_transform.py`, `history_execution.py`) & `step_1_4` (`projection_boundary.py`, `route_matcher.py`) | HDFS Bronze -> HDFS Silver P2 | `RouteHMM(horizon=300.0)`, lọc `cross_track_m <= 35.0m`, `MAX_BACKWARD_RESET_M = 200.0m` |
+| 3. HDFS Gold Baseline | `step_3_1_historical_baseline_model/baseline_matrix_builder.py` & `step_2_4/eta_snapshot.py` | HDFS Silver + `train_test_split_v1.json` -> HDFS Gold & SQLite baseline | `MIN_SAMPLES_FOR_BASELINE = 5`, `MAX_SEGMENT_TRAVEL_TIME_SEC = 1800.0` |
+| 4. Huấn luyện ML | `step_3_3_machine_learning_models/silver_replay_trainer.py` | HDFS Silver + Gold Baseline + `CausalFeatures` -> `data/models/causal_eta_v1/` | 36 features nhân quả, residual XGBoost |

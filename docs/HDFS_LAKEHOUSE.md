@@ -4,7 +4,7 @@
 - **Phạm vi:** Kiến trúc lưu trữ lịch sử tập trung trên **HDFS (Bronze – Silver – Gold)** — toàn bộ dữ liệu live thu thập đều đi qua HDFS, không lưu trữ song song ngoài luồng; SQLite chỉ làm nền nhẹ cho Web App.
 - **Nguồn sự thật (Code paths):** `module_2_big_data_storage_and_lakehouse/` (`step_2_1`, `step_2_2`, `step_2_4`), `docker-compose.hdfs.yml`, `docs/HDFS_RUNBOOK.md`.
 
-## 1. Sơ đồ phân tầng Bronze – Silver – Gold
+## 1. Sơ đồ Luồng Dữ liệu (Data Flow — Bronze – Silver – Gold)
 
 ```mermaid
 flowchart TD

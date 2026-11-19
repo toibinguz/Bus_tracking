@@ -4,7 +4,7 @@
 - **Đầu vào:** Hugging Face Raw Batches (`Toibinguz/hust-bus-data`) & dữ liệu GTFS chuẩn (`step_1_5`).
 - **Đầu ra:** HDFS Bronze/Silver/Gold (`step_2_4_hdfs_history/`), Parquet phân vùng (`step_2_2/`), và SQLite nền nhẹ (`data/hanoi_bus_system.db`) cho Web App.
 
-## Sơ đồ luồng
+## Sơ đồ Luồng Dữ liệu (Data Flow)
 
 ```mermaid
 flowchart TD
