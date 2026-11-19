@@ -36,8 +36,8 @@ flowchart TD
         WEB["step_3_5: FastAPI Web Demo"]
     end
 
-    BM & TT --> CRAWL --> BR --> PROJ --> SIL
-    CRAWL --> SAN --> SIL
+    BM & TT --> CRAWL -->|"HF / Spool JSONL"| BR --> PROJ --> SIL
+    CRAWL --> SAN --> BR
     GTFS --> MIG --> SQL
     GTFS --> PROJ
     SIL -->|"step_3_1: baseline_matrix_builder"| GOLD
