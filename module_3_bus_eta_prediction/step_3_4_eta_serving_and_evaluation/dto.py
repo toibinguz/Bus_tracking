@@ -62,6 +62,14 @@ class RouteLiveResponse(BaseModel):
     timestamp: str
     timbus_supported: bool = Field(default=False, description="Tuyến/chiều có hỗ trợ tăng tốc TimBus 5s")
     poll_interval_sec: int = Field(default=15, description="Chu kỳ làm mới bản đồ khuyến nghị (5s hoặc 15s)")
+    upstream_status: Literal["ok", "empty", "upstream_error"] = Field(
+        default="ok", description="Trạng thái truy vấn BusMap upstream"
+    )
+    upstream_error: Optional[str] = Field(default=None, description="Chi tiết lỗi BusMap upstream nếu có")
+    timbus_status: Literal["ok", "partial_error", "upstream_error", "unsupported"] = Field(
+        default="unsupported", description="Trạng thái đồng bộ TimBus upstream"
+    )
+    timbus_error: Optional[str] = Field(default=None, description="Chi tiết lỗi TimBus upstream nếu có")
     vehicles: List[BusVehicleDTO]
 
 
@@ -138,6 +146,9 @@ class ApproachingBusDTO(BaseModel):
     prediction_source: Literal["ml_calibrated", "baseline_fallback"] = Field(
         ..., description="Nguồn ETA runtime: ml_calibrated hoặc baseline_fallback"
     )
+    fallback_reason: Literal["ok", "cold_start_causal", "model_unavailable", "unknown_route", "predict_error"] = Field(
+        default="ok", description="Lý do dùng baseline fallback (hoặc 'ok' nếu dùng ML)"
+    )
     safe_window: SafeWindowDTO = Field(..., description="Cửa sổ an toàn bất đối xứng [P10, P90] và thông số đệm")
     speed_kmh: float = Field(..., description="Vận tốc dùng cho ETA sau làm mượt nếu có (km/h)")
     traffic_status: str = Field(default="BINH_THUONG", description="Điều kiện giao thông: THONG_THOANG, BINH_THUONG, UN_TAC")
@@ -175,6 +186,17 @@ class StationEtaResponse(BaseModel):
     message: str = Field(..., description="Thông điệp hiển thị cho người dùng")
     timbus_supported: bool = Field(default=False, description="Tuyến/chiều có hỗ trợ tăng tốc TimBus 5s")
     poll_interval_sec: int = Field(default=15, description="Chu kỳ làm mới khuyến nghị (5s hoặc 15s)")
+    upstream_status: Literal["ok", "empty", "upstream_error"] = Field(
+        default="ok", description="Trạng thái truy vấn BusMap upstream"
+    )
+    upstream_error: Optional[str] = Field(default=None, description="Chi tiết lỗi BusMap upstream nếu có")
+    timbus_status: Literal["ok", "partial_error", "upstream_error", "unsupported"] = Field(
+        default="unsupported", description="Trạng thái đồng bộ TimBus upstream"
+    )
+    timbus_error: Optional[str] = Field(default=None, description="Chi tiết lỗi TimBus upstream nếu có")
+    fallback_reason: Optional[str] = Field(
+        default=None, description="Lý do fallback chính nếu tuyến đang dùng baseline"
+    )
 
 
 def normalize_direction(direction_val: Union[int, str, None]) -> Tuple[int, str]:

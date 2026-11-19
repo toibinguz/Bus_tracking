@@ -328,7 +328,7 @@ class TimBusClient:
         return None
 
     @classmethod
-    def query_central_vehicles(
+    def query_central_vehicles_with_status(
         cls,
         station_ids: List[int],
         plates: List[str],
@@ -336,14 +336,8 @@ class TimBusClient:
         route_code: str = "",
         timeout: int = 3,
         inter_request_delay: float = 0.05,
-    ) -> Dict[str, BusRecord]:
-        """Chế độ 3: Bám đuổi tối đa 4 xe trung tâm với chuỗi trạm mỏ neo dự phòng (Multi-Anchor Fallback).
-
-        Thử từng `station_id` theo thứ tự ưu tiên (ví dụ `[bến cuối đã kiểm chứng, trạm kế cuối, bến cuối BM]`).
-        Nếu một anchor tìm thấy ít nhất 1 xe hợp lệ thì dừng (tránh tốn request vô ích cho xe đã vào bến);
-        chỉ chuyển sang anchor tiếp theo khi toàn bộ xe ở anchor hiện tại đều rỗng hoặc lỗi.
-        Không retry dồn dập khi timeout/lỗi socket để bảo đảm chu kỳ polling 4.9-5.0s.
-        """
+    ) -> Tuple[Dict[str, BusRecord], int, int, Optional[str]]:
+        """Biến thể trả thêm (results, ok_count, error_count, last_error) để phân biệt miss thường và lỗi upstream."""
         anchors: List[int] = []
         for sid in station_ids:
             if sid and int(sid) not in anchors:
@@ -356,8 +350,11 @@ class TimBusClient:
                 norm_targets.append(np)
 
         results: Dict[str, BusRecord] = {}
+        ok_count = 0
+        error_count = 0
+        last_error: Optional[str] = None
         if not anchors or not norm_targets:
-            return results
+            return results, ok_count, error_count, last_error
 
         max_workers = min(6, len(norm_targets))
         for anchor_idx, sid in enumerate(anchors):
@@ -374,10 +371,13 @@ class TimBusClient:
                             direction=direction,
                             timeout=timeout,
                         )
+                        ok_count += 1
                         if rec is not None:
                             results[np] = rec
                             anchor_hits += 1
-                    except Exception:
+                    except Exception as exc:
+                        error_count += 1
+                        last_error = f"{type(exc).__name__}: {exc}"
                         continue
             else:
                 with ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -397,15 +397,42 @@ class TimBusClient:
                         np = fut_map[fut]
                         try:
                             rec = fut.result()
+                            ok_count += 1
                             if rec is not None:
                                 results[np] = rec
                                 anchor_hits += 1
-                        except Exception:
+                        except Exception as exc:
+                            error_count += 1
+                            last_error = f"{type(exc).__name__}: {exc}"
                             continue
             if anchor_hits > 0:
                 break
 
+        return results, ok_count, error_count, last_error
+
+    @classmethod
+    def query_central_vehicles(
+        cls,
+        station_ids: List[int],
+        plates: List[str],
+        direction: int = 0,
+        route_code: str = "",
+        timeout: int = 3,
+        inter_request_delay: float = 0.05,
+    ) -> Dict[str, BusRecord]:
+        """Chế độ 3: Bám đuổi tối đa 4 xe trung tâm với chuỗi trạm mỏ neo dự phòng (Multi-Anchor Fallback)."""
+        results, _, _, _ = cls.query_central_vehicles_with_status(
+            station_ids=station_ids,
+            plates=plates,
+            direction=direction,
+            route_code=route_code,
+            timeout=timeout,
+            inter_request_delay=inter_request_delay,
+        )
         return results
+
+
+TimBusClient._default_query_central_impl = TimBusClient.query_central_vehicles.__func__
 
 
 # ======================================================================================

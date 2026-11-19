@@ -256,9 +256,14 @@
   /**
    * Cập nhật danh sách thẻ xe ở Sidebar
    */
-  function renderVehicleList(vehicles) {
+  function renderVehicleList(vehicles, upstreamStatus, upstreamError) {
     if (!vehicles || vehicles.length === 0) {
-      vehicleListEl.innerHTML = '<div class="empty-state">Hiện không có xe hoạt động trên chiều này.</div>';
+      if (upstreamStatus === 'upstream_error') {
+        const msg = upstreamError ? ` (${escapeHtml(upstreamError)})` : '';
+        vehicleListEl.innerHTML = `<div class="empty-state">Lỗi kết nối BusMap upstream${msg}. Đang thử lại ở chu kỳ kế tiếp.</div>`;
+      } else {
+        vehicleListEl.innerHTML = '<div class="empty-state">Hiện không có xe hoạt động trên chiều này.</div>';
+      }
       listCounterBadge.textContent = '0 xe';
       return;
     }
@@ -486,6 +491,18 @@
     }
   }
 
+  function showEtaRefreshError(container, message) {
+    if (!container) return;
+    let warnEl = container.querySelector('.eta-stale-warning');
+    if (!warnEl) {
+      warnEl = document.createElement('div');
+      warnEl.className = 'eta-stale-warning';
+      warnEl.style.cssText = 'color:#b45309;background:#fef3c7;padding:4px 8px;border-radius:4px;font-size:12px;margin-bottom:6px;';
+      container.prepend(warnEl);
+    }
+    warnEl.textContent = message;
+  }
+
   async function refreshOpenPopupEta() {
     if (!latestPopupStationRef || !latestPopupContainer || !latestPopupContainer.isConnected) return;
     const ref = latestPopupStationRef;
@@ -494,7 +511,12 @@
     if (ref.routeId !== currentRouteId || ref.direction !== currentDirection) return;
     try {
       const res = await fetch(`/api/station-eta?route_id=${ref.routeId}&direction=${ref.direction}&station_order=${ref.stationOrder}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (requestId === popupRequestId && container.isConnected) {
+          showEtaRefreshError(container, `Không cập nhật được ETA (HTTP ${res.status}) — dữ liệu có thể đã cũ.`);
+        }
+        return;
+      }
       const data = await res.json();
       if (requestId !== popupRequestId || latestPopupStationRef !== ref ||
           latestPopupContainer !== container || !container.isConnected) return;
@@ -502,6 +524,9 @@
       renderStationPopupEta(latestPopupContainer, data);
     } catch (err) {
       console.error('[Station Popup ETA] Lỗi cập nhật ETA popup:', err);
+      if (requestId === popupRequestId && container.isConnected) {
+        showEtaRefreshError(container, 'Mất kết nối khi cập nhật ETA — dữ liệu hiển thị có thể đã cũ.');
+      }
     }
   }
 
@@ -550,13 +575,21 @@
     const requestId = ++focusRequestId;
     try {
       const res = await fetch(`/api/station-eta?route_id=${ref.routeId}&direction=${ref.direction}&station_order=${ref.stationOrder}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (pinnedStation === ref && requestId === focusRequestId) {
+          showEtaRefreshError(stationFocusCardEl, `Không cập nhật được ETA trạm ghim (HTTP ${res.status}) — dữ liệu có thể đã cũ.`);
+        }
+        return;
+      }
       const data = await res.json();
       if (pinnedStation !== ref || requestId !== focusRequestId) return;
       renderStationFocusCard(data);
       syncStationFastPolling(data);
     } catch (err) {
       console.error('[Station ETA] Lỗi cập nhật thẻ trạm ghim:', err);
+      if (pinnedStation === ref && requestId === focusRequestId) {
+        showEtaRefreshError(stationFocusCardEl, 'Mất kết nối khi cập nhật ETA trạm ghim — dữ liệu hiển thị có thể đã cũ.');
+      }
     }
   }
 
@@ -592,6 +625,20 @@
       { label: 'Vận tốc ổn định:', valHtml: `${Number(bus.speed_kmh || 0).toFixed(1)} km/h` },
       { label: 'Tình trạng giao thông:', valHtml: escapeHtml(traffic.label), valClass: traffic.cls }
     ];
+
+    if (bus.prediction_source === 'baseline_fallback') {
+      const fbMap = {
+        cold_start_causal: 'chưa đủ lịch sử GPS',
+        model_unavailable: 'mô hình ML chưa sẵn sàng',
+        unknown_route: 'tuyến ngoài tập huấn luyện',
+        predict_error: 'lỗi dự báo ML'
+      };
+      const fbNote = fbMap[bus.fallback_reason] || 'ước tính nền';
+      rows.push({
+        label: 'Chế độ ETA:',
+        valHtml: `<span style="color:#b45309">Ước tính nền (${escapeHtml(fbNote)})</span>`
+      });
+    }
 
     let dividerIdx = -1;
     if (debug) {
@@ -895,12 +942,18 @@
       // Tự đồng bộ chu kỳ 5s (TimBus) hoặc 15s (BusMap-only)
       syncVehiclePolling(Boolean(data.timbus_supported), data.poll_interval_sec);
 
-      // Cập nhật UI trạng thái
-      vehicleCountEl.textContent = `${vehicles.length} xe hoạt động`;
+      // Cập nhật UI trạng thái (phản hồi rõ nếu BusMap/TimBus lỗi upstream)
+      if (data.upstream_status === 'upstream_error') {
+        vehicleCountEl.textContent = 'Lỗi kết nối BusMap';
+      } else if (data.timbus_status === 'upstream_error' || data.timbus_status === 'partial_error') {
+        vehicleCountEl.textContent = `${vehicles.length} xe (TimBus gián đoạn)`;
+      } else {
+        vehicleCountEl.textContent = `${vehicles.length} xe hoạt động`;
+      }
 
       // Cập nhật Marker trên bản đồ & Danh sách thẻ ở Sidebar
       updateMarkers(vehicles);
-      renderVehicleList(vehicles);
+      renderVehicleList(vehicles, data.upstream_status, data.upstream_error);
 
       // Đồng bộ trạm ghim & popup trạm đang mở cùng nhịp poll
       if (pinnedStation && pinnedStation.routeId === currentRouteId && pinnedStation.direction === currentDirection) {

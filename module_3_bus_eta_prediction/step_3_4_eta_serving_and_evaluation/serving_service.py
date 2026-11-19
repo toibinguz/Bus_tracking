@@ -277,6 +277,7 @@ class BusMapServingService:
         # Cache Monotonicity, danh sách xe vượt trạm theo từng trạm & vận tốc vĩ mô cho luồng hybrid TimBus 5s
         self._tb_lock = threading.Lock()
         self._tb_last_valid: Dict[Tuple[int, int, str], Tuple[float, float, BusVehicleDTO]] = {}
+        self._last_timbus_status: Dict[Tuple[int, int], Tuple[str, Optional[str]]] = {}
         self._passed_station_plates: Dict[Tuple[int, int, int, str], float] = {}
         self._speed_tracker = MacroSpeedTracker()
         self._projection_generations={}
@@ -370,7 +371,13 @@ class BusMapServingService:
         if not timbus_ok or not anchor_sids:
             if resp.vehicles:
                 self._observe_causal_snapshot(route_id, dir_int, resp.vehicles, datetime.now(TZ_HANOI).timestamp())
-            return resp.model_copy(update={"timbus_supported": timbus_ok, "poll_interval_sec": poll_sec})
+            return resp.model_copy(
+                update={
+                    "timbus_supported": timbus_ok,
+                    "poll_interval_sec": poll_sec,
+                    "timbus_status": "unsupported",
+                }
+            )
 
         now_epoch = datetime.now(TZ_HANOI).timestamp()
         _, merged = self._sync_route_both_directions(
@@ -381,12 +388,16 @@ class BusMapServingService:
             s_target=None,
             primary_live_resp=resp,
         )
+        with self._tb_lock:
+            tb_status, tb_error = getattr(self, "_last_timbus_status", {}).get((route_id, dir_int), ("ok", None))
         return resp.model_copy(
             update={
                 "count": len(merged),
                 "timestamp": now_hanoi_iso(),
                 "timbus_supported": True,
                 "poll_interval_sec": poll_sec,
+                "timbus_status": tb_status,
+                "timbus_error": tb_error,
                 "vehicles": merged,
             }
         )
@@ -558,15 +569,38 @@ class BusMapServingService:
         if plates_to_query:
             timeout_s = max(1, int(math.ceil(TIMBUS_QUERY_TIMEOUT_SEC)))
             try:
-                tb_map = TimBusClient.query_central_vehicles(
-                    station_ids=anchor_sids,
-                    plates=plates_to_query,
-                    direction=dir_int,
-                    timeout=timeout_s,
+                is_default_impl = getattr(TimBusClient.query_central_vehicles, "__func__", None) is getattr(
+                    TimBusClient, "_default_query_central_impl", None
                 )
+                if is_default_impl:
+                    tb_map, ok_cnt, err_cnt, last_err = TimBusClient.query_central_vehicles_with_status(
+                        station_ids=anchor_sids,
+                        plates=plates_to_query,
+                        direction=dir_int,
+                        timeout=timeout_s,
+                    )
+                else:
+                    tb_map = TimBusClient.query_central_vehicles(
+                        station_ids=anchor_sids,
+                        plates=plates_to_query,
+                        direction=dir_int,
+                        timeout=timeout_s,
+                    )
+                    ok_cnt, err_cnt, last_err = len(tb_map), 0, None
+                if err_cnt > 0 and ok_cnt == 0 and not tb_map:
+                    tb_status, tb_err = "upstream_error", last_err
+                elif err_cnt > 0:
+                    tb_status, tb_err = "partial_error", last_err
+                else:
+                    tb_status, tb_err = "ok", None
             except Exception as e:
                 logger.warning("Lỗi truy vấn TimBus route=%s dir=%s: %s", route_id, dir_int, e)
                 tb_map = {}
+                tb_status, tb_err = "upstream_error", f"{type(e).__name__}: {e}"
+            with self._tb_lock:
+                if not hasattr(self, "_last_timbus_status"):
+                    self._last_timbus_status = {}
+                self._last_timbus_status[(route_id, dir_int)] = (tb_status, tb_err)
 
             for p_norm in plates_to_query:
                 bm_entry = bm_proj.get(p_norm)
@@ -622,6 +656,11 @@ class BusMapServingService:
                     within_limit = (now_epoch - last_ts) <= TIMBUS_HOLD_FRESH_SEC
                     if within_limit and s_bm < last_s_tb:
                         tb_valid_by_plate[p_norm] = last_dto
+        else:
+            with self._tb_lock:
+                if not hasattr(self, "_last_timbus_status"):
+                    self._last_timbus_status = {}
+                self._last_timbus_status[(route_id, dir_int)] = ("ok", None)
 
         merged: List[BusVehicleDTO] = []
         for v in raw_vehicles:
@@ -788,11 +827,22 @@ class BusMapServingService:
             )
 
         live_resp = fetch_live_vehicles_for_route(route_id=route_id, direction=dir_int)
+        if live_resp.upstream_status == "upstream_error":
+            return self._response(
+                route_id, route_code, dir_int, dir_str, target_st, now_iso, day_type, hour_slot,
+                "THONG_THOANG", [],
+                f"Lỗi kết nối BusMap upstream: {live_resp.upstream_error or 'Không xác định'}",
+                timbus_supported=timbus_ok, poll_interval_sec=poll_sec,
+                upstream_status="upstream_error", upstream_error=live_resp.upstream_error,
+                timbus_status="unsupported" if not timbus_ok else "ok",
+            )
         if live_resp.count == 0:
             return self._response(
                 route_id, route_code, dir_int, dir_str, target_st, now_iso, day_type, hour_slot,
                 "THONG_THOANG", [], "Hiện chưa có xe trực tiếp trên tuyến này.",
                 timbus_supported=timbus_ok, poll_interval_sec=poll_sec,
+                upstream_status=live_resp.upstream_status,
+                timbus_status="unsupported" if not timbus_ok else "ok",
             )
 
         shape_model = self._get_shape_model(route_id, dir_str)
@@ -838,8 +888,14 @@ class BusMapServingService:
             with self._causal_lock:
                 causal_res = self._causal.features(route_id, dir_int, plate_key, station_order, now_epoch)
             features = causal_res[0] if causal_res is not None else None
-            ml_supported = features is not None and self._runtime.available and self._da.get_route_idx(route_id) is not None
-            ml_p50 = self._runtime.predict_p50(features) if ml_supported else None
+            if not self._runtime.available:
+                ml_p50, fb_reason = None, "model_unavailable"
+            elif self._da.get_route_idx(route_id) is None:
+                ml_p50, fb_reason = None, "unknown_route"
+            elif features is None:
+                ml_p50, fb_reason = None, "cold_start_causal"
+            else:
+                ml_p50, fb_reason = self._runtime.predict_p50_with_reason(features)
             prediction_source = "ml_calibrated" if ml_p50 is not None else "baseline_fallback"
 
             dto = compute_station_eta(
@@ -854,15 +910,15 @@ class BusMapServingService:
                 hour_slot=hour_slot,
                 ml_p50=ml_p50,
                 prediction_source=prediction_source,
-            )
-            candidates.append((v, bus_state, features, prediction_source, dto))
+            ).model_copy(update={"fallback_reason": fb_reason})
+            candidates.append((v, bus_state, features, prediction_source, fb_reason, dto))
             speeds.append(v.speed_kmh)
 
         overrides = compute_proximity_capped_etas(
-            [(item[4].distance_to_station_m, item[4].eta_seconds) for item in candidates]
+            [(item[5].distance_to_station_m, item[5].eta_seconds) for item in candidates]
         )
         approaching: List[ApproachingBusDTO] = []
-        for (v, bus_state, features, prediction_source, dto), capped_p50 in zip(candidates, overrides):
+        for (v, bus_state, features, prediction_source, fb_reason, dto), capped_p50 in zip(candidates, overrides):
             if capped_p50 is not None:
                 dto = compute_station_eta(
                     bus_state=bus_state,
@@ -876,7 +932,7 @@ class BusMapServingService:
                     hour_slot=hour_slot,
                     ml_p50=capped_p50,
                     prediction_source=prediction_source,
-                )
+                ).model_copy(update={"fallback_reason": fb_reason})
             dto = dto.model_copy(update={"telemetry_source": v.telemetry_source})
             from .request_trace import record
             record('eta_result', route_id=route_id, direction=dir_int, station_order=station_order,
@@ -903,11 +959,128 @@ class BusMapServingService:
             if count > 0
             else "Không có xe nào đang tiếp cận trạm này."
         )
+        with self._tb_lock:
+            tb_status, tb_error = (
+                getattr(self, "_last_timbus_status", {}).get((route_id, dir_int), ("ok", None))
+                if timbus_ok
+                else ("unsupported", None)
+            )
+        top_fb_reason = approaching[0].fallback_reason if approaching else None
         return self._response(
             route_id, route_code, dir_int, dir_str, target_st, now_iso, day_type, hour_slot,
             traffic_cond, approaching, message,
             timbus_supported=timbus_ok, poll_interval_sec=poll_sec,
+            upstream_status=live_resp.upstream_status,
+            upstream_error=live_resp.upstream_error,
+            timbus_status=tb_status,
+            timbus_error=tb_error,
+            fallback_reason=top_fb_reason,
         )
+
+    # ------------------------------------------------- Speed-Layer Integration
+    def get_poller_route_ids(self) -> List[int]:
+        """Trả danh sách route_id phục vụ Speed Layer (ưu tiên tuyến baseline)."""
+        baseline_codes = set(getattr(self, "source_info", {}).get("baseline_routes") or ())
+        routes = self._da.get_routes()
+        if baseline_codes:
+            matched = [r.route_id for r in routes if r.route_no in baseline_codes]
+            if matched:
+                return matched
+        return [r.route_id for r in routes]
+
+    def get_timbus_anchors(self, route_id: int, dir_int: int) -> Tuple[bool, List[int]]:
+        return self._da.get_timbus_anchors(route_id, dir_int)
+
+    def get_shape_model(self, route_id: int, dir_str: str) -> Optional[ShapeProjectionModel]:
+        return self._get_shape_model(route_id, dir_str)
+
+    def get_route_endpoint_s(self, route_id: int, dir_str: str) -> Optional[Tuple[float, float]]:
+        """Trả (s_start, s_end) của tuyến/chiều để phân loại xe đậu gần bến."""
+        stations_resp = self._da.get_route_stations(route_id, dir_str)
+        if stations_resp is None or not stations_resp.stations:
+            return None
+        return (stations_resp.stations[0].cum_distance_m, stations_resp.stations[-1].cum_distance_m)
+
+    def get_recent_timbus_plates(
+        self, route_id: int, dir_int: int, now_epoch: float, max_age_sec: float = 45.0
+    ) -> set:
+        """Biển số đã được Serving Layer hoặc Speed Layer cập nhật TimBus gần đây (< max_age_sec)."""
+        recent = set()
+        with self._tb_lock:
+            for (r_id, d_id, plate), (ts, _, _) in self._tb_last_valid.items():
+                if r_id == route_id and d_id == dir_int and (now_epoch - ts) < max_age_sec:
+                    recent.add(plate)
+        return recent
+
+    def ingest_speed_layer_vehicles(
+        self, route_id: int, dir_int: int, vehicles: List[BusVehicleDTO], now_epoch: float
+    ) -> List[BusVehicleDTO]:
+        """Nạp snapshot BusMap từ Speed Layer vào OnlineFeatureExtractor + CausalFeatures."""
+        if not vehicles:
+            return []
+        prepared = [self._prepare_vehicle(route_id, dir_int, v, now_epoch) for v in vehicles]
+        prepared = [v for v in prepared if v.matched_projection is not None]
+        if prepared:
+            self._extractor.update_observation(route_id, dir_int, prepared, now_epoch)
+            self._observe_causal_snapshot(route_id, dir_int, prepared, now_epoch)
+        return prepared
+
+    def ingest_speed_layer_timbus_hit(
+        self,
+        route_id: int,
+        dir_int: int,
+        bm_v: BusVehicleDTO,
+        tb_rec: Any,
+        now_epoch: float,
+    ) -> Optional[BusVehicleDTO]:
+        """Nạp bản ghi TimBus hit từ Speed Layer vào _tb_last_valid + extractor + CausalFeatures."""
+        dir_str = "go" if dir_int == 0 else "re"
+        shape_model = self._get_shape_model(route_id, dir_str)
+        if shape_model is None:
+            return None
+        s_tb, ct_tb, seg_idx_tb = shape_model.project_point(tb_rec.latitude, tb_rec.longitude)
+        if ct_tb > MAX_CORRIDOR_CROSS_TRACK_M:
+            return None
+        raw_ts = getattr(tb_rec, "fetch_timestamp", None)
+        tb_ts, tb_iso = parse_ping_epoch(raw_ts, now_epoch) if raw_ts is not None else (now_epoch, now_hanoi_iso())
+        ux, uy = shape_model.segment_unit_tangent(seg_idx_tb)
+        tb_deg = math.degrees(math.atan2(ux, uy)) % 360.0
+        tb_dto = bm_v.model_copy(
+            update={
+                "lat": float(tb_rec.latitude),
+                "lng": float(tb_rec.longitude),
+                "deg": tb_deg,
+                "speed_kmh": float(tb_rec.speed_kmh),
+                "raw_speed_kmh": float(tb_rec.speed_kmh),
+                "updated_at": tb_iso,
+                "telemetry_source": "timbus",
+            }
+        )
+        tb_dto = self._prepare_vehicle(route_id, dir_int, tb_dto, now_epoch)
+        if tb_dto.matched_projection is None:
+            return None
+        s_tb, _, seg_idx_tb = tb_dto.matched_projection
+        p_norm = TimBusClient.normalize_plate(tb_dto.plate)
+        if p_norm:
+            with self._tb_lock:
+                self._tb_last_valid[(route_id, dir_int, p_norm)] = (tb_ts, s_tb, tb_dto)
+        self._extractor.update_observation(route_id, dir_int, [tb_dto], now_epoch)
+        with self._causal_lock:
+            self._causal.observe(
+                Observation(
+                    route_id=route_id,
+                    direction=dir_int,
+                    vehicle=p_norm or f"id:{tb_dto.id}",
+                    source="timbus",
+                    epoch=min(now_epoch, tb_ts),
+                    received=now_epoch,
+                    lat=float(tb_dto.lat),
+                    lng=float(tb_dto.lng),
+                    signature=(round(float(tb_dto.lat), 6), round(float(tb_dto.lng), 6)),
+                    context="speed_layer",
+                )
+            )
+        return tb_dto
 
     def _is_route_eta_feasible(self, route_id: int, route_code: str) -> bool:
         """True nếu tuyến có baseline quan sát hoặc thuộc miền huấn luyện của ModelRuntime."""
@@ -924,6 +1097,9 @@ class BusMapServingService:
         route_id: int, route_code: str, dir_int: int, dir_str: str, target_st, now_iso: str,
         day_type: int, hour_slot: int, traffic_cond: str, buses: List[ApproachingBusDTO], message: str,
         timbus_supported: bool = False, poll_interval_sec: int = DEFAULT_ETA_POLL_SEC,
+        upstream_status: str = "ok", upstream_error: Optional[str] = None,
+        timbus_status: str = "unsupported", timbus_error: Optional[str] = None,
+        fallback_reason: Optional[str] = None,
     ) -> StationEtaResponse:
         return StationEtaResponse(
             route_id=route_id,
@@ -940,6 +1116,11 @@ class BusMapServingService:
             message=message,
             timbus_supported=timbus_supported,
             poll_interval_sec=poll_interval_sec,
+            upstream_status=upstream_status,
+            upstream_error=upstream_error,
+            timbus_status=timbus_status,
+            timbus_error=timbus_error,
+            fallback_reason=fallback_reason,
         )
 
 

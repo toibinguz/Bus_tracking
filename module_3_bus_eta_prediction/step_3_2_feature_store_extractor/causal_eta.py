@@ -2,6 +2,7 @@
 
 import bisect
 import math
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -72,6 +73,7 @@ class VehicleState:
 class CausalFeatures:
     def __init__(self, data):
         self.data = data
+        self._lock = threading.RLock()
         self._shapes = {}
         self._corridors = {}
         self._states = {}
@@ -81,12 +83,17 @@ class CausalFeatures:
         self._journey = 0
 
     def corridor(self, route_id, direction):
-        key = (route_id, direction)
-        if key not in self._corridors:
-            self._corridors[key] = self.data.get_corridor_stations(route_id, ('go', 're')[direction])
-        return self._corridors[key]
+        with self._lock:
+            key = (route_id, direction)
+            if key not in self._corridors:
+                self._corridors[key] = self.data.get_corridor_stations(route_id, ('go', 're')[direction])
+            return self._corridors[key]
 
     def observe(self, observation):
+        with self._lock:
+            return self._observe_locked(observation)
+
+    def _observe_locked(self, observation):
         o = observation
         if (
             o.source not in ('busmap', 'timbus') or o.direction not in (0, 1) or not o.vehicle
@@ -150,7 +157,8 @@ class CausalFeatures:
         return state.journey, match.s
 
     def observe_snapshot(self, route_id, direction, received, vehicles, valid=True):
-        self._snapshots[(route_id, direction)] = (received, frozenset(vehicles), valid)
+        with self._lock:
+            self._snapshots[(route_id, direction)] = (received, frozenset(vehicles), valid)
 
     @staticmethod
     def speed(state, seconds):
@@ -181,6 +189,10 @@ class CausalFeatures:
                      (state.observations[start.epoch].source, state.observations[end.epoch].source))
 
     def features(self, route_id, direction, vehicle, target_order, now):
+        with self._lock:
+            return self._features_locked(route_id, direction, vehicle, target_order, now)
+
+    def _features_locked(self, route_id, direction, vehicle, target_order, now):
         state = self._states.get((route_id, vehicle))
         if (not state or not state.last or state.last.direction != direction
                 or state.last.received > now or not 0 <= now - state.last_epoch <= MAX_POSITION_AGE):

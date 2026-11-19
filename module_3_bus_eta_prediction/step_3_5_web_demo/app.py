@@ -5,6 +5,7 @@ Module: module_3_bus_eta_prediction/step_3_5_web_demo/app.py
 FastAPI server combining BusMap/TimBus live GPS with local ETA serving data.
 """
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 import os
 from uuid import uuid4
@@ -23,11 +24,28 @@ from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation import (
     StationEtaResponse,
     normalize_direction,
 )
+from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.speed_poller import SpeedLayerPoller
+
+# Initialize service singleton + Speed Layer poller
+service = BusMapServingService(release_pointer=os.environ.get('ETA_RELEASE_POINTER'))
+speed_poller = SpeedLayerPoller(service)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if os.environ.get("DISABLE_SPEED_POLLER") != "1":
+        speed_poller.start()
+    try:
+        yield
+    finally:
+        speed_poller.stop()
+
 
 app = FastAPI(
     title="Hanoi Bus Live Discrete Tracking",
     description="Theo dõi GPS BusMap/TimBus và dự báo ETA từ dữ liệu phục vụ local",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 app.app = app  # Support direct attribute lookup when imported as web_app.app
 
@@ -53,9 +71,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize service singleton
-service = BusMapServingService(release_pointer=os.environ.get('ETA_RELEASE_POINTER'))
 
 
 @app.middleware('http')
@@ -95,10 +110,27 @@ def get_root():
 @app.get("/api/health")
 @app.get("/api/v1/health")
 def get_health():
-    """Process health and pinned local data identity; this does not probe upstreams."""
-    return dict(HEALTH_PAYLOAD, serving=service.source_info,
-                capture=dict(backend_trace=bool(os.environ.get('ETA_TRACE_DIR')),
-                             upstream_raw=bool(os.environ.get('ETA_UPSTREAM_RAW_DIR'))))
+    """Process health, pinned local data identity, and Speed Layer poller status."""
+    poller_snap = speed_poller.get_health_snapshot()
+    model_ok = bool(getattr(service, "_runtime", None) and service._runtime.available)
+    degraded = (
+        poller_snap.get("status") == "degraded"
+        or poller_snap.get("circuit_state") == "OPEN"
+        or not model_ok
+    )
+    payload = dict(
+        HEALTH_PAYLOAD,
+        status="degraded" if degraded else "healthy",
+        healthy=not degraded,
+        model_available=model_ok,
+        poller=poller_snap,
+        serving=service.source_info,
+        capture=dict(
+            backend_trace=bool(os.environ.get('ETA_TRACE_DIR')),
+            upstream_raw=bool(os.environ.get('ETA_UPSTREAM_RAW_DIR')),
+        ),
+    )
+    return payload
 
 
 @app.get("/api/routes", response_model=List[RouteItemDTO])

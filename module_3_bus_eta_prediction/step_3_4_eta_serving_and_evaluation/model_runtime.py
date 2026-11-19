@@ -10,7 +10,7 @@ XGBoost dự báo RESIDUAL; serving dựng ETA = max(5.0, baseline_eta_p50_sec +
 import hashlib
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from config.system_config import DEFAULT_DB_PATH  # noqa: F401  (giữ import config để đồng bộ SSOT)
 from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import FEATURES
@@ -79,14 +79,16 @@ class ModelRuntime:
         """True khi bundle causal-eta.v1 sẵn sàng."""
         return self._residual_eta is not None
 
-    def predict_p50(self, feature_row: Optional[Dict[str, Any]]) -> Optional[float]:
-        """Dự báo ETA P50 tuyệt đối; trả None để fallback baseline nếu thiếu feature hoặc tuyến ngoài tập train."""
-        if not self.available or not feature_row:
-            return None
+    def predict_p50_with_reason(self, feature_row: Optional[Dict[str, Any]]) -> Tuple[Optional[float], str]:
+        """Dự báo ETA P50 tuyệt đối kèm lý do ('ok' hoặc lý do fallback baseline)."""
+        if not self.available:
+            return None, "model_unavailable"
+        if not feature_row:
+            return None, "cold_start_causal"
         r_idx = feature_row.get("route_id_idx")
         try:
             if r_idx is None or int(r_idx) not in self._known_routes:
-                return None
+                return None, "unknown_route"
             eta = float(self._residual_eta.predict([feature_row], allow_unknown_routes=False)[0])
             base = float(feature_row["baseline_eta_p50_sec"])
             from .request_trace import record
@@ -99,7 +101,12 @@ class ModelRuntime:
                 prediction_seconds=eta,
                 model=self.identity,
             )
-            return eta
+            return eta, "ok"
         except Exception as e:
             logger.warning("Lỗi predict_p50, fallback baseline: %s", e)
-            return None
+            return None, "predict_error"
+
+    def predict_p50(self, feature_row: Optional[Dict[str, Any]]) -> Optional[float]:
+        """Dự báo ETA P50 tuyệt đối; trả None để fallback baseline nếu thiếu feature hoặc tuyến ngoài tập train."""
+        eta, _ = self.predict_p50_with_reason(feature_row)
+        return eta
