@@ -64,3 +64,27 @@ flowchart TD
 - `TimBusClient` phụ thuộc API ngoài `timbus.vn`; khi nguồn TimBus mất kết nối hoặc trễ, hệ thống tự fallback về BusMap thuần.
 - `_observe_causal_snapshot` dùng `_causal_lock` để đảm bảo đồng bộ luồng khi cập nhật trạng thái đội xe.
 - Giao diện web demo (`step_3_5_web_demo/static/`) giữ hợp đồng API chuẩn, không phụ thuộc chế độ hiển thị ở client.
+
+## 4. Sơ đồ Logic Xử lý Thời gian thực (Hybrid Merge, RouteHMM, Pass Guard & ETA Policy)
+
+```mermaid
+flowchart TD
+    REQ["Request GET /api/station-eta\n(route_id, direction, station_order)"] --> ORD0{"station_order == 0?"}
+    ORD0 -->|"Đúng"| END0["Trả về: Trạm đầu bến\n(xuất bến theo nốt)"]
+    ORD0 -->|"Sai"| FEAS{"_is_route_eta_feasible?\n(trong baseline_routes HOẶC _known_routes)"}
+    FEAS -->|"Sai"| OOS["Trả về: Tuyến nằm ngoài phạm vi dự báo ETA"]
+    FEAS -->|"Đúng"| FETCH["Lấy BusMap Live (RAM cache)\n+ TimBus Central API"]
+
+    FETCH --> MERGE["Trộn theo biển số (_sync_and_merge_timbus)\nƯu tiên ping mới hơn + _tb_last_valid\n+ MacroSpeedTracker EMA"]
+    MERGE --> HMM["RouteHMM (Viterbi nhân quả)\nEmission (cross_track Gaussian)\n+ Transition (hướng tiếp tuyến & tiến độ ds)"]
+    HMM --> GUARD{"Pass Guard & Lọc hợp lệ:\ncross_track <= 35m, đúng hướng,\ns_now <= s_target, chưa nằm trong _passed_station_plates?"}
+    GUARD -->|"Sai"| SKIP["Loại xe & ghi nhận đã qua trạm\n(chống hồi sinh từ cache cũ)"]
+    GUARD -->|"Đúng"| CAUSAL["Khóa _causal_lock -> Cập nhật đội xe\nTrích 36 biến CausalFeatures + Silver Incidents"]
+
+    CAUSAL --> KNOWN{"route_id_idx thuộc\n_known_routes của ModelRuntime?"}
+    KNOWN -->|"Đúng"| ML["eta_p50 = max(5.0,\nbaseline_p50 + XGBoost_residual)"]
+    KNOWN -->|"Sai"| BASE["eta_p50 = baseline_eta_p50_sec"]
+
+    ML & BASE --> POL["eta_policy (P1-P10):\n1. compute_proximity_capped_etas\n2. Buffer LINEX: delta = kappa(d)*(alpha*sigma + beta*hb + gamma*eta)\n3. Lượng tử hóa SafeWindowDTO [optimistic, conservative]"]
+    POL --> RESP["Trả về StationEtaResponse JSON"]
+```

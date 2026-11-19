@@ -57,3 +57,35 @@ flowchart TD
 | 2. HDFS Silver P2 | `step_2_4` (`p2_transform.py`, `history_execution.py`) & `step_1_4` (`projection_boundary.py`, `route_matcher.py`) | HDFS Bronze -> HDFS Silver P2 | Lọc `cross_track_m <= 35.0m`, `MAX_BACKWARD_JITTER_M = 120.0m` |
 | 3. HDFS Gold Baseline | `step_3_1_historical_baseline_model/baseline_matrix_builder.py` & `step_2_4/eta_snapshot.py` | HDFS Silver + `train_test_split_v1.json` -> HDFS Gold & SQLite baseline | `MIN_SAMPLES_FOR_BASELINE = 5`, `MAX_SEGMENT_TRAVEL_TIME_SEC = 1800.0` |
 | 4. Huấn luyện ML | `step_3_3_machine_learning_models/silver_replay_trainer.py` | HDFS Silver + Gold Baseline + `CausalFeatures` -> `data/models/causal_eta_v1/` | 36 features nhân quả, residual XGBoost |
+
+## 3. Sơ đồ Logic Xử lý Lô (Sanitizer, Trip Segmentation, Baseline & Residual ML)
+
+```mermaid
+flowchart TD
+    IN["Raw Ping (vid, lat, lon, speed, dir, ts)"] --> BBOX{"Trong HANOI_BBOX?\n19.50<=lat<=22.50\n104.50<=lon<=107.50"}
+    BBOX -->|"Sai"| OOB["Gắn OUT_OF_BOUNDS"]
+    BBOX -->|"Đúng"| DT{"dt = ts - prev_ts > 0?"}
+    DT -->|"Sai"| STALE["Gắn STALE_PING"]
+    DT -->|"Đúng"| VCALC{"v_calc = haversine / dt\n> 100.0 km/h?"}
+    VCALC -->|"Đúng"| DRIFT["Gắn GPS_DRIFT_JUMP\n(KHÔNG cập nhật kinematic_cache)"]
+    VCALC -->|"Sai"| DEPOT{"dist < 50.0m &\nở vùng bến?"}
+    DEPOT -->|"Đúng"| IDLE["Gắn IDLE_DEPOT"]
+    DEPOT -->|"Sai"| ACT["Gắn ACTIVE_VALID\n& cập nhật kinematic_cache"]
+
+    ACT --> SEG{"Kiểm tra ngắt chuyến:\ndt > 900s HOẶC đổi dir\nHOẶC s < prev_s - 120m?"}
+    SEG -->|"Có"| NEWTRIP["Tách Trip mới +\ntrim_terminal_stationary_ends()"]
+    SEG -->|"Không"| SAME["Nối vào Trip hiện tại"]
+
+    NEWTRIP & SAME --> FRENET["Chiếu 1D Frenet (ShapeProjectionModel)\n(lat, lon) -> (s_bus_m, cross_track_m)"]
+    FRENET --> CORR{"cross_track_m <= 35.0m?"}
+    CORR -->|"Sai"| DROP["Loại khỏi Silver Corridor"]
+    CORR -->|"Đúng"| SILVER["Lưu HDFS Silver P2\n(khử trùng lặp canonical_event_id)"]
+
+    SILVER --> BRACKET["Nội suy giao cắt trạm (Bracketed Crossing)\nLọc segment_tt <= 1800s & N >= 5"]
+    BRACKET --> GOLD["Gold Baseline Matrix\n(p10, p50, p90, mean, std theo route/dir/seg/day_type/hour)"]
+
+    SILVER -->|"Replay đơn điệu theo thời gian"| PREFIX["CausalFeatures (36 biến)\nchỉ dùng tiền tố quan sát quá khứ"]
+    GOLD -->|"baseline_eta_p50_sec + prior"| PREFIX
+    PREFIX --> RESID["Target = eta_actual - baseline_eta_p50_sec\nSample Weight cân bằng theo (route, journey, target)"]
+    RESID --> XGB["Huấn luyện XGBRegressor (reg:absoluteerror)\nTemporal Split: Train / Validation / Test -> causal-eta.v1"]
+```
