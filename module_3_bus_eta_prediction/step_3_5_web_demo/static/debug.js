@@ -232,6 +232,7 @@
     etaChips.innerHTML = [
       `<span class="chip ${d.upstream_status === 'ok' ? 'ok' : 'danger'}">BM:${C.escapeHtml(d.upstream_status)}</span>`,
       `<span class="chip ${d.timbus_status === 'ok' ? 'ok' : (d.timbus_status === 'unsupported' ? '' : 'warn')}">TB:${C.escapeHtml(d.timbus_status)}</span>`,
+      `<span class="chip ${(d.incidents || []).length ? 'warn' : ''}">INC:${(d.incidents || []).length}</span>`,
       `<span class="chip">${d.poll_interval_sec}s</span>`,
       d.fallback_reason ? `<span class="chip ${d.fallback_reason === 'ok' ? 'ok' : 'warn'}">FB:${C.escapeHtml(d.fallback_reason)}</span>` : '',
     ].join('');
@@ -406,6 +407,14 @@
           <span class="kv-k">Baseline routes</span><span class="kv-v">${(srv.baseline_routes || []).length}</span>
           <span class="kv-k">Trace / Raw Capture</span><span class="kv-v">${h.capture?.backend_trace ? 'ON' : 'OFF'} / ${h.capture?.upstream_raw ? 'ON' : 'OFF'}</span>
           <span class="kv-k">Last Poller Error</span><span class="kv-v">${C.escapeHtml(p.last_error || 'none')}</span>
+        </div>
+      </div>
+      <div class="sys-card">
+        <h3>Live TomTom Incidents (HF Relay)</h3>
+        <div class="kv-grid">
+          <span class="kv-k">Số sự cố toàn mạng</span><span class="kv-v">${p.incidents?.count ?? 0}</span>
+          <span class="kv-k">Fetched At</span><span class="kv-v">${C.escapeHtml(p.incidents?.fetched_at || '--')}</span>
+          <span class="kv-k">Lỗi đồng bộ HF</span><span class="kv-v">${C.escapeHtml(p.incidents?.error || 'none')}</span>
         </div>
       </div>
     `;
