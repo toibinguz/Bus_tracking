@@ -576,7 +576,7 @@
         valHtml: `${escapeHtml(p50Remain)} &bull; <span class="arrival-highlight">${escapeHtml(arrivalClock)}</span>`
       },
       {
-        label: 'Lạc quan (-&Delta; đệm):',
+        label: 'Lạc quan (-Δ đệm):',
         valHtml: `${escapeHtml(optRemain)} &bull; <span class="optimistic-highlight">${escapeHtml(optClock)}</span>`
       },
       { label: 'Khoảng an toàn:', valHtml: `${p10m} &ndash; ${p90m} phút` },
