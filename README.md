@@ -28,6 +28,7 @@ flowchart LR
 | Mô hình dự báo ETA | [docs/ETA_MODEL.md](docs/ETA_MODEL.md) |
 | Web Demo & Tích hợp TimBus | [docs/DEMO_APP.md](docs/DEMO_APP.md), [experiments/timbus/README.md](experiments/timbus/README.md) |
 | Module 1, 2, 3 | [Module 1](module_1_data_ingestion_and_preprocessing/README.md), [Module 2](module_2_big_data_storage_and_lakehouse/README.md), [Module 3](module_3_bus_eta_prediction/README.md) |
+| CLI Entrypoints & Ops Runners | [scripts/README.md](scripts/README.md) |
 | Đề xuất học thuật | [academic_proposal/](academic_proposal/) |
 
 ## Tham số SSOT (`config/system_config.py`)

@@ -8,10 +8,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pyarrow.parquet as pq
-import xgboost as xgb
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CATEGORICAL, FEATURES
@@ -105,7 +103,7 @@ def run(root, rounds, max_depth=4, features_dir=None):
     counts['test'] = len(test)
     evaluation = dict(overall=score(test), rows_by_split=counts, routes_without_test=missing_test,
                       per_route={str(route): score(group) for route, group in test.groupby('route')}, by_horizon={})
-    for name, lo, hi in [('1',1,1), ('2-5',2,5), ('6-15',6,15), ('16+',16,float('inf'))]:
+    for name, lo, hi in [('1', 1, 1), ('2-5', 2, 5), ('6-15', 6, 15), ('16+', 16, float('inf'))]:
         group = test[test.n_stations_ahead.between(lo, hi)]
         if len(group):
             evaluation['by_horizon'][name] = score(group)
@@ -124,7 +122,7 @@ def run(root, rounds, max_depth=4, features_dir=None):
         rows = sample[list(FEATURES)].replace({np.nan: None}).to_dict('records')
         original = np.maximum(5, model.predict(pd.DataFrame({
             col: pd.Categorical(sample[col].astype('int32'), categories=domains[col]) if col in domains else sample[col]
-            for col in FEATURES}), iteration_range=(0, best + 1))+sample[BASE].to_numpy())
+            for col in FEATURES}), iteration_range=(0, best + 1)) + sample[BASE].to_numpy())
         np.testing.assert_allclose(restored.predict(rows), original, rtol=1e-5, atol=.001)
     print(json.dumps(evaluation['overall'], indent=2), flush=True)
     print(f'completed {rounds} rounds, selected {best+1}, test routes {len(evaluation["per_route"])}', flush=True)
