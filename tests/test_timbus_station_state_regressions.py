@@ -37,6 +37,8 @@ def service(monkeypatch):
     svc._tb_lock = threading.Lock()
     svc._tb_last_valid = {}
     svc._passed_station_plates = {}
+    svc._causal_lock = threading.Lock()
+    svc._causal = SimpleNamespace(observe=lambda *a, **k: None, observe_snapshot=lambda *a, **k: None)
     svc._apply_macro_speeds = lambda *args: args[4]
     svc._da = SimpleNamespace(get_timbus_anchors=lambda *args: (True, [1]))
     svc._get_shape_model = lambda *args: Shape()

@@ -117,6 +117,6 @@ def test_spec24_passenger_debug_are_client_presentation_not_api_modes(client: Te
 
     page = client.get("/")
     assert page.status_code == 200
-    assert "Passenger" in page.text
+    assert "Hành khách" in page.text
     assert "Debug" in page.text
 

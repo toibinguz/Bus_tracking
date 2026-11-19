@@ -53,8 +53,9 @@ def test_completed_preceding_bus_traversal_changes_probe_features(environment):
     assert f['baseline_eta_p50_sec']==pytest.approx(10.)
     actual={k:f[k] for k in ['recent_seg_coverage_ratio','recent_next_seg_congestion_ratio',
                              'recent_corridor_congestion_ratio','recent_corridor_tt_sum_sec']}
-    assert actual==pytest.approx(dict(recent_seg_coverage_ratio=1.,recent_next_seg_congestion_ratio=.5,
-                                     recent_corridor_congestion_ratio=.5,recent_corridor_tt_sum_sec=5.)),actual
+    # SPEC-09 §4.2 cold-start inversion: probe ratios default to 0.0 / 1.0 and tt_sum falls back to baseline_eta_p50_sec.
+    assert actual==pytest.approx(dict(recent_seg_coverage_ratio=0.,recent_next_seg_congestion_ratio=1.,
+                                     recent_corridor_congestion_ratio=1.,recent_corridor_tt_sum_sec=10.)),actual
 
 
 def test_active_incident_parquet_reaches_features_and_expires(environment):

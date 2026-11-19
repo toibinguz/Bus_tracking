@@ -43,9 +43,11 @@ def test_error_metrics_have_correct_sign_units_and_denominator():
 def test_unknown_route_index_cannot_be_predicted_as_first_route():
     from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.model_runtime import ModelRuntime
     class Forbidden:
-        def predict(self,*args): pytest.fail('unknown route reached model')
-    runtime=ModelRuntime(model=Forbidden(),booster_feature_names=['route_id_idx'])
+        domains={'route_id_idx':[0,1]}
+        def predict(self,*args,**kwargs): pytest.fail('unknown route reached model')
+    runtime=ModelRuntime(residual_eta=Forbidden())
     assert runtime.predict_p50({'route_id_idx':-1}) is None
+    assert runtime.predict_p50({'route_id_idx':999}) is None
 
 
 def test_batch_contract_rejects_wrong_mapping_clock_and_split():
