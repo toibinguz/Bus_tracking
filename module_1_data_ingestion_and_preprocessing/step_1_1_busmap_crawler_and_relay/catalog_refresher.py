@@ -183,35 +183,31 @@ def run_daily_catalog_refresh():
         for old_v, new_r in reassigned:
             print(f"    - Xe {old_v.get('title')} (ID {old_v['id']}): Route ID cũ {old_v.get('routeId')} -> Route ID mới {new_r}", flush=True)
 
-    # Pha 2: Tự động khám phá xe mới bằng route_bus_gps (Kèm chữ ký epoch & proof chuẩn xác)
-    print(f"\n[*] [Pha 2/3] Quét trực tiếp route_bus_gps tự động bổ sung xe cho các tuyến thiếu hụt...", flush=True)
+    # Pha 2: Tự động khám phá xe mới bằng route_bus_gps cho toàn bộ các tuyến cấu hình
+    print(f"\n[*] [Pha 2/3] Quét trực tiếp route_bus_gps cho {len(configured_routes)} tuyến để bổ sung xe mới...", flush=True)
     new_discovered_vehicles = []
     configured_vid_set = set(configured_vids)
 
     for route_no, route_id in configured_routes.items():
-        # Chỉ đếm xe ACTIVE thật sự (không tính DEPOT/STALE/OFFLINE)
-        active_on_route = sum(1 for r in audit_results.values() if r.get("route_id") == route_id and r.get("status") == "ACTIVE")
-        if active_on_route < CATALOG_MIN_ACTIVE_PER_ROUTE:
-            print(f"    - Tuyến {route_no} (ID {route_id}) chỉ có {active_on_route} xe ACTIVE, đang quét route_bus_gps 2 chiều...", flush=True)
-            for d in (0, 1):
-                live_buses = fetch_route_buses_live(route_id, direction=d)
-                for b in live_buses:
-                    try:
-                        f_vid = int(b.get("Id") or b.get("id") or 0)
-                        f_route = int(b.get("RouteId") or b.get("routeId") or 0)
-                        f_plate = str(b.get("VehicleNumber") or b.get("title") or "")
-                        if f_vid > 0 and f_route == route_id and f_vid not in configured_vid_set:
-                            new_discovered_vehicles.append({
-                                "id": f_vid,
-                                "plate": f_plate,
-                                "route_id": f_route,
-                                "route_no": route_no
-                            })
-                            configured_vid_set.add(f_vid)
-                            print(f"      + [route_bus_gps] Tìm thấy xe mới: {f_plate} (ID: {f_vid}) chiều {d}", flush=True)
-                    except Exception:
-                        pass
-                time.sleep(0.15)
+        for d in (0, 1):
+            live_buses = fetch_route_buses_live(route_id, direction=d)
+            for b in live_buses:
+                try:
+                    f_vid = int(b.get("Id") or b.get("id") or 0)
+                    f_route = int(b.get("RouteId") or b.get("routeId") or 0)
+                    f_plate = str(b.get("VehicleNumber") or b.get("title") or "")
+                    if f_vid > 0 and f_route == route_id and f_vid not in configured_vid_set:
+                        new_discovered_vehicles.append({
+                            "id": f_vid,
+                            "plate": f_plate,
+                            "route_id": f_route,
+                            "route_no": route_no
+                        })
+                        configured_vid_set.add(f_vid)
+                        print(f"      + [route_bus_gps] Tìm thấy xe mới: {f_plate} (ID: {f_vid}, Tuyến {route_no}) chiều {d}", flush=True)
+                except Exception:
+                    pass
+            time.sleep(0.15)
 
     # Pha 3: Tự động thanh lọc xe chết (Zombies Auto-Prune) & Đồng bộ cấu hình
     pruned_zombies = []
@@ -226,6 +222,9 @@ def run_daily_catalog_refresh():
             pruned_zombies.append(v)
             print(f"    - [Auto-Prune] Đã loại bỏ xe zombie không phát tín hiệu > 48h: {v.get('title')} (ID: {vid}, Route: {v.get('routeId')})", flush=True)
         else:
+            actual_route = res.get("route_id")
+            if actual_route and actual_route > 0 and actual_route != v.get("routeId"):
+                v = {**v, "routeId": actual_route}
             cleaned_vehicles.append(v)
 
     if new_discovered_vehicles:
