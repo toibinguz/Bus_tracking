@@ -45,8 +45,9 @@
   - Kết luận: Cả Speed Layer và Serving Layer đều thống nhất dùng BusMap `route_bus_gps` (route-query).
   - Tập tuyến giao thoa: `48` tuyến Baseline (`756` xe), trong đó `31` tuyến hỗ trợ TimBus (`495` xe, `65.5%`) và `17` tuyến BusMap-only (`261` xe).
 - **3.2. Kiến trúc `SpeedLayerPoller` (`speed_poller.py`):**
-  - Chu kỳ `45s` quét Phase 1 (BusMap `route_bus_gps` 48 tuyến $\times$ 2 chiều) $\to$ gọi `ingest_speed_layer_vehicles` làm ấm `RouteProjectionTracker`, `RouteHMM` và `CausalFeatures`, kết hợp đồng bộ `raw_data/latest_incidents.json` từ HF (`300s`).
+  - Chu kỳ `45s` quét Phase 1 (BusMap `route_bus_gps` 48 tuyến $\times$ 2 chiều) $\to$ gọi `ingest_speed_layer_vehicles` làm ấm `RouteProjectionTracker`, `RouteHMM` và `CausalFeatures`.
   - Phase 2 (TimBus Gap-Filler): `2` workers dàn trải (`stagger_delay_sec = 0.15s`), chỉ dùng `anchors[:1]` (`primary_anchor_sid`), kích hoạt cho xe `age >= 60s` hoặc biến mất giữa tuyến; tự động bỏ qua xe Serving Layer vừa focus `< 45s` trong `_tb_last_valid`.
+  - Phase 3 (TomTom Incidents Live Relay qua Hugging Face, `300s`/lần): Crawler đẩy ngay `raw_data/latest_incidents.json` lên HF ngay sau khi query TomTom để dùng chung **1 lần gọi API duy nhất** cho cả Batch và Speed/Serving dưới ràng buộc quota (`<= 80/ngày`, `<= 2,500/tháng`), loại bỏ độ trễ 12.5–22.5 phút; Speed Layer kéo về qua `fetch_latest_incidents_from_hf` $\to$ `ingest_live_incidents` (giữ cache cũ nếu payload lỗi).
   - **Đóng hoàn toàn ngoài giờ hoạt động (`22:30 – 04:45` giờ Hà Nội):** `is_operating_hours()` trả `False`, không gọi BusMap/TimBus ban đêm.
 - **3.3. Cơ chế Phân loại 4 Trạng thái & Circuit Breaker:**
   - `RECOVERED_LIVE`: TimBus hit $\to$ nạp `_tb_last_valid` + `CausalFeatures`, `cooldown = 0s`, reset `error_streak`.
@@ -62,6 +63,7 @@
 - **4.1. Luồng Phục vụ `BusMapServingService` (`serving_service.py`):**
   - Đọc RAM đã làm ấm từ Speed Layer + gọi BusMap `route_bus_gps` (`live_feed.py`, cache `15s`) + đồng bộ TimBus Focus `5s` (`_sync_route_both_directions`).
   - Lọc xe tại trạm (`_filter_station_vehicles` + `project_filter_extrapolate`): kiểm tra `cross_track <= 35m`, đúng chiều, `s_now <= s_target`, Pass Guard `_passed_station_plates` (chống hồi sinh xe đã qua trạm từ cache cũ), và làm mượt tốc độ vĩ mô `MacroSpeedTracker` ($\Delta s / \Delta t > 120\text{s}$).
+  - Chiếu & nạp sự cố TomTom Live (`get_live_incidents_for_route` $\to$ `observe_incidents`): áp dụng TTL `2700s` (45 phút) cho snapshot `latest`, chiếu LineString đồng bộ Online = Offline (`project_directed_point`, `cos_theta >= 0.5`, `split_matched_vertices_into_runs`), scale `delay_seconds` theo tỷ lệ `span_route / eff_inc_span` cho `CausalFeatures` và trả kèm `polylines` trên `RouteIncidentDTO`.
 - **4.2. Bộ 40 Đặc trưng Nhân quả `CausalFeatures` (`step_3_2`):**
   - Nguyên tắc tuyệt đối chỉ dùng tiền tố quan sát quá khứ (dùng chung 1 code path giữa replay train và serving inference), `MAX_POSITION_AGE = 90.0s`, `MAX_FLEET_SKEW = 45.0s`.
   - Liệt kê đủ 6 nhóm (40 biến): Tuyến & Thời gian (9), Hình học & Khoảng cách (7), Động học Ego (2), Thống kê Baseline (11), Đội xe cùng tuyến (7), và **Sự cố TomTom (4)**: `inc_ahead_total_delay_sec` *(monotone `+1`, chia tỷ lệ chồng lấp `ov_l / eff_inc_span`)*, `inc_dist_to_nearest_m`, `inc_ahead_jam_length_m`, `inc_info_age_sec` *(tuổi snapshot `t_cur - crawled_epoch`)*.
