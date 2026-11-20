@@ -19,7 +19,7 @@
 
 ## Chương 2. Module 1 & 2 — Thu thập, Tiền xử lý & Medallion Lakehouse (Batch Layer)
 - **2.1. Thu thập Dữ liệu Đa nguồn (`step_1_1`):**
-  - Cloud Crawler 24/7 trên GitHub Actions (`crawl_bus.yml`): phiên `540s`, vòng lặp `75s`, micro-batch `15` xe, raw SSL socket (`socket_client.py`, DNS cache `_IP_CACHE_LOCK`, timeout `4.2s`).
+  - Cloud Crawler 24/7 trên GitHub Actions (`crawl_bus.yml`): phiên `540s`, vòng lặp `75s`, micro-batch `18` xe, raw SSL socket (`socket_client.py`, DNS cache `_IP_CACHE_LOCK`, timeout `4.2s`).
   - TomTom Incidents (`incident_client.py`): chỉ lấy sự cố, giới hạn quota `80/ngày` và `2500/tháng` (`TOMTOM_INCIDENT_INTERVAL_SEC = 750s`, ~12.5 phút/lần), đẩy ngay `raw_data/latest_incidents.json` lên HF (`push_latest_incidents_to_hf`) để Speed Layer dùng chung 1 lần gọi API.
   - Làm mới danh mục đầu ngày (`catalog_refresher.py`): quét `route_bus_gps` toàn bộ 49 tuyến, cập nhật `routeId` khi xe đổi tuyến, chỉ xóa xe khi `status == "ERROR"`.
 - **2.2. Làm sạch Động học & Tách chuyến (`step_1_3`):**
