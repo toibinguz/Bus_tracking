@@ -8,10 +8,10 @@
 
 | File / Symbol | Vai trò | Input -> Output |
 | --- | --- | --- |
-| `route_matcher.py` (`ShapeProjectionModel`, `RouteHMM`, `Match`) | Hình học 1D Frenet (`ShapeProjectionModel`) và bộ lọc `RouteHMM` dùng chung cho Batch (`horizon=300.0s`) & Speed Layer | `(lat, lon, epoch)` -> `Match(s_m, cross_track_m, ...)` |
+| `route_matcher.py` (`ShapeProjectionModel`, `RouteHMM`, `Match`) | Hình học 1D Frenet (`ShapeProjectionModel.project_directed_point`) và bộ lọc `RouteHMM` dùng chung cho Batch & Speed Layer | `(lat, lon, epoch)` -> `Match(s_m, cross_track_m, ...)` |
 | `multi_route_projector.py` (`run_parallel_projection`, `project_points_to_shape`) | Chiếu song song đa nhân toàn bộ ping hợp lệ (`HANOI_BBOX` 4 biên) vào `route_projected_telemetry` | `raw_bus_pings` -> `route_projected_telemetry` |
 | `projection_boundary.py` (`project_route_events`, `ProjectableEvent`, `ProjectedEvent`) | Ranh giới chiếu độc lập với tầng lưu trữ (dùng cho pipeline Spark/HDFS) | `ProjectableEvent` -> `ProjectedEvent` |
-| `tomtom_incident_projector.py` (`project_linestring_to_route_grid`, `main`) | Chiếu chuỗi tọa độ sự cố TomTom lên lưới đoạn 100m của từng tuyến | Incidents JSONL -> `fact_route_tomtom_incidents` |
+| `tomtom_incident_projector.py` (`project_linestring_to_route_grid`, `compute_linestring_kinematics`, `split_matched_vertices_into_runs`, `main`) | Chiếu LineString sự cố TomTom có lọc hướng (`cos_theta >= 0.5`) và gom run đơn điệu (dùng chung cho Offline Silver & Online Serving) | Incidents JSONL -> `fact_route_tomtom_incidents` |
 
 ## Tham số SSOT (`config/system_config.py`)
 

@@ -14,7 +14,7 @@
 | `device_pool.py` (`get_current_progressive_pool_size`, `get_busmap_device_id`) | Quản lý bể device ID lũy tiến tránh rate-limit | `vehicle_id` -> `device_id` |
 | `incident_client.py` (`execute_tomtom_incident_poll`, `load_tomtom_quota_state`) | Poll TomTom Incidents có kiểm soát quota ngày/tháng (đã bỏ TomTom Flow) | `TOMTOM_KEY` -> Incident JSONL |
 | `catalog_refresher.py` (`run_daily_catalog_refresh`, `audit_vehicle`) | Làm mới danh mục xe đầu ngày (`05:00–07:00`), chỉ prune xe `ERROR` | Route IDs -> `hust_cluster_config.json` |
-| `hf_lake_sync.py` (`upload_batches_to_hf_native`, `sync_bus_telemetry_from_hf`) | Upload/tải batch qua Hugging Face Commit API | Local JSONL <-> HF Dataset |
+| `hf_lake_sync.py` (`upload_batches_to_hf_native`, `push_latest_incidents_to_hf`, `fetch_latest_incidents_from_hf`) | Upload/tải batch và đồng bộ snapshot live `raw_data/latest_incidents.json` qua Hugging Face Commit API | Local JSONL <-> HF Dataset |
 | `hdfs_bronze_adapter.py`, `local_partition_writer.py`, `dataset_sync.py` | Adapter đẩy Bronze spool, ghi phân vùng local, đồng bộ toàn bộ từ HF | Batches -> Local disk / HDFS spool |
 
 ## Tham số SSOT (`config/system_config.py`)
@@ -22,7 +22,7 @@
 - `SESSION_DURATION_SEC = 540`, `BUS_POLL_INTERVAL_SEC = 75`, `BUS_MICRO_BATCH_SIZE = 15`
 - `SOCKET_TIMEOUT_SEC = 2.5`, `SOCKET_RETRY_TIMEOUT_SEC = 1.2` (thread future timeout `4.2s`)
 - `OPERATING_HOUR_START = 5`, `OPERATING_HOUR_END = 22`
-- `MAX_TOMTOM_INCIDENT_DAILY = 85`, `MAX_TOMTOM_INCIDENT_MONTHLY = 2400`
+- `MAX_TOMTOM_INCIDENT_DAILY = 80`, `MAX_TOMTOM_INCIDENT_MONTHLY = 2500`
 
 ## Cách chạy & Kiểm thử
 

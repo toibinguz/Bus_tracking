@@ -8,9 +8,9 @@
 
 | File / Symbol | Vai trò | Input -> Output |
 | --- | --- | --- |
-| `causal_eta_training.py` (`ResidualETA`, `TrainingReplay`, `fit_bundle`, `metrics`) | Replay gán nhãn ETA, xây DataFrame 36 feature, huấn luyện XGBoost residual & lưu `causal-eta.v1` | Silver/Replay -> `data/models/causal_eta_v1/` |
-| `silver_replay_trainer.py` (`select_partitions`, `replay_silver`, `run`, `main`) | Nạp Silver Parquet theo ngày/tuyến, chạy replay nhân quả và gọi `fit_bundle` | Silver Parquet -> `data/models/causal_eta_v1/` |
-| `partition_checkpoint_fitter.py` (`load_split`, `run`) | Huấn luyện mô hình global từ các checkpoint feature theo tuyến | Route feature checkpoints -> `model.json` + `manifest.json` |
+| `causal_eta_training.py` (`ResidualETA`, `TrainingReplay`, `fit_bundle`, `metrics`) | Replay gán nhãn ETA, xây DataFrame 40 feature (monotone `-1` tốc độ, `+1` trễ TomTom), huấn luyện XGBoost residual & lưu `causal-eta.v1` | Silver/Replay -> `data/models/causal_eta_v1/` |
+| `silver_replay_trainer.py` (`select_partitions`, `replay_silver`, `run`, `main`) | Nạp Silver telemetry & TomTom incidents, chạy replay nhân quả và xuất checkpoint Parquet từng tuyến (`--export-checkpoints-dir`) | Silver Parquet -> `features/*.parquet` |
+| `partition_checkpoint_fitter.py` (`load_split`, `run`) | Stream checkpoint theo tuyến qua `xgb.DataIter` + `QuantileDMatrix` (`--device cuda`, `--no-valid`) để huấn luyện & đối chiếu `--reference-model` | Route feature checkpoints -> `model.json` + `manifest.json` |
 | `eta_model_trainer.py` (`train_xgb_residual_model`, `StreamingEvaluator`) | Pipeline huấn luyện & hiệu chuẩn Empirical Bayes cũ (tham chiếu/tương thích) | Gold Feature Store -> Metrics/Model |
 | `plot_eta_error_distributions.py` | Vẽ biểu đồ phân phối sai số và xuất bảng quantile đánh giá | Test predictions -> Figures / CSV |
 

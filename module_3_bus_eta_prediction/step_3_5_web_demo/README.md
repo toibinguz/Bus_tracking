@@ -9,7 +9,7 @@
 | File / Endpoint | Vai trò |
 | --- | --- |
 | `app.py` | Khởi tạo FastAPI + `lifespan` (`SpeedLayerPoller`, tắt khi `DISABLE_SPEED_POLLER=1`), mount `/static` |
-| `GET /`, `GET /debug` | Trả trang Hành khách (`index.html`) và trang Debug Console 3 tab (`debug.html`) |
+| `GET /`, `GET /debug` | Trả trang Hành khách (`index.html`) và trang Debug Console 4 tab (`debug.html` — gồm tab **Sự cố TomTom** vẽ LineString & popup) |
 | `GET /api/health`, `GET /api/v1/health` | Trạng thái `healthy`/`degraded`, `model_available`, và snapshot `poller` |
 | `GET /api/routes` | Danh sách tuyến xe buýt khả dụng |
 | `GET /api/live-vehicles` | Vị trí & telemetry xe đang chạy kèm `upstream_status`, `timbus_status`, `busmap_updated_at` |

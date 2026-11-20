@@ -13,7 +13,7 @@ flowchart TD
     SOCK --> SAN["telemetry_sanitizer.py (chuẩn hóa JSONL)"]
     SOCK --> CAT["catalog_refresher.py -> data/metadata/hust_cluster_config.json"]
     SAN --> HF["hf_lake_sync.py -> Hugging Face Commit API\n(raw_data/YYYY-MM-DD/bus)"]
-    TOM --> HF2["hf_lake_sync.py -> Hugging Face Commit API\n(raw_data/YYYY-MM-DD/incidents)"]
+    TOM --> HF2["hf_lake_sync.py -> Hugging Face Commit API\n(raw_data/YYYY-MM-DD/incidents + raw_data/latest_incidents.json)"]
 ```
 
 ## 2. Sơ đồ Luồng Logic (Logic Flow)
@@ -43,8 +43,8 @@ flowchart TD
 | `BUS_POLL_INTERVAL_SEC` / `BUS_MICRO_BATCH_SIZE` | `75s` mỗi vòng / `15` xe mỗi micro-batch |
 | `socket_client.py` | Raw SSL socket HTTP/1.1, hỗ trợ `Transfer-Encoding: chunked`, DNS cache có `_IP_CACHE_LOCK`, thread timeout `4.2s` |
 | `catalog_refresher.py` | Quét `route_bus_gps` toàn bộ 49 tuyến, cập nhật `routeId` khi xe đổi tuyến, chỉ xóa xe khi `status == "ERROR"` |
-| `incident_client.py` | Chỉ gọi TomTom Incidents (`MAX_TOMTOM_INCIDENT_DAILY = 85`, `MAX_TOMTOM_INCIDENT_MONTHLY = 2400`); TomTom Flow đã được gỡ bỏ |
-| `hf_lake_sync.py` | Upload qua Hugging Face Commit API vào `raw_data/YYYY-MM-DD/{bus,incidents}/batch_HHMMSS.jsonl` |
+| `incident_client.py` | Chỉ gọi TomTom Incidents (`MAX_TOMTOM_INCIDENT_DAILY = 80`, `MAX_TOMTOM_INCIDENT_MONTHLY = 2500`); đẩy ngay snapshot live qua `push_latest_incidents_to_hf` |
+| `hf_lake_sync.py` | Upload qua Hugging Face Commit API vào `raw_data/YYYY-MM-DD/{bus,incidents}/batch_HHMMSS.jsonl` và `raw_data/latest_incidents.json` (live relay cho Speed Layer) |
 
 ## 4. Cách kiểm thử & Vận hành
 
