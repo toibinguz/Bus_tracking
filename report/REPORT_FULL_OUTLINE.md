@@ -115,6 +115,3 @@
 - **6.4. Kiểm thử Tự động & Trình duyệt Thực tế:**
   - Bộ kiểm thử `pytest tests/ --basetemp=runtime/pytest_tmp -q`: **`200 passed, 12 skipped, 0 failed`**.
   - Chrome DevTools (`/` và `/debug`): `0` lỗi console, vẽ `5` LineString sự cố trên tuyến `01`, tab *Sự cố TomTom* & popup hoạt động đầy đủ; soak test `8` phút (`96/96` HTTP 200, `204/204` trace 40f hợp lệ, `0` vi phạm quantile).
-- **6.5. Thảo luận Hạn chế & Hướng phát triển:**
-  - **Đã giải quyết triệt để bài toán TomTom Relay dưới ràng buộc Quota:** Crawler đẩy `raw_data/latest_incidents.json` lên HF ngay sau khi query TomTom (`1` lần gọi chung cho cả Batch & Speed/Serving, giữ quota `<= 80/ngày`), kết hợp 4 feature TomTom + monotone `+1` và UI `/debug` (đã hợp nhất vào `main`).
-  - **Tối ưu tiếp theo:** Giảm tần suất TimBus ở Serving Layer (chỉ quét chiều `primary_dir` hoặc tăng `TIMBUS_LIVE_CACHE_TTL_SEC` lên `8–10s`), mở rộng tập huấn luyện ngoài 48 tuyến baseline, và cân nhắc hiển thị cảnh báo sự cố tinh gọn trên trang Hành khách (`/`).
