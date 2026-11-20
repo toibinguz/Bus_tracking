@@ -365,10 +365,13 @@
 
   function renderIncidents(incidents, fetchedAt) {
     const list = Array.isArray(incidents) ? incidents : [];
+    const fetchedText = fetchedAt
+      ? (String(fetchedAt).length >= 19 ? String(fetchedAt).substring(11, 19) : String(fetchedAt))
+      : '--';
     cntIncidents.textContent = String(list.length);
     incidentsChips.innerHTML = [
       `<span class="chip ${list.length ? 'warn' : ''}">SỰ CỐ: ${list.length}</span>`,
-      `<span class="chip">FETCHED: ${C.escapeHtml(fetchedAt ? C.formatTime(fetchedAt) : '--')}</span>`,
+      `<span class="chip">FETCHED: ${C.escapeHtml(fetchedText)}</span>`,
     ].join('');
 
     incidentLayer.clearLayers();
@@ -395,7 +398,7 @@
           <span>Mức độ: <b>${C.escapeHtml(magLabel(Number(inc.magnitude_of_delay || 0)))}</b></span><br>
           <span>Trễ: <b>${delaySec}s</b> | Dài: <b>${lenM}m</b></span><br>
           <span>Lý trình tuyến: <b>${sRange}</b></span><br>
-          <span>Snapshot: ${C.escapeHtml(fetchedAt ? C.formatTime(fetchedAt) : '--')}</span>
+          <span>Snapshot: ${C.escapeHtml(fetchedText)}</span>
         </div>
       `;
 

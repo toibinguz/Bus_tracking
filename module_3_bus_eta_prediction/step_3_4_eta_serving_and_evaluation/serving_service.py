@@ -31,7 +31,6 @@ from config.system_config import (
     TIMBUS_HOLD_FRESH_SEC,
     TIMBUS_LIVE_CACHE_TTL_SEC,
     TIMBUS_QUERY_TIMEOUT_SEC,
-    TOMTOM_DEFAULT_TTL_SEC,
     TOMTOM_MIN_COS_THETA,
     TZ_HANOI,
 )
@@ -322,7 +321,7 @@ class BusMapServingService:
         vehicles: List[BusVehicleDTO],
         now_epoch: float,
     ) -> None:
-        """Cập nhật CausalFeatures (36 biến) đồng bộ với snapshot xe hiện hành."""
+        """Cập nhật CausalFeatures (40 biến) đồng bộ với snapshot xe hiện hành."""
         with self._causal_lock:
             members: List[str] = []
             for v in vehicles:
@@ -901,7 +900,7 @@ class BusMapServingService:
         inc_list, inc_at = self.get_live_incidents_for_route(route_id, dir_int, now_epoch)
         inc_epoch = float(getattr(self, "_live_incidents_epoch", 0.0) or 0.0)
         if inc_list and inc_epoch > 0.0:
-            inc_exp = inc_epoch + float(TOMTOM_DEFAULT_TTL_SEC)
+            inc_exp = inc_epoch + 2700.0
             inc_intervals = []
             for inc in inc_list:
                 if inc.delay_seconds <= 0.0:
