@@ -245,3 +245,104 @@ def test_explicit_feedback_upstream_error_and_health(monkeypatch):
     assert r_dbg.status_code == 200
     assert "debug.js" in r_dbg.text
     assert 'role="tablist"' in r_dbg.text
+
+
+def test_live_incident_relay_in_poller_and_serving():
+    from module_1_data_ingestion_and_preprocessing.step_1_4_frenet_spatial_projection.route_matcher import (
+        ShapeProjectionModel,
+    )
+    from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.serving_service import (
+        BusMapServingService,
+    )
+
+    now_ts = 1_700_000_000.0
+    svc = BusMapServingService.__new__(BusMapServingService)
+    svc._incident_lock = threading.Lock()
+    svc._live_incidents_raw = []
+    svc._live_incidents_fetched_at = None
+    svc._live_incidents_epoch = 0.0
+    svc._live_incidents_by_route = {}
+    shape = ShapeProjectionModel.build([(0, 21.0000, 105.8000, 0.0), (1, 21.0100, 105.8000, 1110.0)])
+    svc._get_shape_model = lambda r_id, d_str: shape
+
+    stub_poller_svc = _StubService()
+    stub_poller_svc.ingest_live_incidents = svc.ingest_live_incidents
+
+    payload = {
+        "fetched_at": "2026-11-19T19:00:00+07:00",
+        "count": 4,
+        "incidents": [
+            {
+                "incident_id": "inc-on-route-low",
+                "description": "Sua duong",
+                "icon_category": 9,
+                "magnitude_of_delay": 1,
+                "delay_seconds": 0,
+                "length_meters": 100.0,
+                "geometry_type": "LineString",
+                "coordinates": [[105.8000, 21.0010], [105.8000, 21.0020]],
+            },
+            {
+                "incident_id": "inc-on-route-multi",
+                "description": "Un tac nang",
+                "icon_category": 6,
+                "magnitude_of_delay": 3,
+                "delay_seconds": 240,
+                "length_meters": 320.0,
+                "geometry_type": "MultiLineString",
+                "coordinates": [[[105.8000, 21.0040], [105.8000, 21.0060]]],
+            },
+            {
+                "incident_id": "inc-reverse-dir",
+                "description": "Nguoc chieu",
+                "magnitude_of_delay": 3,
+                "delay_seconds": 300,
+                "length_meters": 200.0,
+                "geometry_type": "LineString",
+                "coordinates": [[105.8000, 21.0080], [105.8000, 21.0050]],
+            },
+            {
+                "incident_id": "inc-far",
+                "description": "Xa tuyen",
+                "magnitude_of_delay": 2,
+                "delay_seconds": 120,
+                "length_meters": 100.0,
+                "geometry_type": "Point",
+                "coordinates": [105.8500, 21.0500],
+            },
+        ],
+    }
+
+    poller_responses = [(payload, None), ({}, None)]
+
+    poller = SpeedLayerPoller(
+        stub_poller_svc,
+        stagger_delay_sec=0.0,
+        route_fetcher=lambda r_id, d: RouteLiveResponse(route_id=r_id, direction=d, count=0, timestamp="t", vehicles=[]),
+        timbus_fetcher=lambda **kw: ({}, 0, 0, None),
+        incident_fetcher=lambda: poller_responses.pop(0),
+        incident_sync_interval_sec=60.0,
+        now_fn=lambda: now_ts,
+    )
+    poller.run_once(now_epoch=now_ts)
+
+    snap = poller.get_health_snapshot()
+    assert snap["incidents"]["count"] == 4
+    assert snap["incidents"]["error"] is None
+
+    # Sorted by delay_seconds desc, reverse direction rejected, MultiLineString parsed
+    matched, fetched_at = svc.get_live_incidents_for_route(27, 0, now_epoch=now_ts)
+    assert fetched_at == "2026-11-19T19:00:00+07:00"
+    assert [m.incident_id for m in matched] == ["inc-on-route-multi", "inc-on-route-low"]
+    assert matched[0].delay_seconds == 240.0
+
+    # Malformed {} payload must NOT wipe cached incidents
+    poller.run_once(now_epoch=now_ts + 70.0)
+    assert poller.get_health_snapshot()["incidents"]["error"] == "invalid_incident_payload"
+    matched_after_err, _ = svc.get_live_incidents_for_route(27, 0, now_epoch=now_ts + 70.0)
+    assert len(matched_after_err) == 2
+
+    # Expired TTL (> 2700s from fetched_at) returns [], None
+    matched_expired, fetched_expired = svc.get_live_incidents_for_route(27, 0, now_epoch=svc._live_incidents_epoch + 2800.0)
+    assert matched_expired == []
+    assert fetched_expired is None

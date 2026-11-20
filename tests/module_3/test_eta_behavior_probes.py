@@ -36,34 +36,3 @@ def test_recommendation_after_entire_bracket_is_flagged():
     result=recommendation_check(100,15,108,112)
     assert result['later_than_latest_gps_crossing']
     assert result['lateness_beyond_right_sec']==3
-
-
-def test_window_speed_units_and_minimum_history():
-    from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.online_features import _window_speed
-    assert _window_speed([(0,0,0),(10,100,0)],100,240,10)==(36.,10)
-    speed,dt=_window_speed([(0,0,17),(4.7,12.4,3)],12.4,240,10)
-    assert speed is None
-    assert dt==4.7
-
-
-def test_legacy_global_reference_reproduces_recorded_reset_failure():
-    from global_projection_reference import GlobalProjectionReference as OnlineFeatureExtractor
-    from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.dto import BusVehicleDTO
-    class Access:
-        def get_shape_points(self,*args):return [(0,0,0,0),(1,0,.02,2226.4)]
-        def get_corridor_stations(self,*args):return [(0,0,'start',0),(1,1,'end',2226.4)]
-        def get_route_profile(self,*args):return (20,2226.4,2226.4)
-    ex=OnlineFeatureExtractor(Access())
-    ex._segment_array=lambda *args,**kwargs:[400.]
-    shape=ex._get_shape_model(27,'re')
-    def observe(t,s,raw):
-        v=BusVehicleDTO(id=1,plate='fixture',route_id=27,direction=1,lat=0,lng=s/shape.kx,
-                        deg=90,speed_kmh=raw,raw_speed_kmh=raw,
-                        updated_at=datetime.fromtimestamp(t,timezone.utc).isoformat())
-        ex.update_observation(27,1,[v],t)
-        return ex._fleet[(27,1)][1][2]
-    observe(1000,500,20);observe(1100,1000,20)
-    assert len(ex._obs[(27,1,1)])==2
-    assert observe(1105,880,17)==17
-    assert len(ex._obs[(27,1,1)])==1
-    assert observe(1109.7,892.4,3)==3

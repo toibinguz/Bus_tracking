@@ -2,8 +2,7 @@
 Step 3.4 — Orchestrator serving (BusMapServingService) + facade cho app.py.
 Module: module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/serving_service.py
 
-Ghép: data_access + live_feed + frenet + online_features + model_runtime + eta_policy.
-Đây là implementation thay thế `busmap_service.py` cũ (sẽ retire ở task 10).
+Ghép: data_access + live_feed + frenet + projection_tracker + model_runtime + eta_policy.
 """
 
 from concurrent.futures import ThreadPoolExecutor
@@ -32,13 +31,19 @@ from config.system_config import (
     TIMBUS_HOLD_FRESH_SEC,
     TIMBUS_LIVE_CACHE_TTL_SEC,
     TIMBUS_QUERY_TIMEOUT_SEC,
+    TOMTOM_MIN_COS_THETA,
     TZ_HANOI,
 )
 from experiments.timbus.timbus_tracker import TimBusClient
+from module_1_data_ingestion_and_preprocessing.step_1_4_frenet_spatial_projection.tomtom_incident_projector import (
+    compute_linestring_kinematics,
+    split_matched_vertices_into_runs,
+)
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.data_access import DataAccess, IncidentsProvider
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.dto import (
     ApproachingBusDTO,
     BusVehicleDTO,
+    RouteIncidentDTO,
     RouteItemDTO,
     RouteLiveResponse,
     RouteShapeResponse,
@@ -56,9 +61,13 @@ from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.live_feed i
     now_hanoi_iso,
     parse_ping_epoch,
 )
-from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CausalFeatures, Observation
+from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import (
+    CausalFeatures,
+    Observation,
+    RouteIncidentInterval,
+)
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.model_runtime import ModelRuntime
-from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.online_features import OnlineFeatureExtractor
+from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.projection_tracker import RouteProjectionTracker
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +278,7 @@ class BusMapServingService:
             self.source_info = dict(mode='local', artifact_id=None, snapshot_id=None,
                                     baseline_routes=sorted(self._da.route_idx_by_code),
                                     model_status='candidate_unverified' if self._runtime.available else 'unavailable')
-        self._extractor = OnlineFeatureExtractor(self._da, self._incidents)
+        self._extractor = RouteProjectionTracker(self._da)
         self._causal = CausalFeatures(self._da)
         self._causal_lock = threading.Lock()
         self.source_info['model'] = self._runtime.identity
@@ -281,6 +290,11 @@ class BusMapServingService:
         self._passed_station_plates: Dict[Tuple[int, int, int, str], float] = {}
         self._speed_tracker = MacroSpeedTracker()
         self._projection_generations={}
+        self._incident_lock = threading.Lock()
+        self._live_incidents_raw: List[dict] = []
+        self._live_incidents_fetched_at: Optional[str] = None
+        self._live_incidents_epoch: float = 0.0
+        self._live_incidents_by_route: Dict[Tuple[int, int], List[RouteIncidentDTO]] = {}
 
     def _prepare_vehicle(self,route_id,dir_int,vehicle,now_epoch):
         vehicle=self._extractor.project_vehicle(route_id,dir_int,vehicle,now_epoch)
@@ -307,7 +321,7 @@ class BusMapServingService:
         vehicles: List[BusVehicleDTO],
         now_epoch: float,
     ) -> None:
-        """Cập nhật CausalFeatures (36 biến) đồng bộ với snapshot xe hiện hành."""
+        """Cập nhật CausalFeatures (40 biến) đồng bộ với snapshot xe hiện hành."""
         with self._causal_lock:
             members: List[str] = []
             for v in vehicles:
@@ -369,13 +383,17 @@ class BusMapServingService:
         resp = fetch_live_vehicles_for_route(route_id=route_id, direction=dir_int)
 
         if not timbus_ok or not anchor_sids:
+            now_ep = datetime.now(TZ_HANOI).timestamp()
             if resp.vehicles:
-                self._observe_causal_snapshot(route_id, dir_int, resp.vehicles, datetime.now(TZ_HANOI).timestamp())
+                self._observe_causal_snapshot(route_id, dir_int, resp.vehicles, now_ep)
+            inc_list, inc_at = self.get_live_incidents_for_route(route_id, dir_int, now_ep)
             return resp.model_copy(
                 update={
                     "timbus_supported": timbus_ok,
                     "poll_interval_sec": poll_sec,
                     "timbus_status": "unsupported",
+                    "incidents": inc_list,
+                    "incidents_fetched_at": inc_at,
                 }
             )
 
@@ -390,6 +408,7 @@ class BusMapServingService:
         )
         with self._tb_lock:
             tb_status, tb_error = getattr(self, "_last_timbus_status", {}).get((route_id, dir_int), ("ok", None))
+        inc_list, inc_at = self.get_live_incidents_for_route(route_id, dir_int, now_epoch)
         return resp.model_copy(
             update={
                 "count": len(merged),
@@ -398,6 +417,8 @@ class BusMapServingService:
                 "poll_interval_sec": poll_sec,
                 "timbus_status": tb_status,
                 "timbus_error": tb_error,
+                "incidents": inc_list,
+                "incidents_fetched_at": inc_at,
                 "vehicles": merged,
             }
         )
@@ -876,6 +897,32 @@ class BusMapServingService:
         candidates = []
         speeds: List[float] = []
 
+        inc_list, inc_at = self.get_live_incidents_for_route(route_id, dir_int, now_epoch)
+        inc_epoch = float(getattr(self, "_live_incidents_epoch", 0.0) or 0.0)
+        if inc_list and inc_epoch > 0.0:
+            inc_exp = inc_epoch + 2700.0
+            inc_intervals = []
+            for inc in inc_list:
+                if inc.delay_seconds <= 0.0:
+                    continue
+                span_route = max(0.0, inc.s_max_m - inc.s_min_m)
+                if span_route <= 0.0:
+                    continue
+                eff_inc_span = max(inc.length_meters, span_route, 25.0)
+                inc_intervals.append(
+                    RouteIncidentInterval(
+                        s_min_m=inc.s_min_m,
+                        s_max_m=inc.s_max_m,
+                        delay_seconds=inc.delay_seconds * (span_route / eff_inc_span),
+                        crawled_epoch=inc_epoch,
+                        expires_epoch=inc_exp,
+                    )
+                )
+        else:
+            inc_intervals = []
+        with self._causal_lock:
+            self._causal.observe_incidents(route_id, dir_int, inc_intervals)
+
         for v in vehicles:
             v=self._prepare_vehicle(route_id,dir_int,v,now_epoch)
             bus_state = project_filter_extrapolate(v, shape_model, s_target, now_epoch)
@@ -972,6 +1019,7 @@ class BusMapServingService:
                 else ("unsupported", None)
             )
         top_fb_reason = approaching[0].fallback_reason if approaching else None
+        inc_list, inc_at = self.get_live_incidents_for_route(route_id, dir_int, now_epoch)
         return self._response(
             route_id, route_code, dir_int, dir_str, target_st, now_iso, day_type, hour_slot,
             traffic_cond, approaching, message,
@@ -981,7 +1029,137 @@ class BusMapServingService:
             timbus_status=tb_status,
             timbus_error=tb_error,
             fallback_reason=top_fb_reason,
+            incidents=inc_list,
+            incidents_fetched_at=inc_at,
         )
+
+    def ingest_live_incidents(self, payload: Optional[dict], now_epoch: Optional[float] = None) -> int:
+        """Nạp snapshot TomTom Incidents mới nhất từ Speed Layer (đồng bộ qua Hugging Face)."""
+        if not isinstance(payload, dict) or not isinstance(payload.get("incidents"), list):
+            return 0
+        raw_list = payload["incidents"]
+        fetched_at = payload.get("fetched_at")
+        ep = float(now_epoch) if now_epoch is not None else datetime.now(TZ_HANOI).timestamp()
+        if fetched_at:
+            parsed_ep, _ = parse_ping_epoch(fetched_at, ep)
+            ep = parsed_ep
+        lock = getattr(self, "_incident_lock", None)
+        if lock is None:
+            lock = self._incident_lock = threading.Lock()
+        with lock:
+            self._live_incidents_raw = [item for item in raw_list if isinstance(item, dict)]
+            self._live_incidents_fetched_at = str(fetched_at) if fetched_at else None
+            self._live_incidents_epoch = ep
+            self._live_incidents_gen = getattr(self, "_live_incidents_gen", 0) + 1
+            self._live_incidents_by_route = {}
+            return len(self._live_incidents_raw)
+
+    @staticmethod
+    def _extract_incident_polylines(geometry_type: str, coords: Any) -> List[List[Tuple[float, float]]]:
+        """Chuẩn hóa Point / LineString / MultiLineString GeoJSON ([lon, lat]) thành danh sách [(lat, lon)]."""
+        if not isinstance(coords, (list, tuple)) or not coords:
+            return []
+
+        def _is_num(val: Any) -> bool:
+            return isinstance(val, (int, float)) and not isinstance(val, bool) and math.isfinite(val)
+
+        def _to_lat_lon_pts(seq: Any) -> List[Tuple[float, float]]:
+            if not isinstance(seq, (list, tuple)):
+                return []
+            return [
+                (float(p[1]), float(p[0]))
+                for p in seq
+                if isinstance(p, (list, tuple)) and len(p) >= 2 and _is_num(p[0]) and _is_num(p[1])
+            ]
+
+        gtype = str(geometry_type or "").lower()
+        if _is_num(coords[0]):
+            return [[(float(coords[1]), float(coords[0]))]] if len(coords) >= 2 and _is_num(coords[1]) else []
+        if gtype == "multilinestring" or (
+            isinstance(coords[0], (list, tuple)) and coords[0] and isinstance(coords[0][0], (list, tuple))
+        ):
+            return [pts for part in coords if (pts := _to_lat_lon_pts(part))]
+        pts = _to_lat_lon_pts(coords)
+        return [pts] if pts else []
+
+    def get_live_incidents_for_route(
+        self, route_id: int, dir_int: int, now_epoch: Optional[float] = None
+    ) -> Tuple[List[RouteIncidentDTO], Optional[str]]:
+        """Chiếu sự cố TomTom live lên hành lang tuyến/chiều (lọc hướng cos_theta >= 0.5, TTL 45 phút)."""
+        lock = getattr(self, "_incident_lock", None)
+        if lock is None:
+            return [], None
+        now_ep = float(now_epoch) if now_epoch is not None else datetime.now(TZ_HANOI).timestamp()
+        with lock:
+            fetched_at = getattr(self, "_live_incidents_fetched_at", None)
+            inc_epoch = getattr(self, "_live_incidents_epoch", 0.0)
+            gen = getattr(self, "_live_incidents_gen", 0)
+            raw_list = list(getattr(self, "_live_incidents_raw", []))
+            if not raw_list or (now_ep - inc_epoch) > 2700.0:
+                return [], None
+            cached = self._live_incidents_by_route.get((route_id, dir_int))
+            if cached is not None:
+                return list(cached), fetched_at
+
+        dir_str = "go" if dir_int == 0 else "re"
+        shape_model = self._get_shape_model(route_id, dir_str)
+        if shape_model is None:
+            return [], fetched_at
+
+        matched: List[RouteIncidentDTO] = []
+        for inc in raw_list:
+            polylines = self._extract_incident_polylines(inc.get("geometry_type", ""), inc.get("coordinates"))
+            inc_len_m = float(inc.get("length_meters") or 0.0)
+            s_hits: List[float] = []
+            matched_polylines: List[List[List[float]]] = []
+            for pts in polylines:
+                if len(pts) == 1:
+                    s_val, ct_val, _ = shape_model.project_point(pts[0][0], pts[0][1])
+                    if ct_val <= MAX_CORRIDOR_CROSS_TRACK_M:
+                        s_hits.append(s_val)
+                        matched_polylines.append([[round(pts[0][0], 6), round(pts[0][1], 6)]])
+                    continue
+                if len(pts) < 2:
+                    continue
+                coords = [(lon, lat) for lat, lon in pts]
+                pt_unit_vecs, pt_step_dists = compute_linestring_kinematics(coords)
+                matched_vertices = []
+                for idx, (lat, lon) in enumerate(pts):
+                    ux, uy = pt_unit_vecs[idx]
+                    if ux == 0.0 and uy == 0.0:
+                        continue
+                    proj = shape_model.project_directed_point(
+                        lat, lon, ux, uy, min_cos_theta=TOMTOM_MIN_COS_THETA, max_d_perp_m=MAX_CORRIDOR_CROSS_TRACK_M
+                    )
+                    if proj is not None:
+                        s_val, ct_val, _ = proj
+                        matched_vertices.append((idx, s_val, ct_val))
+                runs = split_matched_vertices_into_runs(matched_vertices, pt_step_dists, inc_len_m)
+                if runs:
+                    matched_polylines.append([[round(lat, 6), round(lon, 6)] for lat, lon in pts])
+                    for s_min, s_max, _ in runs:
+                        s_hits.extend((s_min, s_max))
+
+            if s_hits:
+                matched.append(
+                    RouteIncidentDTO(
+                        incident_id=str(inc.get("incident_id") or ""),
+                        description=str(inc.get("description") or "Sự cố giao thông"),
+                        icon_category=int(inc.get("icon_category") or 0),
+                        magnitude_of_delay=int(inc.get("magnitude_of_delay") or 0),
+                        delay_seconds=float(inc.get("delay_seconds") or 0.0),
+                        length_meters=inc_len_m,
+                        s_min_m=round(min(s_hits), 1),
+                        s_max_m=round(max(s_hits), 1),
+                        polylines=matched_polylines,
+                    )
+                )
+
+        matched.sort(key=lambda item: (-item.delay_seconds, -item.magnitude_of_delay))
+        with lock:
+            if getattr(self, "_live_incidents_gen", 0) == gen:
+                self._live_incidents_by_route[(route_id, dir_int)] = matched
+        return list(matched), fetched_at
 
     # ------------------------------------------------- Speed-Layer Integration
     def get_poller_route_ids(self) -> List[int]:
@@ -1021,7 +1199,7 @@ class BusMapServingService:
     def ingest_speed_layer_vehicles(
         self, route_id: int, dir_int: int, vehicles: List[BusVehicleDTO], now_epoch: float
     ) -> List[BusVehicleDTO]:
-        """Nạp snapshot BusMap từ Speed Layer vào OnlineFeatureExtractor + CausalFeatures."""
+        """Nạp snapshot BusMap từ Speed Layer vào RouteProjectionTracker + MacroSpeedTracker."""
         if not vehicles:
             return []
         prepared = [self._prepare_vehicle(route_id, dir_int, v, now_epoch) for v in vehicles]
@@ -1107,6 +1285,8 @@ class BusMapServingService:
         upstream_status: str = "ok", upstream_error: Optional[str] = None,
         timbus_status: str = "unsupported", timbus_error: Optional[str] = None,
         fallback_reason: Optional[str] = None,
+        incidents: Optional[List[RouteIncidentDTO]] = None,
+        incidents_fetched_at: Optional[str] = None,
     ) -> StationEtaResponse:
         return StationEtaResponse(
             route_id=route_id,
@@ -1128,6 +1308,8 @@ class BusMapServingService:
             timbus_status=timbus_status,
             timbus_error=timbus_error,
             fallback_reason=fallback_reason,
+            incidents=list(incidents or []),
+            incidents_fetched_at=incidents_fetched_at,
         )
 
 

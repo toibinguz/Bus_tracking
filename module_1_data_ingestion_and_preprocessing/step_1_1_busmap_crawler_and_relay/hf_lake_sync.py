@@ -28,6 +28,67 @@ ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
 ssl_context.verify_mode = ssl.CERT_NONE
 
+LATEST_INCIDENTS_HF_PATH = "raw_data/latest_incidents.json"
+
+
+def push_latest_incidents_to_hf(incident_records, fetched_at_iso, token, dataset_id=HF_DATASET_ID):
+    """Đẩy ngay snapshot sự cố mới nhất lên Hugging Face (t = 0s) để Speed Layer đọc không phải chờ cuối phiên."""
+    if not token or not dataset_id:
+        return False
+    payload = {
+        "fetched_at": fetched_at_iso,
+        "count": len(incident_records or []),
+        "incidents": list(incident_records or []),
+    }
+    raw_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    commit_url = f"https://huggingface.co/api/datasets/{dataset_id}/commit/main"
+    ndjson_lines = [
+        json.dumps({"key": "header", "value": {"summary": f"sync(incidents): live snapshot ({len(incident_records or [])} items)", "description": ""}}).encode("utf-8"),
+        json.dumps({
+            "key": "file",
+            "value": {
+                "path": LATEST_INCIDENTS_HF_PATH,
+                "encoding": "base64",
+                "content": base64.b64encode(raw_bytes).decode("ascii"),
+            },
+        }).encode("utf-8"),
+    ]
+    req = urllib.request.Request(
+        commit_url,
+        data=b"\n".join(ndjson_lines) + b"\n",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/x-ndjson"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, context=ssl_context, timeout=15) as resp:
+            return resp.getcode() == 200
+    except Exception as e:
+        print(f"[WARN] Loi push latest_incidents.json len HF: {e}", flush=True)
+        return False
+
+
+def fetch_latest_incidents_from_hf(dataset_id=HF_DATASET_ID, token=None, timeout=6.0):
+    """Tải snapshot sự cố mới nhất từ Hugging Face về (1 HTTP GET, không tốn TomTom quota)."""
+    if not token:
+        token = get_hf_token()
+    if not dataset_id:
+        return None, "missing_dataset_id"
+    url = f"https://huggingface.co/datasets/{dataset_id}/raw/main/{LATEST_INCIDENTS_HF_PATH}"
+    headers = {"User-Agent": "HUSTBusSpeedLayer/1.0", "Cache-Control": "no-cache"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(url, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(req, context=ssl_context, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if not isinstance(data, dict) or not isinstance(data.get("incidents"), list):
+                return None, "invalid_incident_payload"
+            return data, None
+    except urllib.error.HTTPError as e:
+        return None, f"HTTPError {e.code}: {e.reason}"
+    except Exception as e:
+        return None, f"{type(e).__name__}: {e}"
+
 def get_hf_today_batch_count(date_tag, category, token, dataset_id=HF_DATASET_ID):
     """Truy vấn số lượng batch (traffic, incidents, bus) đã tải lên Hugging Face hôm nay."""
     if not token or not dataset_id:

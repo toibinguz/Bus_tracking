@@ -103,6 +103,34 @@ class ShapeProjectionModel:
             return 1.0, 0.0
         return float(self._dx[idx] / seg_len), float(self._dy[idx] / seg_len)
 
+    def project_directed_point(
+        self,
+        lat: float,
+        lon: float,
+        ux: float,
+        uy: float,
+        min_cos_theta: float = 0.5,
+        max_d_perp_m: float = 35.0,
+    ) -> Optional[Tuple[float, float, int]]:
+        """Chiếu điểm có hướng (ux, uy), lọc cos_theta >= min_cos_theta TRƯỚC khi chọn đoạn gần nhất."""
+        safe_lens = np.where(self._seg_lens > 1e-9, self._seg_lens, 1.0)
+        cos_theta = (self._dx * ux + self._dy * uy) / safe_lens
+        valid = (self._seg_lens > 1e-9) & (cos_theta >= min_cos_theta)
+        if not np.any(valid):
+            return None
+        px = lon * self.kx
+        py = lat * self.ky
+        t = np.clip(((px - self._x1) * self._dx + (py - self._y1) * self._dy) / self._safe_lens_sq, 0.0, 1.0)
+        dist_sq = (px - (self._x1 + t * self._dx)) ** 2 + (py - (self._y1 + t * self._dy)) ** 2
+        dist_sq = np.where(valid, dist_sq, np.inf)
+        best_seg = int(np.argmin(dist_sq))
+        min_d = math.sqrt(float(dist_sq[best_seg]))
+        if not math.isfinite(min_d) or min_d > max_d_perp_m:
+            return None
+        best_s = round(float(self._cum_starts[best_seg] + float(t[best_seg]) * self._seg_lens[best_seg]), 1)
+        s_bus = max(0.0, min(self._total_len, best_s))
+        return s_bus, round(min_d, 1), best_seg
+
 
 from dataclasses import dataclass
 import numpy as np

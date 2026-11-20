@@ -3,7 +3,7 @@ Step 3.4 — Hợp đồng DTO công khai (public API schema) cho tầng ETA ser
 Module: module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/dto.py
 
 Chỉ định nghĩa schema (Pydantic). Không chứa logic nghiệp vụ/IO.
-Đã sửa các trường zombie so với `busmap_service.py` cũ:
+Chuẩn hóa các DTO phục vụ ETA live serving:
   - BusVehicleDTO: bỏ `lon` (alias trùng `lng`), bỏ `distance_to_next_m` (luôn None).
   - SafeWindowDTO: `conservative_eta_seconds`/`buffer_seconds`/`is_delayed`/`delay_seconds` mang giá trị thực.
   - ApproachingBusDTO: `eta_minutes:int` (lượng tử hóa) + `eta_minutes_precise:float` (hiển thị song song).
@@ -56,6 +56,20 @@ class RouteItemDTO(BaseModel):
     timbus_supported: bool = Field(False, description="Tuyến có hỗ trợ đồng bộ TimBus 5s")
 
 
+class RouteIncidentDTO(BaseModel):
+    """Sự cố giao thông live từ TomTom (đồng bộ qua Hugging Face) đã chiếu lên hành lang tuyến."""
+
+    incident_id: str = Field(default="", description="ID sự cố TomTom")
+    description: str = Field(default="", description="Mô tả sự cố")
+    icon_category: int = Field(default=0, description="Loại sự cố TomTom")
+    magnitude_of_delay: int = Field(default=0, description="Mức độ ùn tắc (0..4)")
+    delay_seconds: float = Field(default=0.0, description="Thời gian trễ ước tính (giây)")
+    length_meters: float = Field(default=0.0, description="Chiều dài đoạn sự cố (mét)")
+    s_min_m: float = Field(default=0.0, description="Lý trình bắt đầu trên tuyến (m)")
+    s_max_m: float = Field(default=0.0, description="Lý trình kết thúc trên tuyến (m)")
+    polylines: List[List[List[float]]] = Field(default_factory=list, description="Danh sách polyline [[lat, lon], ...] của sự cố")
+
+
 class RouteLiveResponse(BaseModel):
     """Phản hồi vị trí xe trực tiếp theo tuyến/chiều."""
 
@@ -73,6 +87,8 @@ class RouteLiveResponse(BaseModel):
         default="unsupported", description="Trạng thái đồng bộ TimBus upstream"
     )
     timbus_error: Optional[str] = Field(default=None, description="Chi tiết lỗi TimBus upstream nếu có")
+    incidents: List[RouteIncidentDTO] = Field(default_factory=list, description="Sự cố giao thông live trên tuyến")
+    incidents_fetched_at: Optional[str] = Field(default=None, description="Mốc thời gian TomTom snapshot gần nhất")
     vehicles: List[BusVehicleDTO]
 
 
@@ -203,6 +219,8 @@ class StationEtaResponse(BaseModel):
     fallback_reason: Optional[str] = Field(
         default=None, description="Lý do fallback chính nếu tuyến đang dùng baseline"
     )
+    incidents: List[RouteIncidentDTO] = Field(default_factory=list, description="Sự cố giao thông live trên tuyến")
+    incidents_fetched_at: Optional[str] = Field(default=None, description="Mốc thời gian TomTom snapshot gần nhất")
 
 
 def normalize_direction(direction_val: Union[int, str, None]) -> Tuple[int, str]:

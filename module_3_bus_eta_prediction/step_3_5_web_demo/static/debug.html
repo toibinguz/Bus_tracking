@@ -52,6 +52,7 @@
           <span class="legend-item"><i class="swatch tb"></i> TimBus 5s</span>
           <span class="legend-item"><i class="swatch bm"></i> BusMap 15s</span>
           <span class="legend-item"><i class="swatch lead"></i> Xe gần trạm nhất</span>
+          <span class="legend-item"><i class="swatch inc"></i> Sự cố TomTom</span>
         </div>
       </section>
 
@@ -64,6 +65,9 @@
           </button>
           <button type="button" role="tab" id="tabBtnFleet" aria-selected="false" tabindex="-1" data-panel="panelFleet">
             Đoàn xe &amp; Telemetry <span class="tab-count" id="cntFleet">0</span>
+          </button>
+          <button type="button" role="tab" id="tabBtnIncidents" aria-selected="false" tabindex="-1" data-panel="panelIncidents">
+            Sự cố TomTom <span class="tab-count" id="cntIncidents">0</span>
           </button>
           <button type="button" role="tab" id="tabBtnSystem" aria-selected="false" tabindex="-1" data-panel="panelSystem">
             Hệ thống &amp; Poller
@@ -131,7 +135,34 @@
           </div>
         </div>
 
-        <!-- Tab 3: System & Poller Health -->
+        <!-- Tab 3: TomTom Incidents -->
+        <div role="tabpanel" id="panelIncidents" aria-labelledby="tabBtnIncidents" class="tab-panel" hidden>
+          <div class="panel-inner">
+            <div class="eta-toolbar">
+              <span class="toolbar-label">Sự cố TomTom chiếu lên hành lang tuyến (click dòng hoặc LineString để xem chi tiết)</span>
+              <div class="status-chips" id="dbgIncidentsChips"></div>
+            </div>
+            <div tabindex="0" role="region" aria-label="Bảng danh sách sự cố TomTom" class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">ID / Loại</th>
+                    <th scope="col">Mô tả</th>
+                    <th scope="col">Mức độ</th>
+                    <th scope="col">Trễ (s)</th>
+                    <th scope="col">Dài (m)</th>
+                    <th scope="col">Lý trình (m)</th>
+                  </tr>
+                </thead>
+                <tbody id="dbgIncidentsTbody">
+                  <tr><td colspan="6" class="empty-cell">Chưa có sự cố nào trên tuyến/chiều đang chọn.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: System & Poller Health -->
         <div role="tabpanel" id="panelSystem" aria-labelledby="tabBtnSystem" class="tab-panel" hidden>
           <div class="panel-inner system-grid" id="dbgSystemGrid">
             <div class="empty-cell">Đang tải dữ liệu /api/health...</div>

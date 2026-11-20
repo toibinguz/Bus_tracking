@@ -30,9 +30,9 @@ flowchart TD
     end
 
     subgraph M3["Module 3: Dự báo ETA & Web Demo"]
-        CF["step_3_2: CausalFeatures (36 biến)"]
-        TRAIN["step_3_3: Residual XGBoost (causal-eta.v1)"]
-        SERVE["step_3_4: SpeedLayerPoller (45s) + BusMapServingService\n+ ModelRuntime + eta_policy"]
+        CF["step_3_2: CausalFeatures (40 biến + TomTom)"]
+        TRAIN["step_3_3: Residual XGBoost (causal-eta.v1, 1200 cây)"]
+        SERVE["step_3_4: SpeedLayerPoller (45s + HF Incidents) + BusMapServingService\n+ ModelRuntime + eta_policy"]
         WEB["step_3_5: FastAPI Web Demo (/ & /debug)"]
     end
 
@@ -47,7 +47,7 @@ flowchart TD
     CF --> TRAIN -->|"model.json + manifest.json"| SERVE
     BM & TB -->|"Live GPS"| SERVE
     SQL -->|"GTFS tĩnh & Baseline nhẹ"| SERVE
-    SIL -->|"fact_route_tomtom_incidents"| SERVE
+    SIL -->|"fact_route_tomtom_incidents / HF latest_incidents.json"| SERVE
     SERVE --> WEB
 ```
 

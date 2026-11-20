@@ -14,13 +14,13 @@ flowchart TD
         TB["TimBus Central API (TimBusClient Focus 5s)"]
         RAM["RAM chung từ Speed Layer (_tb_last_valid, CausalFeatures, RouteHMM)"]
         SQL["SQLite (GTFS tĩnh + Gold Baseline)"]
-        INC["Silver TomTom Incidents (Parquet)"]
-        MOD["data/models/causal_eta_v1/ (model.json + manifest.json)"]
+        INC["Live TomTom Incidents (HF raw_data/latest_incidents.json, TTL 45p)"]
+        MOD["data/models/causal_eta_v1/ (model.json + manifest.json, 40 features)"]
     end
 
     subgraph PROC["2. Xử lý trong BusMapServingService"]
         DTO_RAW["BusVehicleDTO (+ busmap_updated_at)"]
-        FEAT["Vector 36 CausalFeatures + Baseline p10/p50/p90"]
+        FEAT["Vector 40 CausalFeatures (gồm 4 TomTom) + Baseline p10/p50/p90"]
         ETA["ApproachingBusDTO + SafeWindowDTO (P10/P50/P90, B, Delay)"]
     end
 
@@ -57,7 +57,8 @@ flowchart TD
 
     HMM --> GUARD{"Lọc xe & Pass Guard:\ncross_track <= 35m, đúng chiều,\ns_now <= s_target, chưa trong _passed_station_plates?"}
     GUARD -->|"Sai"| SKIP["Loại xe khỏi kết quả trạm\n& ghi _passed_station_plates"]
-    GUARD -->|"Đúng"| CAUSAL["Đọc 36 CausalFeatures (RLock + _causal_lock)"]
+    GUARD -->|"Đúng"| INC_PROJ["get_live_incidents_for_route (TTL 45p, cos_theta >= 0.5)\n-> CausalFeatures.observe_incidents"]
+    INC_PROJ --> CAUSAL["Đọc 40 CausalFeatures (RLock + _causal_lock)"]
 
     CAUSAL --> MLCHK{"ModelRuntime.predict_p50_with_reason\n== 'ok'?"}
     MLCHK -->|"Đúng"| ML["eta_p50 = max(5.0, baseline_p50 + residual)"]

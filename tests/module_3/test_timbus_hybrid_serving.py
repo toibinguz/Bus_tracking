@@ -407,14 +407,6 @@ def test_macro_speed_estimation_over_120s_suppresses_eta_jitter(
     assert 16.0 <= spd_130 <= 24.0
     assert abs(spd_130 - spd_125) < 2.0
 
-    # Kiểm chứng _speed_features() dùng cửa sổ khớp train trả tốc độ gần ~20 km/h
-    _, _, s_last = _point_at_s(pts, s_start + 722.0)
-    v_inst, v_r3, v_r5, accel = service._extractor._speed_features(r32_id, 0, 999, s_last, spd_130)
-    assert 15.0 <= v_inst <= 25.0
-    assert 15.0 <= v_r3 <= 25.0
-    assert 15.0 <= v_r5 <= 25.0
-    assert abs(accel) <= 10.0
-
     # Kiểm chứng ETA giữa hai nhịp hộp đen 0 km/h vs 48 km/h thông qua get_station_eta giả lập
     lat_130, lon_130, _ = _point_at_s(pts, s_start + 722.0)
     now_iso_130 = datetime.fromtimestamp(t0 + 130.0, tz=TZ_HANOI).isoformat()

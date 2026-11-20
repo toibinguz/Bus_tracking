@@ -1,9 +1,9 @@
 """
-Step 3.4 — Runtime mô hình XGBoost causal-eta.v1 (36 feature, residual -> absolute).
+Step 3.4 — Runtime mô hình XGBoost causal-eta.v1 (40 feature, residual -> absolute).
 Module: module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/model_runtime.py
 
 Canonical artifact:
-  - Bundle: data/models/causal_eta_v1/ (model.json + manifest.json, max_depth=6, 592/600 cây)
+  - Bundle: data/models/causal_eta_v1/ (model.json + manifest.json, max_depth=6, 1200 cây)
 XGBoost dự báo RESIDUAL; serving dựng ETA = max(5.0, baseline_eta_p50_sec + delta).
 """
 
@@ -61,11 +61,11 @@ class ModelRuntime:
                 "model_sha256": _sha256(model_path),
                 "metadata_sha256": _sha256(manifest_path) if os.path.exists(manifest_path) else None,
                 "best_iteration": residual.best_iteration,
-                "features": list(FEATURES),
+                "features": list(residual.features),
             }
             logger.info(
                 "Đã nạp causal-eta.v1 (%d feature, best_iteration=%s, %d tuyến)",
-                len(FEATURES),
+                len(residual.features),
                 residual.best_iteration,
                 len(runtime._known_routes),
             )

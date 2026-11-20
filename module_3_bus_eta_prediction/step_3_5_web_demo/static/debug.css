@@ -300,6 +300,7 @@ html, body {
 .swatch.tb { background: var(--ok); }
 .swatch.bm { background: var(--warn); }
 .swatch.lead { background: var(--accent); box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4); }
+.swatch.inc { background: var(--danger); }
 
 /* Right Inspector with 3 Tabs */
 .inspector-pane {

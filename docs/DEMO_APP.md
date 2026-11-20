@@ -10,7 +10,7 @@
 ```mermaid
 flowchart TD
     P["Trang Hành khách (/)\nindex.html + passenger.css + passenger.js"] -->|"GET /api/routes, /api/route-shape,\n/api/route-stations, /api/live-vehicles, /api/station-eta"| API["FastAPI (step_3_5_web_demo/app.py)\nlifespan -> SpeedLayerPoller (45s)"]
-    D["Trang Debug Console (/debug)\ndebug.html + debug.css + debug.js\n3 Tab: Trạm ETA | Đoàn xe | Hệ thống"] -->|"GET /api/* + /api/health"| API
+    D["Trang Debug Console (/debug)\ndebug.html + debug.css + debug.js\n4 Tab: Trạm ETA | Đoàn xe | Sự cố TomTom | Hệ thống"] -->|"GET /api/* + /api/health"| API
     API --> SVC["BusMapServingService (docs/SERVING_LAYER_PIPELINE.md)"]
 ```
 
@@ -19,10 +19,11 @@ flowchart TD
   - Ô tìm tuyến (`#routeCombobox`) và ô chọn/lọc trạm (`#stationCombobox`) nằm phía trên vùng ETA để giữ khoảng trống rộng cho thẻ dự báo.
   - **Tự động ghim khi click trạm** (trên bản đồ hoặc danh sách) và **không mở khung popup trên bản đồ**; làm nổi bật **xe gần trạm nhất** bằng thẻ hero và badge pulse trên bản đồ.
 - **Trang Debug (`/debug`):**
-  - Nền dark-slate tách biệt, chia 2 cột bản đồ Esri vệ tinh — bảng phân tích (kéo dãn tỷ lệ qua `#dbgSplitter`), gồm **3 tab độc lập**:
+  - Nền dark-slate tách biệt, chia 2 cột bản đồ Esri vệ tinh — bảng phân tích (kéo dãn tỷ lệ qua `#dbgSplitter`), gồm **4 tab độc lập**:
     1. **Trạm & ETA:** bảng toàn bộ xe đang tiếp cận (hàng xe gần nhất được highlight), hiển thị `TB query` vs `BM thiết bị` (`busmap_updated_at`), `buffer_seconds`, `delay_seconds`, `fallback_reason`.
     2. **Đoàn xe & Telemetry:** toàn bộ xe đang hoạt động, nguồn `timbus`/`busmap`, thời gian gói tin, vận tốc mượt/gốc/`Δt` (click dòng để định vị trên bản đồ).
-    3. **Hệ thống & Poller:** trạng thái `/api/health` (`healthy` / `degraded`), `SpeedLayerPoller` (`cycle_count`, bộ đếm phân loại 4 trạng thái, `Circuit Breaker`) và `ModelRuntime`.
+    3. **Sự cố TomTom:** vẽ LineString/điểm sự cố theo màu mức độ lên bản đồ (click mở popup chi tiết) và liệt kê bảng `ID / Loại`, `Mô tả`, `Mức độ`, `Trễ (s)`, `Dài (m)`, `Lý trình (m)` (click dòng để zoom & mở popup).
+    4. **Hệ thống & Poller:** trạng thái `/api/health` (`healthy` / `degraded`), `SpeedLayerPoller` (`cycle_count`, `incidents` HF relay, `Circuit Breaker`) và `ModelRuntime`.
 
 ## 2. API Endpoints (`step_3_5_web_demo/app.py`)
 

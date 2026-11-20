@@ -4,7 +4,7 @@ Module: module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/data_acc
 
 Đơn trách nhiệm: toàn bộ I/O cho tầng serving (routes/shapes/stations/baseline matrix/incidents).
 Không tính ETA. Mọi ngưỡng lấy từ `config.system_config` (không magic number).
-Logic catalog/baseline/shape/stations kế thừa `busmap_service.py` cũ (đã đúng theo SPEC-16 §3).
+Quản lý catalog tuyến/trạm, baseline matrix và hình học tim tuyến (DuckDB/Parquet).
 """
 
 import json

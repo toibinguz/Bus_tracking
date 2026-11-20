@@ -3,7 +3,7 @@ Step 3.4 — Speed Layer Background Poller (chu kỳ 45s).
 Module: module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/speed_poller.py
 
 Nhiệm vụ:
-  1. Quét BusMap `route_query` 48 tuyến baseline mỗi 45s để làm ấm `CausalFeatures` & `OnlineFeatureExtractor`
+  1. Quét BusMap `route_query` 48 tuyến baseline mỗi 45s để làm ấm `MacroSpeedTracker` & `RouteProjectionTracker`
      (triệt tiêu cold-start 3-5 phút khi người dùng mở trang).
   2. Trám TimBus dàn trải (2 workers, `anchors[:1]`) cho xe trễ >= 60s hoặc biến mất giữa tuyến,
      tự động bỏ qua các xe mà Serving Layer vừa focus (< 45s) trong `_tb_last_valid`.
@@ -20,6 +20,9 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from config.system_config import MAX_CORRIDOR_CROSS_TRACK_M, TZ_HANOI
 from experiments.timbus.timbus_tracker import TimBusClient
+from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.hf_lake_sync import (
+    fetch_latest_incidents_from_hf,
+)
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.dto import BusVehicleDTO
 from module_3_bus_eta_prediction.step_3_4_eta_serving_and_evaluation.live_feed import (
     fetch_live_vehicles_for_route,
@@ -61,6 +64,8 @@ class SpeedLayerPoller:
         circuit_breaker_sec: float = CIRCUIT_BREAKER_SEC,
         route_fetcher: Optional[Callable[[int, int], Any]] = None,
         timbus_fetcher: Optional[Callable[..., Tuple[Dict[str, Any], int, int, Optional[str]]]] = None,
+        incident_fetcher: Optional[Callable[[], Tuple[Optional[dict], Optional[str]]]] = None,
+        incident_sync_interval_sec: float = 120.0,
         now_fn: Optional[Callable[[], float]] = None,
     ):
         self._service = service
@@ -71,6 +76,8 @@ class SpeedLayerPoller:
         self.circuit_breaker_sec = float(circuit_breaker_sec)
         self._route_fetcher = route_fetcher or (lambda r_id, d: fetch_live_vehicles_for_route(route_id=r_id, direction=d))
         self._timbus_fetcher = timbus_fetcher or TimBusClient.query_central_vehicles_with_status
+        self._incident_fetcher = incident_fetcher or fetch_latest_incidents_from_hf
+        self.incident_sync_interval_sec = float(incident_sync_interval_sec)
         self._now_fn = now_fn or time.time
 
         self._stop_event = threading.Event()
@@ -98,6 +105,10 @@ class SpeedLayerPoller:
             "upstream_error": 0,
         }
         self._gap_routes: Dict[int, int] = {}
+        self._last_incident_sync_epoch: float = 0.0
+        self._incident_fetched_at: Optional[str] = None
+        self._incident_count: int = 0
+        self._incident_error: Optional[str] = None
 
     def start(self) -> None:
         """Khởi động thread nền Speed Layer (an toàn khi gọi nhiều lần)."""
@@ -141,6 +152,12 @@ class SpeedLayerPoller:
                 "last_error": self._last_error,
                 "counts": dict(self._counts),
                 "gap_routes_top": dict(sorted(self._gap_routes.items(), key=lambda kv: -kv[1])[:5]),
+                "incidents": {
+                    "fetched_at": self._incident_fetched_at,
+                    "count": self._incident_count,
+                    "last_sync_epoch": self._last_incident_sync_epoch or None,
+                    "error": self._incident_error,
+                },
             }
 
     def _run_loop(self) -> None:
@@ -168,6 +185,7 @@ class SpeedLayerPoller:
         """Chạy 1 chu kỳ đồng bộ Speed Layer (48 tuyến BusMap + TimBus gap-fill)."""
         now_ts = self._now_fn() if now_epoch is None else float(now_epoch)
         t_start = time.monotonic()
+        self._maybe_sync_incidents(now_ts)
         route_ids = self._service.get_poller_route_ids()
 
         candidates: List[Tuple[int, int, int, BusVehicleDTO, float, float]] = []
@@ -244,6 +262,29 @@ class SpeedLayerPoller:
             **tb_stats,
             "duration_sec": duration,
         }
+
+    def _maybe_sync_incidents(self, now_ts: float) -> None:
+        """Đồng bộ TomTom live incidents từ Hugging Face (0 TomTom API call); retry ở vòng sau nếu lỗi."""
+        with self._state_lock:
+            if (now_ts - self._last_incident_sync_epoch) < self.incident_sync_interval_sec:
+                return
+        try:
+            payload, err = self._incident_fetcher()
+        except Exception as exc:
+            with self._state_lock:
+                self._incident_error = f"{type(exc).__name__}: {exc}"
+            return
+        if err is not None or not isinstance(payload, dict) or not isinstance(payload.get("incidents"), list):
+            with self._state_lock:
+                self._incident_error = err or "invalid_incident_payload"
+            return
+        ingester = getattr(self._service, "ingest_live_incidents", None)
+        cnt = ingester(payload, now_ts) if callable(ingester) else len(payload.get("incidents") or [])
+        with self._state_lock:
+            self._last_incident_sync_epoch = now_ts
+            self._incident_fetched_at = payload.get("fetched_at")
+            self._incident_count = cnt
+            self._incident_error = None
 
     def _is_in_cooldown(self, route_id: int, dir_int: int, plate: str, now_ts: float) -> bool:
         with self._state_lock:

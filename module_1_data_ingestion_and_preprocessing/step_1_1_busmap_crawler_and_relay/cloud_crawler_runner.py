@@ -38,7 +38,7 @@ from .incident_client import (
 )
 from .hf_lake_sync import (
     get_hf_today_batch_count, get_hf_today_traffic_batch_count,
-    upload_batches_to_hf_native
+    upload_batches_to_hf_native, push_latest_incidents_to_hf,
 )
 from .hotspot_evaluator import evaluate_hotspot_congestion
 from ..step_1_3_telemetry_kinematic_sanitizer.telemetry_sanitizer import sanitize_and_validate_telemetry
@@ -128,6 +128,9 @@ def main():
         quota_state["incident_month"] += 1
         save_tomtom_quota_state(quota_state)
         print(f"   🚨 Hoàn tất Incidents: {len(incident_records)} sự cố (Hôm nay: {quota_state['incident_today']}/{MAX_TOMTOM_INCIDENT_DAILY}, Tháng: {quota_state['incident_month']}/{MAX_TOMTOM_INCIDENT_MONTHLY}).", flush=True)
+        if hf_token and not single_test:
+            pushed_live = push_latest_incidents_to_hf(incident_records, get_hanoi_time().isoformat(), hf_token)
+            print(f"   📡 Push tức thì latest_incidents.json -> HF: {'OK' if pushed_live else 'FAIL'}", flush=True)
 
     # 3. Vòng lặp cào GPS xe buýt với Micro-batch Pacing
     micro_batches = [v_ids[i:i + BUS_MICRO_BATCH_SIZE] for i in range(0, len(v_ids), BUS_MICRO_BATCH_SIZE)]

@@ -26,15 +26,21 @@ MONOTONE_SPEED_FEATURES = frozenset({
     'ego_speed_avg_5min_kmh',
     'lead_bus_speed_kmh',
 })
+MONOTONE_INCIDENT_FEATURES = frozenset({
+    'inc_ahead_total_delay_sec',
+})
 
 
 def build_xgb_regressor(
     rounds: int,
-    early_stopping_rounds: int = 30,
+    early_stopping_rounds: int | None = 30,
     max_depth: int = 4,
 ) -> xgb.XGBRegressor:
-    """XGBRegressor với early stopping và ràng buộc đơn điệu âm cho nhóm tốc độ."""
-    constraints = tuple(-1 if f in MONOTONE_SPEED_FEATURES else 0 for f in FEATURES)
+    """XGBRegressor với early stopping và ràng buộc đơn điệu (-1 tốc độ, +1 delay sự cố)."""
+    constraints = tuple(
+        -1 if f in MONOTONE_SPEED_FEATURES else (1 if f in MONOTONE_INCIDENT_FEATURES else 0)
+        for f in FEATURES
+    )
     return xgb.XGBRegressor(
         objective='reg:absoluteerror',
         eval_metric='mae',
@@ -46,7 +52,7 @@ def build_xgb_regressor(
         enable_categorical=True,
         monotone_constraints=constraints,
         random_state=42,
-        n_jobs=4,
+        n_jobs=5,
     )
 
 
@@ -142,18 +148,20 @@ class TrainingReplay:
             yield {**row, 'split': splits[split], 'eta_seconds': eta, 'label': asdict(crossing)}
 
 
-def feature_frame(rows, domains):
-    frame = pd.DataFrame(rows, columns=FEATURES, dtype=float)
+def feature_frame(rows, domains, columns=FEATURES):
+    frame = pd.DataFrame(rows, columns=columns, dtype=float)
     for column in CATEGORICAL:
-        frame[column] = pd.Categorical(frame[column], categories=domains[column])
+        if column in frame.columns:
+            frame[column] = pd.Categorical(frame[column], categories=domains[column])
     return frame
 
 
 class ResidualETA:
-    def __init__(self, model, domains, best_iteration=None):
+    def __init__(self, model, domains, best_iteration=None, features=FEATURES):
         self.model = model
         self.domains = domains
         self.best_iteration = best_iteration
+        self.features = tuple(features)
 
     def _predict_raw(self, frame):
         if self.best_iteration is not None:
@@ -164,9 +172,9 @@ class ResidualETA:
         rows = list(rows)
         if not rows:
             return np.empty(0)
-        if any(set(row) != set(FEATURES) or row[BASE] is None or not math.isfinite(row[BASE]) for row in rows):
+        if any(not set(self.features).issubset(row) or row[BASE] is None or not math.isfinite(row[BASE]) for row in rows):
             raise ValueError('features do not conform to ETA schema')
-        frame = feature_frame(rows, self.domains)
+        frame = feature_frame(rows, self.domains, columns=self.features)
         unknown_mask = frame['route_id_idx'].isna().to_numpy()
         if unknown_mask.any() and not allow_unknown_routes:
             raise ValueError('model has no training examples for at least one route')
@@ -184,14 +192,21 @@ class ResidualETA:
     def load(cls, root):
         root = Path(root)
         metadata = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
-        if (metadata['schema'] != 'causal-eta.v1' or tuple(metadata['features']) != FEATURES
+        model_features = tuple(metadata.get('features') or ())
+        if (metadata.get('schema') != 'causal-eta.v1' or not model_features
+                or not set(model_features).issubset(FEATURES)
                 or digest(root / 'model.json') != metadata['hashes']['model']):
             raise ValueError('ETA model contract or hash mismatch')
         model = xgb.XGBRegressor()
         model.load_model(root / 'model.json')
-        if tuple(model.get_booster().feature_names) != FEATURES:
+        if tuple(model.get_booster().feature_names) != model_features:
             raise ValueError('ETA model feature order is invalid')
-        return cls(model, metadata['category_domains'], best_iteration=metadata.get('best_iteration'))
+        return cls(
+            model,
+            metadata['category_domains'],
+            best_iteration=metadata.get('best_iteration'),
+            features=model_features,
+        )
 
 
 def metrics(actual, prediction, groups):
@@ -205,23 +220,28 @@ def metrics(actual, prediction, groups):
                 crossings=len(by_crossing), crossing_balanced_mae=float(np.mean([np.mean(x) for x in by_crossing.values()])))
 
 
-def fit_bundle(rows, output, provenance, rounds):
+def fit_bundle(rows, output, provenance, rounds, max_depth: int = 4, use_validation: bool = True):
     if provenance.get('input_mode') != 'busmap_lakehouse_silver' or any(row['source'] != 'busmap' for row in rows):
         raise ValueError('ETA training requires a BusMap lakehouse Silver replay')
     splits = {name: [row for row in rows if row['split'] == name] for name in ('train', 'validation', 'test')}
-    if any(not values for values in splits.values()):
+    if not use_validation:
+        splits['train'] = splits['train'] + splits['validation']
+        splits['validation'] = []
+    required_splits = ('train', 'validation', 'test') if use_validation else ('train', 'test')
+    if any(not splits[name] for name in required_splits):
         raise ValueError(f'each temporal split needs labels: { {key: len(value) for key, value in splits.items()} }')
     domains = {'route_id_idx': sorted({row['features']['route_id_idx'] for row in splits['train']}),
                'direction_id': [0, 1], 'day_type': [0, 1, 2],
                'hour_slot': list(range(BASELINE_MIN_HOUR_SLOT, BASELINE_MAX_HOUR_SLOT + 1))}
     train = splits['train']
     unsupported = {}
-    for key, values in list(splits.items())[1:]:
+    for key in ('validation', 'test'):
+        values = splits[key]
         supported = [row for row in values if row['features']['route_id_idx'] in domains['route_id_idx']]
         unsupported[key] = len(values) - len(supported)
         splits[key] = supported
     validation, test = splits['validation'], splits['test']
-    if not validation or not test:
+    if (use_validation and not validation) or not test:
         raise ValueError('no supported routes in validation or test')
 
     def input_data(examples):
@@ -232,14 +252,22 @@ def fit_bundle(rows, output, provenance, rounds):
         return frame, residual, weights / np.mean(weights)
 
     x, y, weights = input_data(train)
-    xv, yv, wv = input_data(validation)
-    model = build_xgb_regressor(rounds)
-    model.fit(x, y, sample_weight=weights, eval_set=[(x, y), (xv, yv)],
-              sample_weight_eval_set=[weights, wv], verbose=50)
-    history = model.evals_result()
-    best_iteration = int(getattr(model, 'best_iteration', int(np.argmin(history['validation_1']['mae']))))
-    model.get_booster().set_attr(best_iteration=str(best_iteration),
-                                 best_score=str(history['validation_1']['mae'][best_iteration]))
+    if use_validation:
+        xv, yv, wv = input_data(validation)
+        model = build_xgb_regressor(rounds, max_depth=max_depth)
+        model.fit(x, y, sample_weight=weights, eval_set=[(x, y), (xv, yv)],
+                  sample_weight_eval_set=[weights, wv], verbose=50)
+        history = model.evals_result()
+        best_iteration = int(getattr(model, 'best_iteration', int(np.argmin(history['validation_1']['mae']))))
+        best_score = history['validation_1']['mae'][best_iteration]
+    else:
+        model = build_xgb_regressor(rounds, early_stopping_rounds=None, max_depth=max_depth)
+        model.fit(x, y, sample_weight=weights, eval_set=[(x, y)],
+                  sample_weight_eval_set=[weights], verbose=100)
+        history = model.evals_result()
+        best_iteration = int(model.get_booster().num_boosted_rounds()) - 1
+        best_score = history['validation_0']['mae'][best_iteration]
+    model.get_booster().set_attr(best_iteration=str(best_iteration), best_score=str(best_score))
     runner = ResidualETA(model, domains, best_iteration=best_iteration)
     test_predictions = runner.predict(row['features'] for row in test)
     actual = np.array([row['eta_seconds'] for row in test])
@@ -253,7 +281,7 @@ def fit_bundle(rows, output, provenance, rounds):
                 for name, values in [('baseline', baseline), ('model', test_predictions)]}
 
     report = dict(overall=compare(np.ones(len(test), dtype=bool)), unsupported_routes=unsupported,
-                  by_horizon={}, by_source={}, by_speed_history={},
+                  by_horizon={}, by_source={}, by_speed_history={}, by_incident={},
                   rows_by_split={name: len(data) for name, data in splits.items()})
     for name, start, end in [('1', 1, 1), ('2-5', 2, 5), ('6-15', 6, 15), ('16+', 16, math.inf)]:
         mask = (horizons >= start) & (horizons <= end)
@@ -266,6 +294,10 @@ def fit_bundle(rows, output, provenance, rounds):
                        ('full', duration >= 270)]:
         if mask.any():
             report['by_speed_history'][name] = compare(mask)
+    inc_delays = np.array([float(row['features'].get('inc_ahead_total_delay_sec') or 0.0) for row in test])
+    for name, mask in [('no_incident', inc_delays <= 0.0), ('has_incident', inc_delays > 0.0)]:
+        if mask.any():
+            report['by_incident'][name] = compare(mask)
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists():
         raise FileExistsError(output)
@@ -278,7 +310,7 @@ def fit_bundle(rows, output, provenance, rounds):
                 stream.write(json.dumps(row, ensure_ascii=False, allow_nan=False) + '\n')
         metadata = dict(schema='causal-eta.v1', features=FEATURES, category_domains=domains,
                         hashes={'model': digest(stage / 'model.json'), 'examples': digest(stage / 'examples.jsonl')},
-                        best_iteration=model.best_iteration, trained_rounds=model.get_booster().num_boosted_rounds(),
+                        best_iteration=best_iteration, trained_rounds=model.get_booster().num_boosted_rounds(),
                         training_history=history, provenance=provenance, evaluation=report)
         (stage / 'manifest.json').write_text(json.dumps(metadata, indent=2, allow_nan=False) + '\n', encoding='utf-8')
         np.testing.assert_allclose(ResidualETA.load(stage).predict(row['features'] for row in test), test_predictions)
