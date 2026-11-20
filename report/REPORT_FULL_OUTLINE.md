@@ -13,7 +13,8 @@
   - **Batch Layer:** Thu thập dữ liệu liên tục 24/7 $\to$ xử lý qua các tầng HDFS Bronze/Silver/Gold $\to$ lưu trữ bản trích rút gọn trên SQLite và huấn luyện mô hình `causal-eta.v1`.
   - **Speed Layer:** Tiến trình nền `SpeedLayerPoller` vận hành theo chu kỳ `45s` nhằm thu thập và duy trì trạng thái bộ nhớ đệm trong RAM (`CausalFeatures`, `RouteProjectionTracker`, `RouteHMM`, `_tb_last_valid`), đồng thời đồng bộ ảnh chụp sự cố TomTom trực tiếp từ Hugging Face theo chu kỳ `300s` — tách biệt hoàn toàn khỏi tác vụ lọc trạm và suy luận ETA.
   - **Serving Layer:** Dịch vụ `BusMapServingService` (FastAPI) khai thác trực tiếp trạng thái RAM đã được chuẩn bị sẵn, kết hợp truy vấn BusMap `route_query` và TimBus Focus `5s` để thực hiện lọc phương tiện theo trạm, suy luận mô hình học máy và áp dụng chính sách ổn định `eta_policy`.
-  - **Sơ đồ kiến trúc tổng quan** cùng phần phân tách rõ ràng **Luồng Dữ liệu** và **Luồng Logic** trên cả 3 tầng.
+- **1.3. Sơ đồ Tổng hợp Kiến trúc Lambda 3 Tầng:**
+  - Đặt ở cuối Chương 1 để tổng hợp và liên kết toàn bộ nội dung mục `1.1–1.2`: trình bày **Sơ đồ Kiến trúc Tổng quan** cùng phần phân tách trực quan **Luồng Dữ liệu** và **Luồng Logic** xuyên suốt Batch Layer, Speed Layer và Serving Layer.
 
 ---
 
@@ -39,6 +40,8 @@
     - **Silver (`step_2_4`, `step_2_2`):** Xử lý phân tán bằng Spark P2 (`p2_transform.py`) và lưu trữ định dạng Parquet Snappy (`route_projected_telemetry`, `fact_route_tomtom_incidents`).
     - **Gold (`step_3_1`, `step_2_4`):** Tổng hợp ma trận thời gian di chuyển lịch sử `agg_segment_travel_times` (`p10`, `p50`, `p90`, `mean`, `std` phân nhóm theo `(route_id, direction, segment_idx, day_type, hour_slot)`, với `MIN_SAMPLES_FOR_BASELINE = 5`, `MAX_SEGMENT_TRAVEL_TIME_SEC = 1800.0s`) và tạo bản phát hành snapshot (`eta_snapshot.py`).
     - **SQLite (`hanoi_bus_system.db`, `step_2_1`):** Cơ sở dữ liệu gọn nhẹ chứa cấu trúc GTFS chuẩn hóa (`canonical_routes`, `canonical_shapes`, `canonical_stations`) cùng bảng tổng hợp Gold Baseline phục vụ truy xuất độ trễ thấp.
+- **2.5. Sơ đồ Tổng hợp Luồng Xử lý Batch Layer:**
+  - Đặt ở cuối Chương 2 để liên kết trực quan các bước từ mục `2.1–2.4`: Thu thập đa nguồn & đẩy sự cố lên Hugging Face $\to$ Làm sạch động học & phân đoạn chuyến $\to$ Chiếu 1D Frenet & Viterbi HMM $\to$ Lưu trữ Bronze–Silver–Gold trên HDFS và trích xuất SQLite.
 
 ---
 
@@ -60,6 +63,8 @@
   - `UPSTREAM_ERROR`: Xảy ra timeout hoặc lỗi kết nối $\to$ tăng `error_streak`; khi đạt ngưỡng $\ge 3$, kích hoạt **Circuit Breaker `90s`** (`circuit_state = "OPEN"`).
 - **3.4. Đồng bộ Đa luồng và Bảo toàn Trạng thái Bộ nhớ:**
   - Vận hành tiến trình đơn (`--workers 1`), sử dụng `threading.RLock` trong `CausalFeatures` (`causal_eta.py`) kết hợp cùng `_causal_lock` và `_tb_lock` trong `BusMapServingService` nhằm bảo đảm tính nhất quán bộ nhớ chia sẻ.
+- **3.5. Sơ đồ Tổng hợp Vòng đời Xử lý Speed Layer:**
+  - Đặt ở cuối Chương 3 để kết nối toàn bộ nội dung mục `3.1–3.4`: chu kỳ `45s` qua 3 Phase (BusMap $\to$ TimBus Gap-Filler $\to$ đồng bộ TomTom `300s`), máy trạng thái 4 nhánh, cơ chế Circuit Breaker `90s` và khóa đồng bộ RAM chia sẻ với Serving Layer.
 
 ---
 
@@ -90,6 +95,8 @@
   - `fallback_reason` (`ok | cold_start_causal | model_unavailable | unknown_route | predict_error`).
   - Phân tách hai mốc thời gian của gói tin: `ping_time` (thời điểm truy vấn TimBus) và `busmap_updated_at` (thời điểm ghi nhận từ thiết bị GPS gốc của BusMap).
   - Endpoint `/api/health` công bố trạng thái `healthy` / `degraded`, biến `model_available` và ảnh chụp trạng thái chi tiết của `SpeedLayerPoller`.
+- **4.6. Sơ đồ Tổng hợp Chuỗi Suy luận Serving Layer:**
+  - Đặt ở cuối Chương 4 để liên kết toàn bộ quy trình từ mục `4.1–4.5`: tiếp nhận truy vấn $\to$ đọc RAM & đồng bộ Focus `5s` $\to$ lọc trạm, Pass Guard & chiếu sự cố TomTom $\to$ trích xuất `40` đặc trưng `CausalFeatures` $\to$ suy luận `causal-eta.v1` (hoặc nhánh dự phòng tường minh) $\to$ hậu xử lý `eta_policy` và xuất DTO phản hồi.
 
 ---
 
@@ -103,6 +110,8 @@
   - Trình bày song song hai mốc `TB query` và `BM thiết bị` (`busmap_updated_at`), đồng thời đánh dấu nổi bật hàng phương tiện dẫn đầu (`.is-leading`).
 - **5.3. Quy trình Khởi chạy Nền và Vận hành Hệ thống:**
   - Cài đặt qua bộ kịch bản tại `scripts/` (`start_demo_bg.ps1` / `.bat` và `stop_demo_bg.ps1` / `.bat`): khởi chạy tiến trình nền `uvicorn --workers 1` trước thời điểm trình diễn khoảng 15 phút để chuẩn bị sẵn trạng thái Speed Layer, ngăn ngừa xung đột cổng (`Exit=1`) và hỗ trợ dừng tiến trình an toàn theo PID.
+- **5.4. Sơ đồ Tương tác Tầng Trình diễn và API Phục vụ:**
+  - Đặt ở cuối Chương 5 để liên kết mục `5.1–5.3`: luồng tương tác giữa trình duyệt (`/` và `/debug`), các endpoint FastAPI của Serving Layer (`/api/health`, API tuyến, trạm, đoàn xe và sự cố TomTom) cùng vòng đời khởi chạy nền hệ thống.
 
 ---
 
