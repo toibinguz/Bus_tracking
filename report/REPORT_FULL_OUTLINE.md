@@ -110,10 +110,11 @@
   - **Tách slice `by_incident`:**
     - `no_incident` (`3,664,284` mẫu): `99.25s → 95.09s` (`-4.16s`).
     - `has_incident` (`4,642,011` mẫu): Baseline `237.11s` | 36f `207.14s` | **40f + TomTom `177.74s`** (**`-29.40s` MAE**, P90 giảm `-81.26s`).
+  - **Theo khoảng cách chặng (`by_horizon`):** `1 hop`: `45.71s` (baseline `62.50s`), `2–5 hops`: `73.81s` (`95.54s`), `6–15 hops`: `135.33s` (`171.92s`), `16+ hops`: `221.16s` (`301.58s`).
   - **Feature Importance TomTom:** `inc_ahead_total_delay_sec` (`1,613` splits, gain `3,414.0`), `inc_dist_to_nearest_m` (`581` splits, gain `475.46`), `inc_ahead_jam_length_m` (`979` splits, gain `315.57`), `inc_info_age_sec` (`312` splits, gain `183.78`).
 - **6.4. Kiểm thử Tự động & Trình duyệt Thực tế:**
   - Bộ kiểm thử `pytest tests/ --basetemp=runtime/pytest_tmp -q`: **`200 passed, 12 skipped, 0 failed`**.
   - Chrome DevTools (`/` và `/debug`): `0` lỗi console, vẽ `5` LineString sự cố trên tuyến `01`, tab *Sự cố TomTom* & popup hoạt động đầy đủ; soak test `8` phút (`96/96` HTTP 200, `204/204` trace 40f hợp lệ, `0` vi phạm quantile).
 - **6.5. Thảo luận Hạn chế & Hướng phát triển:**
-  - **Đã giải quyết triệt để bài toán TomTom Relay dưới ràng buộc Quota:** Crawler đẩy `raw_data/latest_incidents.json` lên HF ngay sau khi query TomTom (`1` lần gọi chung cho cả Batch & Speed/Serving, giữ quota `<= 80/ngày`), kết hợp 4 feature TomTom + monotone `+1` và UI `/debug`. *(Lưu ý triển khai: cần merge nhánh `feat/live-tomtom-incident-relay` vào `main` để GitHub Actions cập nhật `latest_incidents.json` tự động.)*
+  - **Đã giải quyết triệt để bài toán TomTom Relay dưới ràng buộc Quota:** Crawler đẩy `raw_data/latest_incidents.json` lên HF ngay sau khi query TomTom (`1` lần gọi chung cho cả Batch & Speed/Serving, giữ quota `<= 80/ngày`), kết hợp 4 feature TomTom + monotone `+1` và UI `/debug` (đã hợp nhất vào `main`).
   - **Tối ưu tiếp theo:** Giảm tần suất TimBus ở Serving Layer (chỉ quét chiều `primary_dir` hoặc tăng `TIMBUS_LIVE_CACHE_TTL_SEC` lên `8–10s`), mở rộng tập huấn luyện ngoài 48 tuyến baseline, và cân nhắc hiển thị cảnh báo sự cố tinh gọn trên trang Hành khách (`/`).
