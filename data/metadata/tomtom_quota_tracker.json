@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-23",
+  "date": "2026-11-24",
   "month": "2026-11",
   "flow_daily_budget": 0,
   "flow_monthly_limit": 0,
@@ -9,9 +9,9 @@
   "flow_remaining_month": 0,
   "incident_daily_budget": 80,
   "incident_monthly_limit": 2500,
-  "incident_used_today": 77,
-  "incident_used_month": 1760,
-  "incident_remaining_today": 3,
-  "incident_remaining_month": 740,
-  "last_updated": "2026-11-23 21:46:59"
+  "incident_used_today": 1,
+  "incident_used_month": 1761,
+  "incident_remaining_today": 79,
+  "incident_remaining_month": 739,
+  "last_updated": "2026-11-24 05:10:18"
 }
