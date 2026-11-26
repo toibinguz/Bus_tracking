@@ -18,6 +18,7 @@ from config import (
     STALE_DELTA_T_MIN_SEC,
     STALE_DELTA_T_MAX_SEC,
     EMA_ALPHA,
+    TZ_HANOI,
     get_hanoi_time
 )
 
@@ -49,7 +50,10 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
     curr_epoch = time.time()
     if last_update:
         try:
-            curr_epoch = datetime.fromisoformat(last_update).timestamp()
+            dt_obj = datetime.fromisoformat(last_update.replace("Z", "+00:00"))
+            if dt_obj.tzinfo is None:
+                dt_obj = dt_obj.replace(tzinfo=TZ_HANOI)
+            curr_epoch = dt_obj.timestamp()
         except Exception:
             pass
 
@@ -108,8 +112,8 @@ def sanitize_and_validate_telemetry(raw, vid, target_route_ids, kinematic_cache,
 
     if not in_bounds:
         quality_status = "OUT_OF_BOUNDS"
-    # Trong BusMap: direction 1 = go, -1 = return (re), 0 = unassigned/depot
-    elif (direction == 0 or route_id <= 0) and smoothed_speed == 0.0:
+    # Trong BusMap thực tế: direction 0 = go, 1 = re, -1 = unassigned/depot
+    elif (direction == -1 or route_id <= 0) and smoothed_speed == 0.0:
         quality_status = "IDLE_DEPOT"
     elif route_id not in target_route_ids:
         quality_status = "REASSIGNED_ROUTE"

@@ -235,7 +235,7 @@
     }
 
     etaChips.innerHTML = [
-      `<span class="chip ${d.upstream_status === 'ok' ? 'ok' : 'danger'}">BM:${C.escapeHtml(d.upstream_status)}</span>`,
+      `<span class="chip ${d.upstream_status === 'ok' ? 'ok' : (d.upstream_status === 'empty' ? 'warn' : 'danger')}">BM:${C.escapeHtml(d.upstream_status)}</span>`,
       `<span class="chip ${d.timbus_status === 'ok' ? 'ok' : (d.timbus_status === 'unsupported' ? '' : 'warn')}">TB:${C.escapeHtml(d.timbus_status)}</span>`,
       `<span class="chip ${(d.incidents || []).length ? 'warn' : ''}">INC:${(d.incidents || []).length}</span>`,
       `<span class="chip">${d.poll_interval_sec}s</span>`,
@@ -308,7 +308,7 @@
     const vehicles = data.vehicles || [];
     cntFleet.textContent = String(vehicles.length);
     liveChips.innerHTML = [
-      `<span class="chip ${data.upstream_status === 'ok' ? 'ok' : 'danger'}">BM:${C.escapeHtml(data.upstream_status)}</span>`,
+      `<span class="chip ${data.upstream_status === 'ok' ? 'ok' : (data.upstream_status === 'empty' ? 'warn' : 'danger')}">BM:${C.escapeHtml(data.upstream_status)}</span>`,
       `<span class="chip ${data.timbus_status === 'ok' ? 'ok' : (data.timbus_status === 'unsupported' ? '' : 'warn')}">TB:${C.escapeHtml(data.timbus_status)}</span>`,
       `<span class="chip">poll:${data.poll_interval_sec}s</span>`,
     ].join('');
@@ -503,32 +503,37 @@
     `;
   }
 
-  async function pollAll() {
-    if (!currentRouteId || isPolling || isPaused) return;
+  async function pollAll(force = false) {
+    if (!currentRouteId || (isPolling && !force) || isPaused) return;
     isPolling = true;
     const gen = generation;
-    const [liveRes] = await Promise.all([
-      C.fetchJson(`/api/live-vehicles?route_id=${currentRouteId}&direction=${currentDirection}`),
-      refreshHealth(),
-    ]);
-    isPolling = false;
-    if (gen !== generation) return;
+    try {
+      const [liveRes] = await Promise.all([
+        C.fetchJson(`/api/live-vehicles?route_id=${currentRouteId}&direction=${currentDirection}`),
+        refreshHealth(),
+      ]);
+      if (gen !== generation) return;
 
-    if (!liveRes.ok) {
-      liveAlert.textContent = `Lỗi tải live-vehicles: ${liveRes.error}`;
-      liveAlert.hidden = false;
-    } else {
-      const d = liveRes.data;
-      syncPollInterval(Boolean(d.timbus_supported), d.poll_interval_sec);
-      latestVehicles = d.vehicles || [];
-      renderFleetTable(d);
-      renderIncidents(d.incidents || [], d.incidents_fetched_at);
-      renderBusMarkers(latestVehicles);
-      if (pinnedOrder !== null) {
-        refreshEta();
+      if (!liveRes.ok) {
+        liveAlert.textContent = `Lỗi tải live-vehicles: ${liveRes.error}`;
+        liveAlert.hidden = false;
+      } else {
+        const d = liveRes.data;
+        syncPollInterval(Boolean(d.timbus_supported), d.poll_interval_sec);
+        latestVehicles = d.vehicles || [];
+        renderFleetTable(d);
+        renderIncidents(d.incidents || [], d.incidents_fetched_at);
+        renderBusMarkers(latestVehicles);
+        if (pinnedOrder !== null) {
+          refreshEta();
+        }
+      }
+      resetCountdown();
+    } finally {
+      if (gen === generation) {
+        isPolling = false;
       }
     }
-    resetCountdown();
   }
 
   function syncPollInterval(supportsFast, serverSec) {
@@ -568,7 +573,7 @@
     leadingBusInfo = null;
     await loadGeometry(gen, fitBounds);
     if (gen !== generation) return;
-    await pollAll();
+    await pollAll(true);
     startTimers();
   }
 

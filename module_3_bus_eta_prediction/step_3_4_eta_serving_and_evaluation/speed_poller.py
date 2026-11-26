@@ -18,7 +18,12 @@ import threading
 import time
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
-from config.system_config import MAX_CORRIDOR_CROSS_TRACK_M, TZ_HANOI
+from config.system_config import (
+    MAX_CORRIDOR_CROSS_TRACK_M,
+    SPEED_POLLER_END_HHMM,
+    SPEED_POLLER_START_HHMM,
+    TZ_HANOI,
+)
 from experiments.timbus.timbus_tracker import TimBusClient
 from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.hf_lake_sync import (
     fetch_latest_incidents_from_hf,
@@ -44,11 +49,13 @@ OFF_HOURS_SLEEP_SEC = 30.0
 
 
 def is_operating_hours(epoch: Optional[float] = None) -> bool:
-    """True trong khung giờ vận hành (04:45 - 22:30 giờ Hà Nội); ngoài khung giờ sẽ đóng poller."""
+    """True trong khung giờ vận hành (SSOT SPEED_POLLER_START_HHMM..SPEED_POLLER_END_HHMM giờ Hà Nội)."""
     ts = time.time() if epoch is None else epoch
     dt = datetime.fromtimestamp(ts, tz=TZ_HANOI)
     hhmm = dt.hour * 60 + dt.minute
-    return (4 * 60 + 45) <= hhmm < (22 * 60 + 30)
+    start_m = SPEED_POLLER_START_HHMM[0] * 60 + SPEED_POLLER_START_HHMM[1]
+    end_m = SPEED_POLLER_END_HHMM[0] * 60 + SPEED_POLLER_END_HHMM[1]
+    return start_m <= hhmm < end_m
 
 
 class SpeedLayerPoller:
@@ -166,6 +173,10 @@ class SpeedLayerPoller:
             if not is_operating_hours(now_epoch):
                 with self._state_lock:
                     self._status = "off_hours"
+                    self._prev_active.clear()
+                    expired = [k for k, exp in self._cooldowns.items() if exp <= now_epoch]
+                    for k in expired:
+                        self._cooldowns.pop(k, None)
                 self._stop_event.wait(OFF_HOURS_SLEEP_SEC)
                 continue
 
@@ -246,7 +257,13 @@ class SpeedLayerPoller:
 
         duration = round(time.monotonic() - t_start, 2)
         end_ts = self._now_fn() if now_epoch is None else float(now_epoch)
+        sweeper = getattr(self._service, "sweep_stale_state", None)
+        if callable(sweeper):
+            sweeper(end_ts)
         with self._state_lock:
+            expired = [k for k, exp in self._cooldowns.items() if exp <= end_ts]
+            for k in expired:
+                self._cooldowns.pop(k, None)
             self._cycle_count += 1
             self._last_cycle_epoch = end_ts
             self._last_cycle_duration_sec = duration

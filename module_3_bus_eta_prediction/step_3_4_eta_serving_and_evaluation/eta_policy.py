@@ -76,7 +76,8 @@ def project_filter_extrapolate(
     if d_perp > MAX_CORRIDOR_CROSS_TRACK_M:
         return None  # Lệch hành lang tuyến
 
-    if vehicle.speed_kmh >= HEADING_MIN_SPEED_KMPH and vehicle.deg is not None:
+    heading_speed_kmh = vehicle.raw_speed_kmh if vehicle.raw_speed_kmh is not None else vehicle.speed_kmh
+    if heading_speed_kmh >= HEADING_MIN_SPEED_KMPH and vehicle.deg is not None:
         u_route_x, u_route_y = shape_model.segment_unit_tangent(seg_idx)
         theta_rad = math.radians(vehicle.deg)
         u_bus_x = math.sin(theta_rad)
@@ -132,51 +133,68 @@ def compute_station_eta(
     hour_slot: int,
     ml_p50: Optional[float],
     prediction_source: str,
+    station_orders: Optional[List[int]] = None,
 ) -> ApproachingBusDTO:
     """
     SPEC-15 §8.2 + ML override cho P50 + buffer LINEX + quantization + traffic (SPEC-16 §2.10).
-    `station_s` là danh sách lý trình lũy kế toàn bộ trạm (order == index).
+    `station_s` là danh sách lý trình lũy kế toàn bộ trạm; `station_orders` ánh xạ chỉ số mảng sang `station_order` thực.
     """
     v = bus_state.vehicle
     s_now = bus_state.s_now
     d_station = bus_state.d_station
-    s_target = target_st.cum_distance_m
     v_obs_kmh = v.speed_kmh
 
-    # Phân đoạn trạm hiện tại & baseline tích lũy
     n_st = len(station_s)
-    k = 0
-    for idx in range(n_st - 1):
-        if station_s[idx] <= s_now < station_s[idx + 1]:
-            k = idx
-            break
-    if s_now >= station_s[-1]:
-        k = n_st - 2
-    station_order = target_st.station_order
-    stops_rem = max(1, station_order - k)
+    orders = station_orders if (station_orders is not None and len(station_orders) == n_st) else list(range(n_st))
+    target_idx = next(
+        (idx for idx, ord_val in enumerate(orders) if ord_val == target_st.station_order),
+        min(n_st - 1, max(0, target_st.station_order)),
+    )
 
-    l_k = max(1.0, station_s[k + 1] - station_s[k])
-    rem_in_seg = max(0.0, station_s[k + 1] - s_now)
-    rho = min(1.0, max(0.0, rem_in_seg / l_k))
+    if d_station <= 0.0:
+        stops_rem = 0
+        sigma_accum = 0.0
+        base_rem_p10 = 0.0
+        base_rem_p50 = 0.0
+        base_rem_p90 = 0.0
+        eta_core_p50 = 0.0
+    else:
+        # Phân đoạn trạm hiện tại & baseline tích lũy theo chỉ số mảng k .. target_idx
+        k = 0
+        for idx in range(n_st - 1):
+            if station_s[idx] <= s_now < station_s[idx + 1]:
+                k = idx
+                break
+        if s_now >= station_s[-1]:
+            k = max(0, n_st - 2)
+        k = min(k, max(0, target_idx - 1))
+        stops_rem = max(1, target_idx - k)
 
-    t_k_p10, t_k_p50, t_k_p90, _, std_k = data_access.lookup_baseline_tt(route_id, dir_int, k, k + 1, day_type, hour_slot, l_k)
-    sigma_sq = (rho * std_k) ** 2
-    base_rem_p10 = rho * t_k_p10
-    base_rem_p50 = rho * t_k_p50
-    base_rem_p90 = rho * t_k_p90
+        l_k = max(1.0, station_s[k + 1] - station_s[k])
+        rem_in_seg = max(0.0, station_s[k + 1] - s_now)
+        rho = min(1.0, max(0.0, rem_in_seg / l_k))
 
-    for m in range(k + 1, station_order):
-        seg_len_m = max(1.0, station_s[m + 1] - station_s[m])
-        m_p10, m_p50, m_p90, _, std_m = data_access.lookup_baseline_tt(route_id, dir_int, m, m + 1, day_type, hour_slot, seg_len_m)
-        base_rem_p10 += m_p10
-        base_rem_p50 += m_p50
-        base_rem_p90 += m_p90
-        sigma_sq += std_m ** 2
+        t_k_p10, t_k_p50, t_k_p90, _, std_k = data_access.lookup_baseline_tt(
+            route_id, dir_int, orders[k], orders[k + 1], day_type, hour_slot, l_k
+        )
+        sigma_sq = (rho * std_k) ** 2
+        base_rem_p10 = rho * t_k_p10
+        base_rem_p50 = rho * t_k_p50
+        base_rem_p90 = rho * t_k_p90
 
-    sigma_accum = math.sqrt(sigma_sq)
+        for m in range(k + 1, target_idx):
+            seg_len_m = max(1.0, station_s[m + 1] - station_s[m])
+            m_p10, m_p50, m_p90, _, std_m = data_access.lookup_baseline_tt(
+                route_id, dir_int, orders[m], orders[m + 1], day_type, hour_slot, seg_len_m
+            )
+            base_rem_p10 += m_p10
+            base_rem_p50 += m_p50
+            base_rem_p90 += m_p90
+            sigma_sq += std_m ** 2
 
-    # (P9/P5) ETA core P50 = ML calibrated nếu khả dụng, ngược lại baseline_p50.
-    eta_core_p50 = float(ml_p50) if ml_p50 is not None else base_rem_p50
+        sigma_accum = math.sqrt(sigma_sq)
+        # (P9/P5) ETA core P50 = ML calibrated nếu khả dụng, ngược lại baseline_p50.
+        eta_core_p50 = float(ml_p50) if ml_p50 is not None else base_rem_p50
 
     # (P7) Độ trễ = ML - prior lịch sử; cờ cảnh báo.
     delta_delay = max(0.0, eta_core_p50 - base_rem_p50)
@@ -199,10 +217,15 @@ def compute_station_eta(
     opt_min = max(0, int(math.ceil(optimistic_eta / 60.0)))
     opt_text = _quantized_text(opt_min)
 
-    # (P6) Trạng thái giao thông.
-    if v_obs_kmh < CONGESTION_SPEED_THRESHOLD_KMPH or is_delayed:
+    # (P6) Trạng thái giao thông: không để seed cold-start che vận tốc dừng thực 0 km/h.
+    v_traffic_kmh = (
+        0.0
+        if (v.raw_speed_kmh is not None and v.raw_speed_kmh <= 0.0 and (v.speed_window_sec or 0.0) < 15.0)
+        else v_obs_kmh
+    )
+    if v_traffic_kmh < CONGESTION_SPEED_THRESHOLD_KMPH or is_delayed:
         traffic_status = "UN_TAC"
-    elif v_obs_kmh >= FREEFLOW_SPEED_THRESHOLD_KMPH and delta_delay < THONG_THOANG_MAX_DELAY_SEC:
+    elif v_traffic_kmh >= FREEFLOW_SPEED_THRESHOLD_KMPH and delta_delay < THONG_THOANG_MAX_DELAY_SEC:
         traffic_status = "THONG_THOANG"
     else:
         traffic_status = "BINH_THUONG"

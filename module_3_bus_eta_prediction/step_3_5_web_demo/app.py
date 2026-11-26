@@ -261,8 +261,8 @@ def get_station_eta(
     if stations_res is None or stations_res.station_count == 0:
         raise HTTPException(status_code=404, detail=f"Không có dữ liệu trạm dừng cho tuyến '{target_ident}' chiều {dir_int}")
 
-    if station_order >= stations_res.station_count:
-        raise HTTPException(status_code=404, detail=f"Thứ tự trạm {station_order} vượt quá số trạm ({stations_res.station_count}) của tuyến")
+    if not any(st.station_order == station_order for st in stations_res.stations):
+        raise HTTPException(status_code=404, detail=f"Thứ tự trạm {station_order} không tồn tại trên tuyến")
 
     eta_res = service.get_station_eta(resolved_id, dir_int, station_order)
     if eta_res is None:

@@ -27,6 +27,7 @@ from config.system_config import (
     RAW_DATA_DIR as CFG_RAW_DATA_DIR,
     CANONICAL_START_DATE,
     HANOI_BBOX,
+    TZ_HANOI,
 )
 
 DB_PATH = os.path.join(BASE_DIR, DEFAULT_DB_PATH)
@@ -112,9 +113,12 @@ def main():
                         if not vid or not dev_time:
                             continue
 
-                        # Parse epoch
+                        # Parse epoch (gan TZ_HANOI cho ISO string naive)
                         try:
-                            dev_epoch = datetime.fromisoformat(dev_time).timestamp()
+                            dt_dev = datetime.fromisoformat(dev_time.replace("Z", "+00:00"))
+                            if dt_dev.tzinfo is None:
+                                dt_dev = dt_dev.replace(tzinfo=TZ_HANOI)
+                            dev_epoch = dt_dev.timestamp()
                         except Exception:
                             continue
 
@@ -133,7 +137,13 @@ def main():
 
                         crawled_at = row.get("crawled_at", "")
                         try:
-                            crawled_epoch = datetime.fromisoformat(crawled_at).timestamp() if crawled_at else dev_epoch
+                            if crawled_at:
+                                dt_c = datetime.fromisoformat(crawled_at.replace("Z", "+00:00"))
+                                if dt_c.tzinfo is None:
+                                    dt_c = dt_c.replace(tzinfo=TZ_HANOI)
+                                crawled_epoch = dt_c.timestamp()
+                            else:
+                                crawled_epoch = dev_epoch
                         except Exception:
                             crawled_epoch = dev_epoch
 

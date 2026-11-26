@@ -342,7 +342,7 @@ class CausalFeatures:
             ov_l = min(s_target, iv.s_max_m) - max(s_cur, iv.s_min_m)
             if ov_l <= 0.0:
                 continue
-            span_l = max(20.0, iv.s_max_m - iv.s_min_m)
+            span_l = max(1e-6, iv.s_max_m - iv.s_min_m)
             frac = min(1.0, ov_l / span_l)
             delay_part = iv.delay_seconds * frac
             total_delay += delay_part

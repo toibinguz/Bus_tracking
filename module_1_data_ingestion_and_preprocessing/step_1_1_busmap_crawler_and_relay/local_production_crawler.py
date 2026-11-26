@@ -31,7 +31,7 @@ from config import (
     TOMTOM_FLOW_THROTTLE_SEC, WATCHDOG_MIN_RESPONSE_RATE,
     HUST_BOTTLENECK_NODES,
     is_operating_hours, is_peak_hours,
-    get_tomtom_api_key, get_hf_token
+    get_tomtom_api_key, get_hf_token, get_hanoi_time
 )
 from .socket_client import fetch_single_bus_raw
 from .catalog_manager import load_cluster_config
@@ -66,8 +66,9 @@ def main():
     hf_token = get_hf_token()
 
     quota_state = load_tomtom_quota_state()
-    current_day = datetime.now().day
-    current_month = datetime.now().month
+    hn_init = get_hanoi_time()
+    current_day = hn_init.day
+    current_month = hn_init.month
     last_tomtom_poll = 0
     last_hf_sync = time.time()
     kinematic_cache = {}
@@ -88,7 +89,7 @@ def main():
 
     while True:
         try:
-            now = datetime.now()
+            now = get_hanoi_time()
             # Reset counter on new day or month
             if now.month != current_month:
                 quota_state["flow_month"] = 0

@@ -393,55 +393,60 @@
     stationSearchInput.placeholder = `Chọn hoặc tìm trong ${currentStations.length} trạm...`;
   }
 
-  async function pollVehicles() {
-    if (!currentRouteId || isPolling) return;
+  async function pollVehicles(force = false) {
+    if (!currentRouteId || (isPolling && !force)) return;
     isPolling = true;
     const gen = generation;
-    const res = await C.fetchJson(`/api/live-vehicles?route_id=${currentRouteId}&direction=${currentDirection}`);
-    isPolling = false;
-    if (gen !== generation) return;
+    try {
+      const res = await C.fetchJson(`/api/live-vehicles?route_id=${currentRouteId}&direction=${currentDirection}`);
+      if (gen !== generation) return;
 
-    if (!res.ok) {
-      liveStatusPill.classList.add('is-error');
-      vehicleCountEl.textContent = 'Mất kết nối';
-      showAlert(`Không thể tải vị trí xe (${res.error}).`, true);
-      resetCountdown();
-      return;
-    }
+      if (!res.ok) {
+        liveStatusPill.classList.add('is-error');
+        vehicleCountEl.textContent = 'Mất kết nối';
+        showAlert(`Không thể tải vị trí xe (${res.error}).`, true);
+        resetCountdown();
+        return;
+      }
 
-    const data = res.data;
-    syncPollInterval(Boolean(data.timbus_supported), data.poll_interval_sec);
-    latestVehicles = data.vehicles || [];
+      const data = res.data;
+      syncPollInterval(Boolean(data.timbus_supported), data.poll_interval_sec);
+      latestVehicles = data.vehicles || [];
 
-    if (data.upstream_status === 'upstream_error') {
-      liveStatusPill.classList.add('is-error');
-      vehicleCountEl.textContent = 'Lỗi BusMap';
-      showAlert(`Lỗi kết nối BusMap upstream: ${data.upstream_error || 'Tạm gián đoạn'}.`, true);
-    } else {
-      liveStatusPill.classList.remove('is-error');
-      vehicleCountEl.textContent = `${latestVehicles.length} xe`;
-      const incList = data.incidents || [];
-      const tbWarn = (data.timbus_status === 'upstream_error' || data.timbus_status === 'partial_error')
-        ? 'TimBus đang gián đoạn (tạm dùng BusMap).'
-        : '';
-      if (incList.length > 0) {
-        const top = incList[0];
-        const delaySec = Number(top.delay_seconds || 0);
-        const delayText = delaySec > 0 ? ` (~+${Math.max(1, Math.round(delaySec / 60))} phút)` : '';
-        const incMsg = `Cảnh báo giao thông (${incList.length}): ${top.description || 'Ùn tắc trên tuyến'}${delayText}.`;
-        showAlert(tbWarn ? `${incMsg} | ${tbWarn}` : incMsg, false);
-      } else if (tbWarn) {
-        showAlert(tbWarn, false);
+      if (data.upstream_status === 'upstream_error') {
+        liveStatusPill.classList.add('is-error');
+        vehicleCountEl.textContent = 'Lỗi BusMap';
+        showAlert(`Lỗi kết nối BusMap upstream: ${data.upstream_error || 'Tạm gián đoạn'}.`, true);
       } else {
-        showAlert('', false);
+        liveStatusPill.classList.remove('is-error');
+        vehicleCountEl.textContent = `${latestVehicles.length} xe`;
+        const incList = data.incidents || [];
+        const tbWarn = (data.timbus_status === 'upstream_error' || data.timbus_status === 'partial_error')
+          ? 'TimBus đang gián đoạn (tạm dùng BusMap).'
+          : '';
+        if (incList.length > 0) {
+          const top = incList[0];
+          const delaySec = Number(top.delay_seconds || 0);
+          const delayText = delaySec > 0 ? ` (~+${Math.max(1, Math.round(delaySec / 60))} phút)` : '';
+          const incMsg = `Cảnh báo giao thông (${incList.length}): ${top.description || 'Ùn tắc trên tuyến'}${delayText}.`;
+          showAlert(tbWarn ? `${incMsg} | ${tbWarn}` : incMsg, false);
+        } else if (tbWarn) {
+          showAlert(tbWarn, false);
+        } else {
+          showAlert('', false);
+        }
+      }
+
+      renderBusMarkers(latestVehicles);
+      if (pinnedStation) {
+        refreshPinnedEta();
+      }
+      resetCountdown();
+    } finally {
+      if (gen === generation) {
+        isPolling = false;
       }
     }
-
-    renderBusMarkers(latestVehicles);
-    if (pinnedStation) {
-      refreshPinnedEta();
-    }
-    resetCountdown();
   }
 
   function syncPollInterval(supportsFast, serverSec) {
@@ -483,7 +488,7 @@
 
     await loadRouteGeometry(gen, fitBounds);
     if (gen !== generation) return;
-    await pollVehicles();
+    await pollVehicles(true);
     startTimers();
   }
 

@@ -31,6 +31,7 @@ from config.system_config import (
     TIMBUS_HOLD_FRESH_SEC,
     TIMBUS_LIVE_CACHE_TTL_SEC,
     TIMBUS_QUERY_TIMEOUT_SEC,
+    TOMTOM_LIVE_TTL_SEC,
     TOMTOM_MIN_COS_THETA,
     TZ_HANOI,
 )
@@ -133,6 +134,19 @@ class MacroSpeedTracker:
                 if key[0]==route_id and key[2]==plate_norm:
                     for state in (self._history,self._ema,self._last_win_dt,self._seed):state.pop(key,None)
 
+    def sweep_stale(self, now_epoch: float, max_idle_sec: float = 3600.0) -> int:
+        """Dọn các phương tiện không cập nhật quá max_idle_sec khỏi RAM."""
+        cutoff = now_epoch - max_idle_sec
+        removed = 0
+        with self._lock:
+            for key in list(self._history):
+                hist = self._history.get(key)
+                if not hist or hist[-1][0] < cutoff:
+                    for state in (self._history, self._ema, self._last_win_dt, self._seed):
+                        state.pop(key, None)
+                    removed += 1
+        return removed
+
     def revise_positions(self,route_id,dir_int,plate_norm,positions):
         key=(route_id,dir_int,plate_norm)
         with self._lock:
@@ -190,8 +204,8 @@ class MacroSpeedTracker:
                 last_t, last_s = hist[-1]
                 if t_sample < last_t:
                     return round(self._ema.get(key, fallback_seed), 1), round(self._last_win_dt.get(key, 0.0), 1)
-                if s_bus < last_s - 50.0:
-                    # Xe quay đầu bến / bắt đầu lượt mới
+                if s_bus < last_s - 50.0 or (t_sample - last_t) > 1800.0:
+                    # Xe quay đầu bến / bắt đầu lượt mới hoặc nhảy sang ngày/ca vận hành mới
                     hist.clear()
                     self._ema.pop(key, None)
                     self._last_win_dt.pop(key, None)
@@ -274,6 +288,8 @@ class BusMapServingService:
         else:
             self._da = DataAccess(db_path, timbus_db_path=timbus_db_path)
             self._runtime = ModelRuntime.load()
+            if self._runtime.available and not self._runtime.validate_route_mapping(self._da.route_idx_by_code):
+                logger.error("Tắt causal_eta_v1 do route_id_idx SQLite lệch với manifest.json")
             self._incidents = IncidentsProvider()
             self.source_info = dict(mode='local', artifact_id=None, snapshot_id=None,
                                     baseline_routes=sorted(self._da.route_idx_by_code),
@@ -281,6 +297,8 @@ class BusMapServingService:
         self._extractor = RouteProjectionTracker(self._da)
         self._causal = CausalFeatures(self._da)
         self._causal_lock = threading.Lock()
+        self._causal_locks: Dict[int, threading.Lock] = {}
+        self._causal_locks_guard = threading.Lock()
         self.source_info['model'] = self._runtime.identity
         self._shape_models: Dict[Tuple[int, str], Optional[ShapeProjectionModel]] = {}
         # Cache Monotonicity, danh sách xe vượt trạm theo từng trạm & vận tốc vĩ mô cho luồng hybrid TimBus 5s
@@ -300,6 +318,7 @@ class BusMapServingService:
         vehicle=self._extractor.project_vehicle(route_id,dir_int,vehicle,now_epoch)
         plate=TimBusClient.normalize_plate(vehicle.plate) or f"id:{vehicle.id}"
         key=(route_id,dir_int,plate)
+        reset_payload=None
         with self._tb_lock:
             previous=self._projection_generations.get(key,0)
             if vehicle.projection_generation!=previous:
@@ -308,11 +327,27 @@ class BusMapServingService:
                     if cached_key==(route_id,dir_int,plate):self._tb_last_valid.pop(cached_key,None)
                 for passed_key in list(self._passed_station_plates):
                     if passed_key[0]==route_id and passed_key[1]==dir_int and passed_key[3]==plate:self._passed_station_plates.pop(passed_key,None)
-                from .request_trace import record
-                record('projection_reset',route_id=route_id,direction=dir_int,vehicle_id=vehicle.id,
-                       generation=vehicle.projection_generation,reason=vehicle.projection_status)
+                reset_payload=(vehicle.id,vehicle.projection_generation,vehicle.projection_status)
             self._projection_generations[key]=vehicle.projection_generation
+        if reset_payload is not None:
+            from .request_trace import record
+            record('projection_reset',route_id=route_id,direction=dir_int,vehicle_id=reset_payload[0],
+                   generation=reset_payload[1],reason=reset_payload[2])
         return vehicle
+
+    def _get_causal_lock(self, route_id: int) -> threading.Lock:
+        """Khóa theo từng tuyến để tránh nghẽn toàn cục giữa SpeedLayerPoller và live requests."""
+        locks = getattr(self, "_causal_locks", None)
+        guard = getattr(self, "_causal_locks_guard", None)
+        if locks is not None and guard is not None:
+            rid = int(route_id)
+            with guard:
+                lock = locks.get(rid)
+                if lock is None:
+                    lock = threading.Lock()
+                    locks[rid] = lock
+                return lock
+        return self._causal_lock
 
     def _observe_causal_snapshot(
         self,
@@ -322,7 +357,7 @@ class BusMapServingService:
         now_epoch: float,
     ) -> None:
         """Cập nhật CausalFeatures (40 biến) đồng bộ với snapshot xe hiện hành."""
-        with self._causal_lock:
+        with self._get_causal_lock(route_id):
             members: List[str] = []
             for v in vehicles:
                 plate_key = TimBusClient.normalize_plate(v.plate) or f"id:{v.id}"
@@ -578,7 +613,8 @@ class BusMapServingService:
                         bm_entry = bm_proj.get(p_norm)
                         if bm_entry is not None:
                             bm_v, s_bm, ct_bm = bm_entry
-                            bm_ts, _ = parse_ping_epoch(bm_v.updated_at, 0.0)
+                            bm_ts_raw, _ = parse_ping_epoch(bm_v.updated_at, 0.0)
+                            bm_ts = min(now_epoch, bm_ts_raw)
                             if bm_ts > cached_ts and s_bm > cached_s and ct_bm <= MAX_CORRIDOR_CROSS_TRACK_M:
                                 continue
                         tb_valid_by_plate[p_norm] = last_dto
@@ -628,7 +664,8 @@ class BusMapServingService:
                 if bm_entry is None:
                     continue
                 bm_v, s_bm, ct_bm = bm_entry
-                bm_ping_epoch, _ = parse_ping_epoch(bm_v.updated_at, 0.0)
+                bm_ping_raw, _ = parse_ping_epoch(bm_v.updated_at, 0.0)
+                bm_ping_epoch = min(now_epoch, bm_ping_raw)
                 cache_key = (route_id, dir_int, p_norm)
 
                 tb_rec = tb_map.get(p_norm)
@@ -710,6 +747,8 @@ class BusMapServingService:
             if vehicle.matched_projection is None:continue
             s_cur, cross_track, _ = vehicle.matched_projection
             if cross_track > MAX_CORRIDOR_CROSS_TRACK_M:
+                continue
+            if project_filter_extrapolate(vehicle, shape_model, math.inf, now_epoch) is None:
                 continue
             plate = TimBusClient.normalize_plate(vehicle.plate)
             key = (route_id, dir_int, station_order, plate) if station_order is not None else None
@@ -816,11 +855,9 @@ class BusMapServingService:
         if stations_resp is None or not stations_resp.stations:
             return None
 
-        n_stations = len(stations_resp.stations)
-        if station_order < 0 or station_order >= n_stations:
+        target_st = next((st for st in stations_resp.stations if st.station_order == station_order), None)
+        if target_st is None:
             return None
-
-        target_st = stations_resp.stations[station_order]
         s_target = target_st.cum_distance_m
         route_code = self._da.get_route_code(route_id)
         timbus_ok, _ = self._da.get_timbus_anchors(route_id, dir_int)
@@ -892,15 +929,19 @@ class BusMapServingService:
             from .request_trace import record
             record('route_observation',route_id=route_id,direction=dir_int,query_epoch=now_epoch,
                    vehicles=[vehicle.model_dump() for vehicle in vehicles])
+            vehicles = self._filter_station_vehicles(
+                route_id, dir_int, vehicles, shape_model, now_epoch, s_target, target_st.station_order
+            )
 
         station_s = [st.cum_distance_m for st in stations_resp.stations]
+        station_orders = [st.station_order for st in stations_resp.stations]
         candidates = []
         speeds: List[float] = []
 
         inc_list, inc_at = self.get_live_incidents_for_route(route_id, dir_int, now_epoch)
-        inc_epoch = float(getattr(self, "_live_incidents_epoch", 0.0) or 0.0)
+        inc_epoch = self._get_live_incidents_epoch()
         if inc_list and inc_epoch > 0.0:
-            inc_exp = inc_epoch + 2700.0
+            inc_exp = inc_epoch + float(TOMTOM_LIVE_TTL_SEC)
             inc_intervals = []
             for inc in inc_list:
                 if inc.delay_seconds <= 0.0:
@@ -920,7 +961,7 @@ class BusMapServingService:
                 )
         else:
             inc_intervals = []
-        with self._causal_lock:
+        with self._get_causal_lock(route_id):
             self._causal.observe_incidents(route_id, dir_int, inc_intervals)
 
         for v in vehicles:
@@ -933,8 +974,8 @@ class BusMapServingService:
                 continue
 
             plate_key = TimBusClient.normalize_plate(v.plate) or f"id:{v.id}"
-            with self._causal_lock:
-                causal_res = self._causal.features(route_id, dir_int, plate_key, station_order, now_epoch)
+            with self._get_causal_lock(route_id):
+                causal_res = self._causal.features(route_id, dir_int, plate_key, target_st.station_order, now_epoch)
             features = causal_res[0] if causal_res is not None else None
             if not self._runtime.available:
                 ml_p50, fb_reason = None, "model_unavailable"
@@ -958,6 +999,7 @@ class BusMapServingService:
                 hour_slot=hour_slot,
                 ml_p50=ml_p50,
                 prediction_source=prediction_source,
+                station_orders=station_orders,
             ).model_copy(update={"fallback_reason": fb_reason})
             candidates.append((v, bus_state, features, prediction_source, fb_reason, dto))
             speeds.append(v.speed_kmh)
@@ -980,6 +1022,7 @@ class BusMapServingService:
                     hour_slot=hour_slot,
                     ml_p50=capped_p50,
                     prediction_source=prediction_source,
+                    station_orders=station_orders,
                 ).model_copy(update={"fallback_reason": fb_reason})
             dto = dto.model_copy(
                 update={
@@ -1095,7 +1138,7 @@ class BusMapServingService:
             inc_epoch = getattr(self, "_live_incidents_epoch", 0.0)
             gen = getattr(self, "_live_incidents_gen", 0)
             raw_list = list(getattr(self, "_live_incidents_raw", []))
-            if not raw_list or (now_ep - inc_epoch) > 2700.0:
+            if not raw_list or (now_ep - inc_epoch) > float(TOMTOM_LIVE_TTL_SEC):
                 return [], None
             cached = self._live_incidents_by_route.get((route_id, dir_int))
             if cached is not None:
@@ -1106,54 +1149,66 @@ class BusMapServingService:
         if shape_model is None:
             return [], fetched_at
 
+        has_batch_proj = hasattr(shape_model, "project_directed_points_batch")
         matched: List[RouteIncidentDTO] = []
         for inc in raw_list:
             polylines = self._extract_incident_polylines(inc.get("geometry_type", ""), inc.get("coordinates"))
             inc_len_m = float(inc.get("length_meters") or 0.0)
-            s_hits: List[float] = []
+            inc_runs: List[Tuple[float, float]] = []
             matched_polylines: List[List[List[float]]] = []
             for pts in polylines:
                 if len(pts) == 1:
                     s_val, ct_val, _ = shape_model.project_point(pts[0][0], pts[0][1])
                     if ct_val <= MAX_CORRIDOR_CROSS_TRACK_M:
-                        s_hits.append(s_val)
+                        inc_runs.append((s_val, s_val))
                         matched_polylines.append([[round(pts[0][0], 6), round(pts[0][1], 6)]])
                     continue
                 if len(pts) < 2:
                     continue
                 coords = [(lon, lat) for lat, lon in pts]
                 pt_unit_vecs, pt_step_dists = compute_linestring_kinematics(coords)
-                matched_vertices = []
-                for idx, (lat, lon) in enumerate(pts):
-                    ux, uy = pt_unit_vecs[idx]
-                    if ux == 0.0 and uy == 0.0:
-                        continue
-                    proj = shape_model.project_directed_point(
-                        lat, lon, ux, uy, min_cos_theta=TOMTOM_MIN_COS_THETA, max_d_perp_m=MAX_CORRIDOR_CROSS_TRACK_M
+                if has_batch_proj:
+                    matched_vertices = shape_model.project_directed_points_batch(
+                        [p[0] for p in pts],
+                        [p[1] for p in pts],
+                        [v[0] for v in pt_unit_vecs],
+                        [v[1] for v in pt_unit_vecs],
+                        min_cos_theta=TOMTOM_MIN_COS_THETA,
+                        max_d_perp_m=MAX_CORRIDOR_CROSS_TRACK_M,
                     )
-                    if proj is not None:
-                        s_val, ct_val, _ = proj
-                        matched_vertices.append((idx, s_val, ct_val))
+                else:
+                    matched_vertices = []
+                    for idx, (lat, lon) in enumerate(pts):
+                        ux, uy = pt_unit_vecs[idx]
+                        if ux == 0.0 and uy == 0.0:
+                            continue
+                        proj = shape_model.project_directed_point(
+                            lat, lon, ux, uy, min_cos_theta=TOMTOM_MIN_COS_THETA, max_d_perp_m=MAX_CORRIDOR_CROSS_TRACK_M
+                        )
+                        if proj is not None:
+                            s_val, ct_val, _ = proj
+                            matched_vertices.append((idx, s_val, ct_val))
                 runs = split_matched_vertices_into_runs(matched_vertices, pt_step_dists, inc_len_m)
                 if runs:
                     matched_polylines.append([[round(lat, 6), round(lon, 6)] for lat, lon in pts])
                     for s_min, s_max, _ in runs:
-                        s_hits.extend((s_min, s_max))
+                        inc_runs.append((s_min, s_max))
 
-            if s_hits:
-                matched.append(
-                    RouteIncidentDTO(
-                        incident_id=str(inc.get("incident_id") or ""),
-                        description=str(inc.get("description") or "Sự cố giao thông"),
-                        icon_category=int(inc.get("icon_category") or 0),
-                        magnitude_of_delay=int(inc.get("magnitude_of_delay") or 0),
-                        delay_seconds=float(inc.get("delay_seconds") or 0.0),
-                        length_meters=inc_len_m,
-                        s_min_m=round(min(s_hits), 1),
-                        s_max_m=round(max(s_hits), 1),
-                        polylines=matched_polylines,
+            if inc_runs:
+                for s_min_r, s_max_r in inc_runs:
+                    matched.append(
+                        RouteIncidentDTO(
+                            incident_id=str(inc.get("incident_id") or ""),
+                            description=str(inc.get("description") or "Sự cố giao thông"),
+                            icon_category=int(inc.get("icon_category") or 0),
+                            magnitude_of_delay=int(inc.get("magnitude_of_delay") or 0),
+                            delay_seconds=float(inc.get("delay_seconds") or 0.0),
+                            length_meters=inc_len_m,
+                            s_min_m=round(s_min_r, 1),
+                            s_max_m=round(s_max_r, 1),
+                            polylines=matched_polylines,
+                        )
                     )
-                )
 
         matched.sort(key=lambda item: (-item.delay_seconds, -item.magnitude_of_delay))
         with lock:
@@ -1250,7 +1305,7 @@ class BusMapServingService:
             with self._tb_lock:
                 self._tb_last_valid[(route_id, dir_int, p_norm)] = (tb_ts, s_tb, tb_dto)
         self._extractor.update_observation(route_id, dir_int, [tb_dto], now_epoch)
-        with self._causal_lock:
+        with self._get_causal_lock(route_id):
             self._causal.observe(
                 Observation(
                     route_id=route_id,
@@ -1261,11 +1316,33 @@ class BusMapServingService:
                     received=now_epoch,
                     lat=float(tb_dto.lat),
                     lng=float(tb_dto.lng),
-                    signature=(round(float(tb_dto.lat), 6), round(float(tb_dto.lng), 6)),
+                    signature=f"{float(tb_dto.lat):.5f},{float(tb_dto.lng):.5f},{round(float(tb_dto.raw_speed_kmh or 0.0), 1)}",
                     context="speed_layer",
                 )
             )
         return tb_dto
+
+    def _get_live_incidents_epoch(self) -> float:
+        lock = getattr(self, "_incident_lock", None)
+        if lock is None:
+            return float(getattr(self, "_live_incidents_epoch", 0.0) or 0.0)
+        with lock:
+            return float(getattr(self, "_live_incidents_epoch", 0.0) or 0.0)
+
+    def sweep_stale_state(self, now_epoch: float, max_idle_sec: float = 3600.0) -> int:
+        """Dọn định kỳ các trạng thái xe quá hạn trong RAM để tránh phình bộ nhớ khi chạy 24h+."""
+        removed = 0
+        passed_cutoff = now_epoch - PASSED_STATION_TTL_SEC
+        idle_cutoff = now_epoch - max_idle_sec
+        with self._tb_lock:
+            for k in [k for k, ts in self._passed_station_plates.items() if ts < passed_cutoff]:
+                self._passed_station_plates.pop(k, None)
+                removed += 1
+            for k in [k for k, (ts, _, _) in self._tb_last_valid.items() if ts < idle_cutoff]:
+                self._tb_last_valid.pop(k, None)
+                removed += 1
+        removed += self._speed_tracker.sweep_stale(now_epoch, max_idle_sec=max_idle_sec)
+        return removed
 
     def _is_route_eta_feasible(self, route_id: int, route_code: str) -> bool:
         """True nếu tuyến có baseline quan sát hoặc thuộc miền huấn luyện của ModelRuntime."""

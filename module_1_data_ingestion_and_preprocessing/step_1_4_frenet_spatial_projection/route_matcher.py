@@ -1,8 +1,9 @@
 """Shared causal route projection for history processing and ETA serving. No I/O."""
 import math
-from typing import List, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
+import shapely
 
 from config.system_config import (
     METERS_PER_DEG_LAT,
@@ -36,6 +37,25 @@ class ShapeProjectionModel:
         self._seg_lens = seg_lens
         self._cum_starts = cum_starts
         self._total_len = total_len
+        self._rtree: Optional[shapely.STRtree] = None
+        self._safe_lens = np.where(self._seg_lens > 1e-9, self._seg_lens, 1.0)
+        self._valid_segs = self._seg_lens > 1e-9
+        self._unit_dx = np.where(self._valid_segs, self._dx / self._safe_lens, 0.0)
+        self._unit_dy = np.where(self._valid_segs, self._dy / self._safe_lens, 0.0)
+
+    def _ensure_rtree(self) -> shapely.STRtree:
+        """Khởi tạo lười chỉ mục không gian R-Tree (C/GEOS STRtree) trên bounding box các đoạn tuyến."""
+        if self._rtree is None:
+            x2 = self._x1 + self._dx
+            y2 = self._y1 + self._dy
+            boxes = shapely.box(
+                np.minimum(self._x1, x2),
+                np.minimum(self._y1, y2),
+                np.maximum(self._x1, x2),
+                np.maximum(self._y1, y2),
+            )
+            self._rtree = shapely.STRtree(boxes)
+        return self._rtree
 
     @classmethod
     def build(cls, shape_points: Sequence[Tuple[float, float, float, float]]) -> "ShapeProjectionModel":
@@ -112,24 +132,169 @@ class ShapeProjectionModel:
         min_cos_theta: float = 0.5,
         max_d_perp_m: float = 35.0,
     ) -> Optional[Tuple[float, float, int]]:
-        """Chiếu điểm có hướng (ux, uy), lọc cos_theta >= min_cos_theta TRƯỚC khi chọn đoạn gần nhất."""
-        safe_lens = np.where(self._seg_lens > 1e-9, self._seg_lens, 1.0)
-        cos_theta = (self._dx * ux + self._dy * uy) / safe_lens
-        valid = (self._seg_lens > 1e-9) & (cos_theta >= min_cos_theta)
-        if not np.any(valid):
-            return None
+        """Chiếu điểm có hướng (ux, uy) dùng R-Tree STRtree O(log M), lọc cos_theta >= min_cos_theta TRƯỚC argmin."""
         px = lon * self.kx
         py = lat * self.ky
-        t = np.clip(((px - self._x1) * self._dx + (py - self._y1) * self._dy) / self._safe_lens_sq, 0.0, 1.0)
-        dist_sq = (px - (self._x1 + t * self._dx)) ** 2 + (py - (self._y1 + t * self._dy)) ** 2
-        dist_sq = np.where(valid, dist_sq, np.inf)
-        best_seg = int(np.argmin(dist_sq))
-        min_d = math.sqrt(float(dist_sq[best_seg]))
+        pad = max_d_perp_m + 1e-4
+        cand = self._ensure_rtree().query(shapely.box(px - pad, py - pad, px + pad, py + pad))
+        if len(cand) == 0:
+            return None
+        cand.sort()
+        cos_theta = self._unit_dx[cand] * ux + self._unit_dy[cand] * uy
+        mask = self._valid_segs[cand] & (cos_theta >= min_cos_theta)
+        cand = cand[mask]
+        if len(cand) == 0:
+            return None
+        t = np.clip(
+            ((px - self._x1[cand]) * self._dx[cand] + (py - self._y1[cand]) * self._dy[cand])
+            / self._safe_lens_sq[cand],
+            0.0,
+            1.0,
+        )
+        dist_sq = (px - (self._x1[cand] + t * self._dx[cand])) ** 2 + (py - (self._y1[cand] + t * self._dy[cand])) ** 2
+        best_pos = int(np.argmin(dist_sq))
+        min_d = math.sqrt(float(dist_sq[best_pos]))
         if not math.isfinite(min_d) or min_d > max_d_perp_m:
             return None
-        best_s = round(float(self._cum_starts[best_seg] + float(t[best_seg]) * self._seg_lens[best_seg]), 1)
+        best_seg = int(cand[best_pos])
+        best_s = round(float(self._cum_starts[best_seg] + float(t[best_pos]) * self._seg_lens[best_seg]), 1)
         s_bus = max(0.0, min(self._total_len, best_s))
         return s_bus, round(min_d, 1), best_seg
+
+    def project_directed_points_batch(
+        self,
+        lats: Sequence[float],
+        lons: Sequence[float],
+        uxs: Sequence[float],
+        uys: Sequence[float],
+        min_cos_theta: float = 0.5,
+        max_d_perp_m: float = 35.0,
+    ) -> List[Tuple[int, float, float, int]]:
+        """Chiếu hàng loạt các đỉnh có hướng bằng R-Tree STRtree + vector hóa NumPy, trả [(idx, s_m, d_perp_m, seg_idx)]."""
+        n_pts = len(lats)
+        if n_pts == 0:
+            return []
+        lat_arr = np.asarray(lats, dtype=np.float64)
+        lon_arr = np.asarray(lons, dtype=np.float64)
+        ux_arr = np.asarray(uxs, dtype=np.float64)
+        uy_arr = np.asarray(uys, dtype=np.float64)
+
+        active_mask = (ux_arr != 0.0) | (uy_arr != 0.0)
+        if not np.any(active_mask):
+            return []
+
+        px = lon_arr * self.kx
+        py = lat_arr * self.ky
+        pad = max_d_perp_m + 1e-4
+        active_indices = np.flatnonzero(active_mask)
+        q_boxes = shapely.box(
+            px[active_indices] - pad,
+            py[active_indices] - pad,
+            px[active_indices] + pad,
+            py[active_indices] + pad,
+        )
+        q_pos, seg_idx = self._ensure_rtree().query(q_boxes)
+        if len(q_pos) == 0:
+            return []
+
+        pt_idx = active_indices[q_pos]
+        valid = self._valid_segs[seg_idx]
+        cos_theta = self._unit_dx[seg_idx] * ux_arr[pt_idx] + self._unit_dy[seg_idx] * uy_arr[pt_idx]
+        valid = valid & (cos_theta >= min_cos_theta)
+        if not np.any(valid):
+            return []
+
+        pt_idx = pt_idx[valid]
+        seg_idx = seg_idx[valid]
+
+        p_x = px[pt_idx]
+        p_y = py[pt_idx]
+        dx = self._dx[seg_idx]
+        dy = self._dy[seg_idx]
+        x1 = self._x1[seg_idx]
+        y1 = self._y1[seg_idx]
+        t = np.clip(((p_x - x1) * dx + (p_y - y1) * dy) / self._safe_lens_sq[seg_idx], 0.0, 1.0)
+        dist_sq = (p_x - (x1 + t * dx)) ** 2 + (p_y - (y1 + t * dy)) ** 2
+
+        # Chọn best_seg cho từng pt_idx (giống np.argmin ưu tiên seg_idx nhỏ nhất khi hòa)
+        order = np.lexsort((seg_idx, dist_sq, pt_idx))
+        pt_s = pt_idx[order]
+        seg_s = seg_idx[order]
+        dist_sq_s = dist_sq[order]
+        t_s = t[order]
+
+        first = np.empty(len(pt_s), dtype=bool)
+        first[0] = True
+        first[1:] = pt_s[1:] != pt_s[:-1]
+
+        out: List[Tuple[int, float, float, int]] = []
+        max_d_sq = max_d_perp_m * max_d_perp_m
+        for k in np.flatnonzero(first):
+            d_sq = float(dist_sq_s[k])
+            if not math.isfinite(d_sq) or d_sq > max_d_sq:
+                continue
+            min_d = math.sqrt(d_sq)
+            if min_d > max_d_perp_m:
+                continue
+            seg = int(seg_s[k])
+            best_s = round(float(self._cum_starts[seg] + float(t_s[k]) * self._seg_lens[seg]), 1)
+            s_bus = max(0.0, min(self._total_len, best_s))
+            out.append((int(pt_s[k]), s_bus, round(min_d, 1), seg))
+        return out
+
+    def project_points_corridor_batch(
+        self,
+        lats: Sequence[float],
+        lons: Sequence[float],
+        max_d_perp_m: float = 35.0,
+    ) -> List[Optional[Tuple[float, float, int]]]:
+        """Chiếu hàng loạt điểm GPS không cần hướng trong hành lang max_d_perp_m bằng R-Tree STRtree."""
+        n_pts = len(lats)
+        results: List[Optional[Tuple[float, float, int]]] = [None] * n_pts
+        if n_pts == 0:
+            return results
+        lat_arr = np.asarray(lats, dtype=np.float64)
+        lon_arr = np.asarray(lons, dtype=np.float64)
+        px = lon_arr * self.kx
+        py = lat_arr * self.ky
+        pad = max_d_perp_m + 1e-4
+        q_boxes = shapely.box(px - pad, py - pad, px + pad, py + pad)
+        pt_idx, seg_idx = self._ensure_rtree().query(q_boxes)
+        if len(pt_idx) == 0:
+            return results
+
+        p_x = px[pt_idx]
+        p_y = py[pt_idx]
+        dx = self._dx[seg_idx]
+        dy = self._dy[seg_idx]
+        x1 = self._x1[seg_idx]
+        y1 = self._y1[seg_idx]
+        t = np.clip(((p_x - x1) * dx + (p_y - y1) * dy) / self._safe_lens_sq[seg_idx], 0.0, 1.0)
+        dist_sq = (p_x - (x1 + t * dx)) ** 2 + (p_y - (y1 + t * dy)) ** 2
+
+        order = np.lexsort((seg_idx, dist_sq, pt_idx))
+        pt_s = pt_idx[order]
+        seg_s = seg_idx[order]
+        dist_sq_s = dist_sq[order]
+        t_s = t[order]
+
+        first = np.empty(len(pt_s), dtype=bool)
+        first[0] = True
+        first[1:] = pt_s[1:] != pt_s[:-1]
+
+        max_d_sq = max_d_perp_m * max_d_perp_m
+        for k in np.flatnonzero(first):
+            d_sq = float(dist_sq_s[k])
+            if not math.isfinite(d_sq) or d_sq > max_d_sq:
+                continue
+            min_d = math.sqrt(d_sq)
+            if min_d > max_d_perp_m:
+                continue
+            seg = int(seg_s[k])
+            best_s = round(float(self._cum_starts[seg] + float(t_s[k]) * self._seg_lens[seg]), 1)
+            s_bus = max(0.0, min(self._total_len, best_s))
+            results[int(pt_s[k])] = (s_bus, round(min_d, 1), seg)
+        return results
 
 
 from dataclasses import dataclass

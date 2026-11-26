@@ -31,11 +31,13 @@ import pyarrow.parquet as pq
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 sys.path.insert(0, os.path.abspath("."))
 
+from datetime import datetime
 from config.system_config import (
     DEFAULT_DB_PATH,
     DEFAULT_LAKEHOUSE_ROOT,
     RAW_DATA_DIR,
     MAX_CORRIDOR_CROSS_TRACK_M,
+    TZ_HANOI,
     get_database_path,
 )
 
@@ -182,12 +184,12 @@ def export_to_parquet_lakehouse(
         route_dir = os.path.join(silver_tel_dir, f"route_code={rc}")
         os.makedirs(route_dir, exist_ok=True)
 
-        # Incremental check: find which valid-corridor dates exist in DB vs on disk
+        # Incremental check: compute dt in Asia/Ho_Chi_Minh from device_epoch (avoid naive substr drift)
         cur.execute(
             """
-            SELECT DISTINCT substr(device_update_time, 1, 10)
+            SELECT DISTINCT strftime('%Y-%m-%d', device_epoch, '+7 hours')
             FROM route_projected_telemetry
-            WHERE route_code = ? AND cross_track_m <= ?
+            WHERE route_code = ? AND cross_track_m <= ? AND device_epoch IS NOT NULL
             """,
             (rc, MAX_CORRIDOR_CROSS_TRACK_M),
         )
@@ -213,14 +215,17 @@ def export_to_parquet_lakehouse(
             """
             SELECT ping_id, route_id, vehicle_id, plate,
                    device_update_time, device_epoch, direction,
-                   lat, lon, s_bus_m, cross_track_m, derived_speed_kmh,
-                   substr(device_update_time, 1, 10) AS dt
+                   lat, lon, s_bus_m, cross_track_m, derived_speed_kmh
             FROM route_projected_telemetry
-            WHERE route_code = ? AND cross_track_m <= ?
+            WHERE route_code = ? AND cross_track_m <= ? AND device_epoch IS NOT NULL
             """,
             conn,
             params=[rc, MAX_CORRIDOR_CROSS_TRACK_M],
         )
+        df["dt"] = [
+            datetime.fromtimestamp(float(ep), TZ_HANOI).strftime("%Y-%m-%d")
+            for ep in df["device_epoch"].to_numpy()
+        ]
 
         for d_val, sub_df in df.groupby("dt"):
             out_dir = os.path.join(route_dir, f"dt={d_val}")

@@ -36,26 +36,33 @@ def assign_horizon_bucket(n_stations_ahead: int) -> int:
 class ModelRuntime:
     """Bọc ResidualETA (causal-eta.v1); an toàn khi artifact thiếu/hỏng (available == False)."""
 
-    def __init__(self, residual_eta: Optional[ResidualETA] = None):
+    def __init__(self, residual_eta: Optional[ResidualETA] = None, manifest_routes: Tuple[str, ...] = ()):
         self._residual_eta = residual_eta
         self._known_routes = (
             set(residual_eta.domains.get("route_id_idx", [])) if residual_eta is not None else set()
         )
+        self.manifest_routes: Tuple[str, ...] = tuple(str(r) for r in manifest_routes)
         self.identity: Dict[str, Any] = {}
 
     @classmethod
     def load(cls, model_dir: str = CAUSAL_MODEL_DIR) -> "ModelRuntime":
         """Nạp bundle causal-eta.v1; trả instance unavailable nếu lỗi (không ném ra ngoài)."""
         try:
+            import json as _json
+
             residual = ResidualETA.load(model_dir)
             model_path = os.path.join(model_dir, "model.json")
             manifest_path = os.path.join(model_dir, "manifest.json")
+            manifest_routes: Tuple[str, ...] = ()
+            if os.path.exists(manifest_path):
+                meta = _json.loads(open(manifest_path, "r", encoding="utf-8").read())
+                manifest_routes = tuple(str(r) for r in ((meta.get("provenance") or {}).get("routes") or ()))
 
             def _sha256(path: str) -> str:
                 with open(path, "rb") as stream:
                     return hashlib.file_digest(stream, "sha256").hexdigest()
 
-            runtime = cls(residual_eta=residual)
+            runtime = cls(residual_eta=residual, manifest_routes=manifest_routes)
             runtime.identity = {
                 "schema": "causal-eta.v1",
                 "model_sha256": _sha256(model_path),
@@ -73,6 +80,23 @@ class ModelRuntime:
         except Exception as e:
             logger.error("Không nạp được causal-eta runtime (%s): %s", model_dir, e)
             return cls(residual_eta=None)
+
+    def validate_route_mapping(self, route_idx_by_code: Dict[str, int]) -> bool:
+        """Kiểm tra thứ tự route_id_idx trong SQLite khớp 1:1 với danh sách route lúc train."""
+        if not self.available or not self.manifest_routes:
+            return self.available
+        expected = {code: idx for idx, code in enumerate(sorted(self.manifest_routes))}
+        if len(route_idx_by_code) != len(expected) or any(
+            route_idx_by_code.get(code) != idx for code, idx in expected.items()
+        ):
+            logger.error(
+                "Mismatch route_id_idx giữa manifest (%d tuyến) và SQLite (%d tuyến); vô hiệu hóa ML runtime.",
+                len(expected),
+                len(route_idx_by_code),
+            )
+            self._residual_eta = None
+            return False
+        return True
 
     @property
     def available(self) -> bool:

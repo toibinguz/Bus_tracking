@@ -178,6 +178,7 @@ TERMINAL_STATIONARY_TOL_M = 15.0             # Ngưỡng dịch chuyển cắt b
 
 TOMTOM_MAX_BATCH_GAP_SEC = 1200              # Khoảng cách tối đa nối 2 batch sự cố TomTom liên tiếp (20 phút)
 TOMTOM_DEFAULT_TTL_SEC = 900                 # Thời gian hiệu lực mặc định của 1 snapshot sự cố (15 phút)
+TOMTOM_LIVE_TTL_SEC = 2700                   # Thời gian hiệu lực snapshot TomTom live HF relay (45 phút)
 TOMTOM_MIN_COS_THETA = 0.50                  # Góc lệch tối đa (<= 60 độ) giữa vector sự cố và hướng tuyến
 TOMTOM_GRID_SCALE = 500.0                    # Độ chia lưới không gian O(1) chiếu sự cố (~220m)
 TOMTOM_BBOX_PAD_DEG = 0.00045                # Đệm khung bao không gian chiếu sự cố (~46m)
@@ -207,6 +208,8 @@ EMA_ALPHA = 0.65                         # Hệ số làm mịn vận tốc: v_s
 # -------------------------------------------------------------
 OPERATING_START_HOUR = 5.0
 OPERATING_END_HOUR = 22.0
+SPEED_POLLER_START_HHMM = (4, 45)
+SPEED_POLLER_END_HHMM = (22, 30)
 
 TRAIN_SPLIT_END_DATE = "2026-10-31"          # Ngày kết thúc tập Train (21 ngày: 2026-10-08 -> 2026-10-31)
 TEST_SPLIT_START_DATE = "2026-11-01"         # Ngày bắt đầu tập Test độc lập (7 ngày: 2026-11-01 -> 2026-11-07)
