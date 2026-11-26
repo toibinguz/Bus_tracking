@@ -42,17 +42,21 @@ class ShapeProjectionModel:
         self._valid_segs = self._seg_lens > 1e-9
         self._unit_dx = np.where(self._valid_segs, self._dx / self._safe_lens, 0.0)
         self._unit_dy = np.where(self._valid_segs, self._dy / self._safe_lens, 0.0)
+        x2 = self._x1 + self._dx
+        y2 = self._y1 + self._dy
+        self._seg_min_x = np.minimum(self._x1, x2)
+        self._seg_max_x = np.maximum(self._x1, x2)
+        self._seg_min_y = np.minimum(self._y1, y2)
+        self._seg_max_y = np.maximum(self._y1, y2)
 
     def _ensure_rtree(self) -> shapely.STRtree:
         """Khởi tạo lười chỉ mục không gian R-Tree (C/GEOS STRtree) trên bounding box các đoạn tuyến."""
         if self._rtree is None:
-            x2 = self._x1 + self._dx
-            y2 = self._y1 + self._dy
             boxes = shapely.box(
-                np.minimum(self._x1, x2),
-                np.minimum(self._y1, y2),
-                np.maximum(self._x1, x2),
-                np.maximum(self._y1, y2),
+                self._seg_min_x,
+                self._seg_min_y,
+                self._seg_max_x,
+                self._seg_max_y,
             )
             self._rtree = shapely.STRtree(boxes)
         return self._rtree
@@ -320,18 +324,31 @@ class RouteHMM:
         self.last=None;self.best_path=[];self.margin=None;self.reason='uninitialized'
         self.resets=0;self.rejected=0
         self.awaiting_direction=False;self.blocked_at=None;self.reversal=None
+        if hasattr(shape,'_seg_min_x'):
+            self._seg_min_x=shape._seg_min_x;self._seg_max_x=shape._seg_max_x
+            self._seg_min_y=shape._seg_min_y;self._seg_max_y=shape._seg_max_y
+        else:
+            x2=shape._x1+shape._dx;y2=shape._y1+shape._dy
+            self._seg_min_x=np.minimum(shape._x1,x2);self._seg_max_x=np.maximum(shape._x1,x2)
+            self._seg_min_y=np.minimum(shape._y1,y2);self._seg_max_y=np.maximum(shape._y1,y2)
 
     def candidates(self,epoch,lat,lng,index):
         sh=self.shape;px=lng*sh.kx;py=lat*sh.ky
-        u=np.clip(((px-sh._x1)*sh._dx+(py-sh._y1)*sh._dy)/sh._safe_lens_sq,0,1)
-        d=np.hypot(px-sh._x1-u*sh._dx,py-sh._y1-u*sh._dy)
-        s=sh._cum_starts+u*sh._seg_lens
+        pad=MAX_CORRIDOR_CROSS_TRACK_M+1e-4
+        cand=np.flatnonzero(
+            (px>=self._seg_min_x-pad)&(px<=self._seg_max_x+pad)
+            &(py>=self._seg_min_y-pad)&(py<=self._seg_max_y+pad)
+        )
+        if len(cand)==0:return []
+        u=np.clip(((px-sh._x1[cand])*sh._dx[cand]+(py-sh._y1[cand])*sh._dy[cand])/sh._safe_lens_sq[cand],0,1)
+        d=np.hypot(px-sh._x1[cand]-u*sh._dx[cand],py-sh._y1[cand]-u*sh._dy[cand])
+        s=sh._cum_starts[cand]+u*sh._seg_lens[cand]
         out=[]
-        for i in np.argsort(d):
-            if d[i]>MAX_CORRIDOR_CROSS_TRACK_M:break
+        for pos in np.argsort(d,kind='mergesort'):
+            if d[pos]>MAX_CORRIDOR_CROSS_TRACK_M:break
             # Adjacent polyline vertices at the same position are not independent hypotheses.
-            if any(abs(s[i]-p.s)<10 for p in out):continue
-            out.append(Match(epoch,round(float(s[i]),1),round(float(d[i]),1),int(i),index))
+            if any(abs(s[pos]-p.s)<10 for p in out):continue
+            out.append(Match(epoch,round(float(s[pos]),1),round(float(d[pos]),1),int(cand[pos]),index))
             if len(out)>=self.max_candidates:break
         return out
 

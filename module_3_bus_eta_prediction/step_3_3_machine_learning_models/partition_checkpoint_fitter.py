@@ -13,6 +13,12 @@ import xgboost as xgb
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+from config.hardware_guard import (
+    check_gpu_thermal_and_vram,
+    check_memory_pressure,
+    recommended_xgb_threads,
+    set_process_below_normal_priority,
+)
 from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import CATEGORICAL, FEATURES
 from module_3_bus_eta_prediction.step_3_3_machine_learning_models.causal_eta_training import (
     BASE,
@@ -121,12 +127,21 @@ class _ParquetTrainIter(xgb.DataIter):
 
 
 def run(root, rounds, max_depth=4, features_dir=None, use_validation=True, reference_model=None, device='cuda'):
+    set_process_below_normal_priority()
+    nthread = recommended_xgb_threads()
     if (root/'model.json').exists():
         raise FileExistsError(root/'model.json')
     feat_root = Path(features_dir) if features_dir else (root/'features')
     files = sorted(feat_root.glob('*.parquet'))
     if len(files) != 48 or any(not path.with_suffix('.json').exists() for path in files):
         raise ValueError('all 48 route checkpoints must be complete')
+    check_memory_pressure(label='before_fit')
+    if device == 'cuda':
+        gpu_status = check_gpu_thermal_and_vram(min_free_vram_mb=2200)
+        if gpu_status.get('overheated'):
+            raise RuntimeError(f"GPU overheated ({gpu_status['reason']}); aborting CUDA training to protect hardware.")
+        if not gpu_status.get('use_cuda'):
+            device = 'cpu'
     if use_validation:
         train = load_split(files, 'train')
         domains = {'route_id_idx': sorted(int(x) for x in train.route_id_idx.unique()), 'direction_id': [0, 1],
@@ -164,15 +179,16 @@ def run(root, rounds, max_depth=4, features_dir=None, use_validation=True, refer
             'learning_rate': 0.05,
             'tree_method': 'hist',
             'device': device,
+            'max_bin': 256,
             'monotone_constraints': constraints,
             'seed': 42,
-            'nthread': 5,
+            'nthread': nthread,
         }
         bst = xgb.train(params, dtrain, num_boost_round=int(rounds), verbose_eval=False)
-        bst.set_param({'device': 'cpu'})
+        bst.set_param({'device': 'cpu', 'nthread': nthread})
         del dtrain, it
         gc.collect()
-        model = xgb.XGBRegressor(n_estimators=int(rounds), max_depth=int(max_depth), tree_method='hist', enable_categorical=True)
+        model = xgb.XGBRegressor(n_estimators=int(rounds), max_depth=int(max_depth), tree_method='hist', enable_categorical=True, n_jobs=nthread)
         model._Booster = bst
         history = {}
         best = int(bst.num_boosted_rounds()) - 1
@@ -186,7 +202,11 @@ def run(root, rounds, max_depth=4, features_dir=None, use_validation=True, refer
     output.mkdir(exist_ok=False)
     predictions = []
     missing_test = []
-    for path in files:
+    float32_eval_cols = (
+        'as_of', 'eta_seconds', BASE, 'prediction',
+        'history_seconds', 'bracket_before', 'bracket_after', 'inc_ahead_total_delay_sec',
+    )
+    for idx_file, path in enumerate(files, start=1):
         frame = pd.read_parquet(path, filters=[('split', '==', 'test')])
         if frame.empty:
             missing_test.append(path.stem)
@@ -199,11 +219,25 @@ def run(root, rounds, max_depth=4, features_dir=None, use_validation=True, refer
         )
         retained = frame[['route', 'vehicle', 'journey', 'target', 'as_of', 'eta_seconds', BASE,
                           'prediction', 'n_stations_ahead', 'history_seconds', 'bracket_before', 'bracket_after',
-                          'inc_ahead_total_delay_sec']]
+                          'inc_ahead_total_delay_sec']].copy()
         retained.to_parquet(output/path.name, index=False)
-        predictions.append(retained.drop(columns=['vehicle']))
+        compact = retained.drop(columns=['vehicle']).copy()
+        compact['route'] = compact['route'].astype('category')
+        compact['journey'] = compact['journey'].astype('int32')
+        compact['target'] = compact['target'].astype('int16')
+        compact['n_stations_ahead'] = compact['n_stations_ahead'].astype('int16')
+        for fcol in float32_eval_cols:
+            if fcol in compact.columns:
+                compact[fcol] = compact[fcol].astype('float32')
+        predictions.append(compact)
         print(f'evaluated {path.stem} {len(frame):,}', flush=True)
+        del frame, retained
+        if idx_file % 6 == 0:
+            gc.collect()
+            check_memory_pressure(label=f'eval={path.stem}')
     test = pd.concat(predictions, ignore_index=True)
+    del predictions
+    gc.collect()
     counts['test'] = len(test)
     evaluation = dict(overall=score(test), rows_by_split=counts, routes_without_test=missing_test,
                       per_route={str(route): score(group) for route, group in test.groupby('route')},
@@ -219,9 +253,12 @@ def run(root, rounds, max_depth=4, features_dir=None, use_validation=True, refer
             evaluation['by_incident'][name] = score(group)
 
     if reference_model is not None:
+        del test
+        gc.collect()
         ref_runner = ResidualETA.load(reference_model)
+        ref_runner.model.set_params(n_jobs=nthread)
         ref_preds = []
-        for path in files:
+        for idx_file, path in enumerate(files, start=1):
             frame = pd.read_parquet(path, filters=[('split', '==', 'test')])
             if frame.empty:
                 continue
@@ -234,8 +271,19 @@ def run(root, rounds, max_depth=4, features_dir=None, use_validation=True, refer
             else:
                 res_vals = ref_runner._predict_raw(frame[list(ref_runner.features)])
                 ref_frame['prediction'] = np.maximum(5.0, np.where(unknown_mask, base_vals, res_vals + base_vals))
+            ref_frame['route'] = ref_frame['route'].astype('category')
+            ref_frame['journey'] = ref_frame['journey'].astype('int32')
+            ref_frame['target'] = ref_frame['target'].astype('int16')
+            for fcol in ('eta_seconds', BASE, 'inc_ahead_total_delay_sec', 'prediction'):
+                ref_frame[fcol] = ref_frame[fcol].astype('float32')
             ref_preds.append(ref_frame)
+            del frame
+            if idx_file % 6 == 0:
+                gc.collect()
+                check_memory_pressure(label=f'ref_eval={path.stem}')
         ref_test = pd.concat(ref_preds, ignore_index=True)
+        del ref_preds
+        gc.collect()
         ref_eval = {
             'reference_model': str(reference_model),
             'overall': score(ref_test),

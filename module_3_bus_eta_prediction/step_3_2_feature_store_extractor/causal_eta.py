@@ -167,7 +167,8 @@ class CausalFeatures:
         if state.matcher.resets != old_resets:
             self._journey += 1
             state.journey = self._journey
-            state.observations.clear()
+            if state.matcher.reason != 'terminal_reset':
+                state.observations.clear()
             state.last = state.match = None
             state.started = None
         if match is None:
@@ -210,8 +211,11 @@ class CausalFeatures:
         kmh = 3.6 * distance / duration
         if kmh > 80:
             return None
-        return Speed(kmh, duration, start.s, end.s,
-                     (state.observations[start.epoch].source, state.observations[end.epoch].source))
+        start_obs = state.observations.get(start.epoch)
+        end_obs = state.observations.get(end.epoch)
+        if start_obs is None or end_obs is None:
+            return None
+        return Speed(kmh, duration, start.s, end.s, (start_obs.source, end_obs.source))
 
     def features(self, route_id, direction, vehicle, target_order, now):
         with self._lock:

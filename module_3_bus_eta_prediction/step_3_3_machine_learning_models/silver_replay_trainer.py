@@ -6,7 +6,7 @@ import json
 import sqlite3
 import sys
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from datetime import date
 from itertools import groupby
 from pathlib import Path
@@ -19,6 +19,11 @@ import pyarrow.parquet as pq
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+from config.hardware_guard import (
+    check_memory_pressure,
+    recommend_workers,
+    set_process_below_normal_priority,
+)
 from module_3_bus_eta_prediction.step_3_2_feature_store_extractor.causal_eta import (
     FEATURES,
     MAX_POSITION_AGE,
@@ -170,6 +175,7 @@ def _checkpoint_schema():
 
 def _export_single_route_checkpoint(task):
     """Replay 1 tuyến và flush Parquet từng ngày để giữ RAM cực thấp (~100-200 MB)."""
+    set_process_below_normal_priority()
     (route_code, silver_root, incidents_root, catalog_path, baseline_path,
      first_day_iso, last_day_iso, validation, test, fit_day, cadence, out_dir_str) = task
     out_dir = Path(out_dir_str)
@@ -255,6 +261,7 @@ def _export_single_route_checkpoint(task):
 
 
 def run(args):
+    set_process_below_normal_priority()
     first_day, last_day = date.fromisoformat(args.from_day), date.fromisoformat(args.to_day)
     validation_day = args.test_start if args.no_valid or not args.validation_start else args.validation_start
     validation, test = epoch(validation_day), epoch(args.test_start)
@@ -279,16 +286,30 @@ def run(args):
              args.from_day, args.to_day, validation, test, fit_day, args.forecast_every, str(feat_dir))
             for rc in route_codes
         ]
-        workers = max(1, int(args.workers))
+        workers = recommend_workers(args.workers, per_worker_ram_gb=0.7, min_free_ram_gb=2.0)
         if workers == 1:
             for t in tasks:
                 rc, _, st = _export_single_route_checkpoint(t)
                 print(f'[checkpoint] route={rc} status={st}', flush=True)
+                check_memory_pressure(label=f'checkpoint={rc}')
         else:
             with ProcessPoolExecutor(max_workers=workers) as pool:
-                for fut in as_completed([pool.submit(_export_single_route_checkpoint, t) for t in tasks]):
-                    rc, _, st = fut.result()
-                    print(f'[checkpoint] route={rc} status={st}', flush=True)
+                task_iter = iter(tasks)
+                in_flight = set()
+                for _ in range(min(workers, len(tasks))):
+                    t = next(task_iter, None)
+                    if t is None:
+                        break
+                    in_flight.add(pool.submit(_export_single_route_checkpoint, t))
+                while in_flight:
+                    done, in_flight = wait(in_flight, return_when=FIRST_COMPLETED)
+                    for fut in done:
+                        next_t = next(task_iter, None)
+                        if next_t is not None:
+                            in_flight.add(pool.submit(_export_single_route_checkpoint, next_t))
+                        rc, _, st = fut.result()
+                        print(f'[checkpoint] route={rc} status={st}', flush=True)
+                        check_memory_pressure(label=f'checkpoint={rc}')
         (ckpt_root / 'feature_inputs.json').write_text(json.dumps({
             'input_mode': 'busmap_lakehouse_silver',
             'from_day': args.from_day,

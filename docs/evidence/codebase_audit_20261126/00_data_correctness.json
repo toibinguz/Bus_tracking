@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-26 18:48:34+0700",
+  "generated_at": "2026-11-26 19:57:23+0700",
   "D1": {
     "baseline_route_count": 48,
     "total_canonical_routes": 176,
@@ -358,7 +358,7 @@
   },
   "D2": {
     "silver_parquet": {
-      "rows": 9829318,
+      "rows": 9839745,
       "distinct_routes": 48,
       "min_epoch_hn": "2026-10-08 12:55:20+0700",
       "max_epoch_hn": "2026-11-19 20:47:46+0700",
@@ -861,71 +861,71 @@
     "seg_len_le_0": 0,
     "std_lt_0": 0,
     "quality_tier_distribution": {
-      "0": 145412,
-      "1": 13971,
-      "2": 7693,
-      "3": 2754
+      "0": 66218,
+      "1": 42010,
+      "2": 58440,
+      "3": 3162
     },
     "lowest_tier0_routes_top10": [
       {
         "route_code": "39",
         "total_cells": 4335,
-        "tier0_cells": 637,
-        "tier0_pct": 14.69
+        "tier0_cells": 0,
+        "tier0_pct": 0.0
       },
       {
         "route_code": "E11",
         "total_cells": 4131,
-        "tier0_cells": 640,
-        "tier0_pct": 15.49
-      },
-      {
-        "route_code": "67",
-        "total_cells": 5661,
-        "tier0_cells": 2764,
-        "tier0_pct": 48.83
-      },
-      {
-        "route_code": "56B",
-        "total_cells": 3825,
-        "tier0_cells": 1912,
-        "tier0_pct": 49.99
-      },
-      {
-        "route_code": "101A",
-        "total_cells": 6579,
-        "tier0_cells": 3794,
-        "tier0_pct": 57.67
-      },
-      {
-        "route_code": "92",
-        "total_cells": 6018,
-        "tier0_cells": 4153,
-        "tier0_pct": 69.01
+        "tier0_cells": 10,
+        "tier0_pct": 0.24
       },
       {
         "route_code": "42",
         "total_cells": 3978,
-        "tier0_cells": 3161,
-        "tier0_pct": 79.46
+        "tier0_cells": 19,
+        "tier0_pct": 0.48
+      },
+      {
+        "route_code": "101A",
+        "total_cells": 6579,
+        "tier0_cells": 115,
+        "tier0_pct": 1.75
+      },
+      {
+        "route_code": "67",
+        "total_cells": 5661,
+        "tier0_cells": 119,
+        "tier0_pct": 2.1
+      },
+      {
+        "route_code": "123",
+        "total_cells": 2142,
+        "tier0_cells": 59,
+        "tier0_pct": 2.75
+      },
+      {
+        "route_code": "56B",
+        "total_cells": 3825,
+        "tier0_cells": 144,
+        "tier0_pct": 3.76
+      },
+      {
+        "route_code": "92",
+        "total_cells": 6018,
+        "tier0_cells": 353,
+        "tier0_pct": 5.87
       },
       {
         "route_code": "61",
         "total_cells": 4845,
-        "tier0_cells": 4115,
-        "tier0_pct": 84.93
-      },
-      {
-        "route_code": "40",
-        "total_cells": 3009,
-        "tier0_cells": 2601,
-        "tier0_pct": 86.44
+        "tier0_cells": 341,
+        "tier0_pct": 7.04
       },
       {
         "route_code": "01",
         "total_cells": 3519,
-        "tier0_cells": 3102,
-        "tier0_pct": 88.15
+        "tier0_cells": 296,
+        "tier0_pct": 8.41
       }
     ]
   }

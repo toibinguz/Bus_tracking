@@ -7,13 +7,14 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from config.system_config import (
+    BATCH_HMM_HORIZON_SEC,
     GPS_DRIFT_MAX_SPEED_KMPH,
     MAX_CORRIDOR_CROSS_TRACK_M,
     MAX_GPS_BACKWARD_JITTER_M,
     STALE_DELTA_T_MAX_SEC,
 )
 
-from .multi_route_projector import project_points_to_shape
+from .route_matcher import RouteHMM, ShapeProjectionModel
 
 
 VALID_DIRECTIONS = frozenset({"go", "re"})
@@ -85,6 +86,12 @@ def project_route_events(
             continue
         by_vehicle[event.vehicle_id].append((event, direction))
 
+    shape_models = {
+        direction: ShapeProjectionModel.build(shape)
+        for direction, shape in shape_by_direction.items()
+        if shape and len(shape) >= 2
+    }
+
     accepted_geometry: dict[str, tuple[ProjectableEvent, str, float, float]] = {}
     for vehicle_events in by_vehicle.values():
         direction_runs: list[list[object]] = []
@@ -96,18 +103,25 @@ def project_route_events(
 
         for direction, run_events in direction_runs:
             items = run_events  # type: ignore[assignment]
-            shape = shape_by_direction.get(direction)
-            if not shape:
+            shape_model = shape_models.get(direction)
+            if shape_model is None:
                 diagnostics["missing_shape"] += len(items)
                 continue
-            projection_input = [
-                (event.event_id, event.lat, event.lon, event.device_epoch_s)
-                for event, _ in items
-            ]
-            projected = {
-                event_id: (s_bus_m, cross_track_m)
-                for event_id, s_bus_m, cross_track_m in project_points_to_shape(projection_input, shape)
-            }
+            matcher = RouteHMM(shape_model, horizon=BATCH_HMM_HORIZON_SEC)
+            previous_epoch: float | None = None
+            projected: dict[str, tuple[float, float]] = {}
+            for event, _ in items:
+                if previous_epoch is not None and event.device_epoch_s <= previous_epoch:
+                    continue
+                previous_epoch = event.device_epoch_s
+                match = matcher.update(
+                    float(event.device_epoch_s),
+                    float(event.lat),
+                    float(event.lon),
+                    len(projected),
+                )
+                if match is not None:
+                    projected[event.event_id] = (match.s, match.cross_track)
             for event, _ in items:
                 result = projected.get(event.event_id)
                 if result is None or result[1] > MAX_CORRIDOR_CROSS_TRACK_M:
@@ -115,10 +129,14 @@ def project_route_events(
                     continue
                 accepted_geometry[event.event_id] = (event, direction, result[0], result[1])
 
+    by_vehicle_accepted: dict[int, list[tuple[ProjectableEvent, str, float, float]]] = defaultdict(list)
+    for value in accepted_geometry.values():
+        by_vehicle_accepted[value[0].vehicle_id].append(value)
+
     output: list[ProjectedEvent] = []
-    for vehicle_id in sorted(by_vehicle):
+    for vehicle_id in sorted(by_vehicle_accepted):
         vehicle_rows = sorted(
-            (value for value in accepted_geometry.values() if value[0].vehicle_id == vehicle_id),
+            by_vehicle_accepted[vehicle_id],
             key=lambda value: (value[0].device_epoch_s, value[0].event_id),
         )
         for index, (event, direction, s_bus_m, cross_track_m) in enumerate(vehicle_rows):

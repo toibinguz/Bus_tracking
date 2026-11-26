@@ -13,7 +13,7 @@ import time
 import sqlite3
 from pathlib import Path
 from typing import List, Tuple, Dict, Any, Optional
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 
 # Ensure UTF-8 output
 if sys.stdout.encoding != 'utf-8':
@@ -25,6 +25,11 @@ if sys.stdout.encoding != 'utf-8':
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, BASE_DIR)
 
+from config.hardware_guard import (
+    check_memory_pressure,
+    recommend_workers,
+    set_process_below_normal_priority,
+)
 from config.system_config import (
     BATCH_HMM_HORIZON_SEC,
     DEFAULT_DB_PATH,
@@ -57,6 +62,7 @@ def project_points_to_shape(vehicle_pings, shape_pts):
 
 def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[int, int], str]]) -> Tuple[int, str, int, list, float]:
     """Worker task executing spatial projection for a single route in its own CPU process."""
+    set_process_below_normal_priority()
     db_path, route_id, route_code, shapes, st_dir = args
     t0 = time.time()
 
@@ -137,9 +143,9 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
 
 def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] = None):
     """Run parallel projection for all routes using ProcessPoolExecutor."""
-    if num_workers is None:
-        num_workers = 6
-    num_workers = min(num_workers, 6)  # Strict cap: at most 6 workers
+    set_process_below_normal_priority()
+    requested = 6 if num_workers is None else int(num_workers)
+    num_workers = recommend_workers(min(requested, 6), per_worker_ram_gb=0.9, min_free_ram_gb=2.0)
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
@@ -147,7 +153,7 @@ def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] =
     # Pre-configure turbo PRAGMA settings for the writer
     cur.execute("PRAGMA journal_mode = WAL;")
     cur.execute("PRAGMA synchronous = NORMAL;")
-    cur.execute("PRAGMA cache_size = -1048576;")  # 1 GB cache
+    cur.execute("PRAGMA cache_size = -131072;")  # 128 MB cache to avoid excessive RAM usage
     cur.execute("PRAGMA temp_store = MEMORY;")
 
     # Ensure table exists with clean 13-column Silver schema (no dead is_dwell column)
@@ -171,10 +177,6 @@ def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] =
         derived_speed_kmh REAL
     );
     """)
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_code ON route_projected_telemetry (route_code);")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_id ON route_projected_telemetry (route_id);")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_vehicle_epoch ON route_projected_telemetry (vehicle_id, device_epoch);")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_dir_s ON route_projected_telemetry (route_code, direction, s_bus_m);")
     conn.commit()
 
     # Preload unambiguous single-direction station lookup (excludes shared terminal/transfer stops)
@@ -233,7 +235,7 @@ def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] =
     writer_conn = sqlite3.connect(db_path)
     writer_cur = writer_conn.cursor()
     writer_cur.execute("PRAGMA synchronous = NORMAL;")
-    writer_cur.execute("PRAGMA cache_size = -1048576;")
+    writer_cur.execute("PRAGMA cache_size = -131072;")
 
     # Clear destination table cleanly before full re-projection
     print("[*] Purging legacy projected telemetry table...")
@@ -242,33 +244,54 @@ def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] =
 
     completed_routes = 0
     with ProcessPoolExecutor(max_workers=num_workers) as executor:
-        future_to_route = {executor.submit(worker_project_route, task): task[1] for task in worker_tasks}
+        task_iter = iter(worker_tasks)
+        in_flight = {}
+        for _ in range(min(num_workers, len(worker_tasks))):
+            t = next(task_iter, None)
+            if t is None:
+                break
+            in_flight[executor.submit(worker_project_route, t)] = t[1]
 
-        for future in as_completed(future_to_route):
-            r_id = future_to_route[future]
-            try:
-                route_id, route_code, raw_count, records, compute_time = future.result()
-                completed_routes += 1
+        while in_flight:
+            done, _ = wait(in_flight.keys(), return_when=FIRST_COMPLETED)
+            for future in done:
+                r_id = in_flight.pop(future)
+                next_t = next(task_iter, None)
+                if next_t is not None:
+                    in_flight[executor.submit(worker_project_route, next_t)] = next_t[1]
+                try:
+                    route_id, route_code, raw_count, records, compute_time = future.result()
+                    completed_routes += 1
 
-                # Fast bulk insert on main thread
-                if records:
-                    writer_cur.executemany("""
-                    INSERT INTO route_projected_telemetry (
-                        ping_id, route_code, route_id, vehicle_id, plate,
-                        device_update_time, device_epoch, direction,
-                        lat, lon, s_bus_m, cross_track_m, derived_speed_kmh
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                    """, records)
-                    writer_conn.commit()
-                    total_written += len(records)
+                    # Fast bulk insert on main thread
+                    if records:
+                        writer_cur.executemany("""
+                        INSERT INTO route_projected_telemetry (
+                            ping_id, route_code, route_id, vehicle_id, plate,
+                            device_update_time, device_epoch, direction,
+                            lat, lon, s_bus_m, cross_track_m, derived_speed_kmh
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                        """, records)
+                        writer_conn.commit()
+                        total_written += len(records)
 
-                speed_str = f"{len(records)/compute_time:,.0f} pings/s" if compute_time > 0 else "N/A"
-                print(f"[{completed_routes:02d}/{len(active_routes):02d}] Route {route_code:<5} (ID {route_id:>3}): "
-                      f"Projected {len(records):>7,} / {raw_count:>7,} pings in {compute_time:>5.2f}s ({speed_str:>13}) | "
-                      f"Total written: {total_written:>9,}")
-            except Exception as e:
-                print(f"[!] Error projecting route {r_id}: {e}")
+                    speed_str = f"{len(records)/compute_time:,.0f} pings/s" if compute_time > 0 else "N/A"
+                    print(f"[{completed_routes:02d}/{len(active_routes):02d}] Route {route_code:<5} (ID {route_id:>3}): "
+                          f"Projected {len(records):>7,} / {raw_count:>7,} pings in {compute_time:>5.2f}s ({speed_str:>13}) | "
+                          f"Total written: {total_written:>9,}", flush=True)
+                    del records
+                    check_memory_pressure(label=f"project_route={route_code}")
+                except MemoryError:
+                    raise
+                except Exception as e:
+                    print(f"[!] Error projecting route {r_id}: {e}", flush=True)
 
+    print("[*] Building route_projected_telemetry B-Tree indexes...", flush=True)
+    writer_cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_code ON route_projected_telemetry (route_code);")
+    writer_cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_id ON route_projected_telemetry (route_id);")
+    writer_cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_vehicle_epoch ON route_projected_telemetry (vehicle_id, device_epoch);")
+    writer_cur.execute("CREATE INDEX IF NOT EXISTS idx_rpt_route_dir_s ON route_projected_telemetry (route_code, direction, s_bus_m);")
+    writer_conn.commit()
     writer_conn.close()
 
     # Recreate clean operational SQL views in SQLite

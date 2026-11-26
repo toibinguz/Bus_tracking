@@ -15,6 +15,7 @@ and docs/04_TECHNICAL_DEBT_AND_OPEN_ISSUES_LEDGER.md:
     * Multi-station ETA horizons (1..5 stations, 6..15 stations, >15 stations)
 """
 
+import gc
 import json
 import math
 import os
@@ -40,6 +41,7 @@ if sys.stdout.encoding != "utf-8":
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, BASE_DIR)
 
+from config.hardware_guard import check_memory_pressure, set_process_below_normal_priority
 from config.system_config import (
     BASELINE_MAX_HOUR_SLOT,
     BASELINE_MIN_HOUR_SLOT,
@@ -173,6 +175,7 @@ def extract_bracketed_station_arrivals(
 
 
 def build_and_evaluate_baseline_matrix(fit_end_date: Optional[str] = None) -> Dict[str, Any]:
+    set_process_below_normal_priority()
     t0 = time.time()
     fit_end_date = fit_end_date or TRAIN_SPLIT_END_DATE
     date.fromisoformat(fit_end_date)
@@ -203,24 +206,21 @@ def build_and_evaluate_baseline_matrix(fit_end_date: Optional[str] = None) -> Di
     for r_code, d_str, st_ord, st_id, st_name, s_m in st_rows:
         stations_map[(r_code, d_str)].append((int(st_ord), int(st_id), str(st_name), float(s_m)))
 
-    # 2. Scan Silver Parquet dataset grouped by route_code
-    partitioning = ds_pa.partitioning(pa.schema([('route_code', pa.string()), ('dt', pa.string())]), flavor='hive')
-    dataset = ds_pa.dataset(SILVER_TEL_DIR, format="parquet", partitioning=partitioning)
-    tbl = dataset.to_table(
-        columns=["route_code", "vehicle_id", "device_update_time", "device_epoch", "direction", "s_bus_m", "derived_speed_kmh"]
+    # 2 & 3. Stream Silver Parquet dataset per route_code partition to bound RAM (<300 MB)
+    route_dirs = sorted(
+        d
+        for d in os.listdir(SILVER_TEL_DIR)
+        if d.startswith("route_code=") and os.path.isdir(os.path.join(SILVER_TEL_DIR, d))
     )
-    df_all = tbl.to_pandas()
-    df_all["dt"] = pd.to_datetime(df_all["device_epoch"],unit='s',utc=True).dt.tz_convert('Asia/Ho_Chi_Minh').dt.strftime('%Y-%m-%d')
-    df_all = df_all.sort_values(["route_code", "vehicle_id", "direction", "device_epoch"]).reset_index(drop=True)
+    dt_partitioning = ds_pa.partitioning(pa.schema([("dt", pa.string())]), flavor="hive")
 
-    train_pings = int((df_all["dt"] <= TRAIN_SPLIT_END_DATE).sum())
-    test_pings = int((df_all["dt"] >= TEST_SPLIT_START_DATE).sum())
-    print(f"[1/4] Loaded Silver Lakehouse: {len(df_all):,} pings | Train: {train_pings:,} ({train_pings/len(df_all)*100:.2f}%) | Test: {test_pings:,} ({test_pings/len(df_all)*100:.2f}%)", flush=True)
-
-    # 3. Segment trajectories into clean trips & extract bracketed station arrivals
     train_trip_count = 0
     fit_trip_count = 0
     test_trip_count = 0
+    total_pings = 0
+    train_pings = 0
+    test_pings = 0
+    active_routes: List[str] = []
 
     # Key for segment samples: (route_code, direction, from_order, to_order, is_weekend, hour_slot) -> list of travel_time_sec
     slot_samples: Dict[Tuple[str, str, int, int, int, int], List[float]] = defaultdict(list)
@@ -241,91 +241,127 @@ def build_and_evaluate_baseline_matrix(fit_end_date: Optional[str] = None) -> Di
     rejected_slow_Or_fast = 0
     unbracketed_pairs = 0
 
-    for (r_code, vid, d_str), grp in df_all.groupby(["route_code", "vehicle_id", "direction"], sort=False):
-        r_len = shape_len_map.get((r_code, d_str), 0.0)
-        full_st_list = stations_map.get((r_code, d_str), [])
-        st_list = get_active_corridor_stations(full_st_list)
-        if len(st_list) < 2:
-            continue
-
-        # Build lightweight tuples: (dt_str, epoch, s_bus_m, spd_kmh)
-        pings_tuples = list(
-            zip(
-                grp["dt"].tolist(),
-                grp["device_epoch"].tolist(),
-                grp["s_bus_m"].tolist(),
-                grp["derived_speed_kmh"].tolist(),
-            )
+    for d_name in route_dirs:
+        r_code = d_name.split("=", 1)[1]
+        r_dir = os.path.join(SILVER_TEL_DIR, d_name)
+        ds_route = ds_pa.dataset(r_dir, format="parquet", partitioning=dt_partitioning)
+        tbl = ds_route.to_table(
+            columns=["vehicle_id", "device_epoch", "direction", "s_bus_m", "derived_speed_kmh"]
         )
-        for dt_s in grp["dt"].tolist():
-            if dt_s <= TRAIN_SPLIT_END_DATE:
-                route_eda_stats[r_code]["train_pings"] += 1
-            else:
-                route_eda_stats[r_code]["test_pings"] += 1
+        if tbl.num_rows == 0:
+            del tbl
+            continue
+        df_route = tbl.to_pandas()
+        del tbl
+        df_route["dt"] = (
+            pd.to_datetime(df_route["device_epoch"], unit="s", utc=True)
+            .dt.tz_convert("Asia/Ho_Chi_Minh")
+            .dt.strftime("%Y-%m-%d")
+        )
+        df_route = df_route.sort_values(["vehicle_id", "direction", "device_epoch"]).reset_index(drop=True)
 
-        trips = []
-        for window in split_at_dates(pings_tuples,[fit_end_date,TRAIN_SPLIT_END_DATE]):
-            trips.extend(segment_trajectory_into_trips(
-                window, epoch_idx=1, s_idx=2, shape_len_m=r_len, trim_terminals=True
-            ))
+        n_route = len(df_route)
+        n_route_train = int((df_route["dt"] <= TRAIN_SPLIT_END_DATE).sum())
+        n_route_test = int((df_route["dt"] >= TEST_SPLIT_START_DATE).sum())
+        total_pings += n_route
+        train_pings += n_route_train
+        test_pings += n_route_test
+        active_routes.append(r_code)
 
-        for tr in trips:
-            tr_dt = tr[0][0]
-            is_train = tr_dt <= TRAIN_SPLIT_END_DATE
-            is_fit = tr[-1][0] <= fit_end_date
-            if is_fit:
-                fit_trip_count += 1
-            if is_train:
-                train_trip_count += 1
-                route_eda_stats[r_code]["train_trips"] += 1
-            else:
-                test_trip_count += 1
-                route_eda_stats[r_code]["test_trips"] += 1
-
-            arrivals = extract_bracketed_station_arrivals(tr, st_list, epoch_idx=1, s_idx=2)
-            if len(arrivals) < 2:
+        for (vid, d_str), grp in df_route.groupby(["vehicle_id", "direction"], sort=False):
+            r_len = shape_len_map.get((r_code, d_str), 0.0)
+            full_st_list = stations_map.get((r_code, d_str), [])
+            st_list = get_active_corridor_stations(full_st_list)
+            if len(st_list) < 2:
                 continue
 
-            if not is_train:
-                test_trips_eval.append((r_code, d_str, tr, arrivals))
+            # Build lightweight tuples: (dt_str, epoch, s_bus_m, spd_kmh)
+            pings_tuples = list(
+                zip(
+                    grp["dt"].tolist(),
+                    grp["device_epoch"].tolist(),
+                    grp["s_bus_m"].tolist(),
+                    grp["derived_speed_kmh"].tolist(),
+                )
+            )
+            for dt_s in grp["dt"].tolist():
+                if dt_s <= TRAIN_SPLIT_END_DATE:
+                    route_eda_stats[r_code]["train_pings"] += 1
+                else:
+                    route_eda_stats[r_code]["test_pings"] += 1
 
-            # Extract adjacent station segment travel times (k -> k+1)
-            for k in range(len(st_list) - 1):
-                ord_a, _, _, s_a = st_list[k]
-                ord_b, _, _, s_b = st_list[k + 1]
-                seg_dist = s_b - s_a
-                if seg_dist <= 1.0:
+            trips = []
+            for window in split_at_dates(pings_tuples, [fit_end_date, TRAIN_SPLIT_END_DATE]):
+                trips.extend(
+                    segment_trajectory_into_trips(
+                        window, epoch_idx=1, s_idx=2, shape_len_m=r_len, trim_terminals=True
+                    )
+                )
+
+            for tr in trips:
+                tr_dt = tr[0][0]
+                is_train = tr_dt <= TRAIN_SPLIT_END_DATE
+                is_fit = tr[-1][0] <= fit_end_date
+                if is_fit:
+                    fit_trip_count += 1
+                if is_train:
+                    train_trip_count += 1
+                    route_eda_stats[r_code]["train_trips"] += 1
+                else:
+                    test_trip_count += 1
+                    route_eda_stats[r_code]["test_trips"] += 1
+
+                arrivals = extract_bracketed_station_arrivals(tr, st_list, epoch_idx=1, s_idx=2)
+                if len(arrivals) < 2:
                     continue
 
-                if ord_a in arrivals and ord_b in arrivals:
-                    tt = arrivals[ord_b] - arrivals[ord_a]
-                    if tt <= 0:
-                        continue
-                    spd_kmh = (seg_dist / tt) * 3.6
-                    if not (SEGMENT_MIN_SPEED_KMPH <= spd_kmh <= SEGMENT_MAX_SPEED_KMPH):
-                        rejected_slow_Or_fast += 1
+                if not is_train:
+                    test_trips_eval.append((r_code, d_str, tr, arrivals))
+
+                # Extract adjacent station segment travel times (k -> k+1)
+                for k in range(len(st_list) - 1):
+                    ord_a, _, _, s_a = st_list[k]
+                    ord_b, _, _, s_b = st_list[k + 1]
+                    seg_dist = s_b - s_a
+                    if seg_dist <= 1.0:
                         continue
 
-                    if is_fit:
-                        dt_obj = datetime.fromtimestamp(arrivals[ord_a], tz=TZ_HANOI)
-                        wd = dt_obj.weekday()
-                        day_type = (
-                            DAY_TYPE_WEEKDAY
-                            if wd < 5
-                            else (DAY_TYPE_SATURDAY if wd == 5 else DAY_TYPE_SUNDAY)
-                        )
-                        hr_slot = min(BASELINE_MAX_HOUR_SLOT, max(BASELINE_MIN_HOUR_SLOT, dt_obj.hour))
-                        slot_samples[(r_code, d_str, ord_a, ord_b, day_type, hr_slot)].append(tt)
-                        daytype_samples[(r_code, d_str, ord_a, ord_b, day_type)].append(tt)
-                        seg_all_samples[(r_code, d_str, ord_a, ord_b)].append(tt)
-                        route_speed_accum[(r_code, d_str)][0] += seg_dist
-                        route_speed_accum[(r_code, d_str)][1] += tt
-                        route_eda_stats[r_code]["train_seg_samples"] += 1
+                    if ord_a in arrivals and ord_b in arrivals:
+                        tt = arrivals[ord_b] - arrivals[ord_a]
+                        if tt <= 0:
+                            continue
+                        spd_kmh = (seg_dist / tt) * 3.6
+                        if not (SEGMENT_MIN_SPEED_KMPH <= spd_kmh <= SEGMENT_MAX_SPEED_KMPH):
+                            rejected_slow_Or_fast += 1
+                            continue
+
+                        if is_fit:
+                            dt_obj = datetime.fromtimestamp(arrivals[ord_a], tz=TZ_HANOI)
+                            wd = dt_obj.weekday()
+                            day_type = (
+                                DAY_TYPE_WEEKDAY
+                                if wd < 5
+                                else (DAY_TYPE_SATURDAY if wd == 5 else DAY_TYPE_SUNDAY)
+                            )
+                            hr_slot = min(BASELINE_MAX_HOUR_SLOT, max(BASELINE_MIN_HOUR_SLOT, dt_obj.hour))
+                            slot_samples[(r_code, d_str, ord_a, ord_b, day_type, hr_slot)].append(tt)
+                            daytype_samples[(r_code, d_str, ord_a, ord_b, day_type)].append(tt)
+                            seg_all_samples[(r_code, d_str, ord_a, ord_b)].append(tt)
+                            route_speed_accum[(r_code, d_str)][0] += seg_dist
+                            route_speed_accum[(r_code, d_str)][1] += tt
+                            route_eda_stats[r_code]["train_seg_samples"] += 1
+                        else:
+                            route_eda_stats[r_code]["test_seg_samples"] += 1
                     else:
-                        route_eda_stats[r_code]["test_seg_samples"] += 1
-                else:
-                    unbracketed_pairs += 1
+                        unbracketed_pairs += 1
 
+        del df_route
+        gc.collect()
+        check_memory_pressure(label=f"baseline_route={r_code}")
+
+    pct_train = (train_pings / total_pings * 100) if total_pings else 0.0
+    pct_test = (test_pings / total_pings * 100) if total_pings else 0.0
+    print(f"[1/4] Streamed Silver Lakehouse: {total_pings:,} pings | Train: {train_pings:,} ({pct_train:.2f}%) | Test: {test_pings:,} ({pct_test:.2f}%)", flush=True)
     print(
         f"[2/4] Segmented {train_trip_count + test_trip_count:,} clean trips "
         f"(Train: {train_trip_count:,} | Test: {test_trip_count:,}). "
@@ -334,7 +370,7 @@ def build_and_evaluate_baseline_matrix(fit_end_date: Optional[str] = None) -> Di
     )
 
     # 4. Build Complete Leak-Free Baseline Matrix across all active routes, segments, 3 day types (0/1/2), and 17 operating hours (5..21)
-    active_routes = sorted(df_all["route_code"].unique())
+    active_routes = sorted(active_routes)
     matrix_rows = []
     tier_counts = {0: 0, 1: 0, 2: 0, 3: 0}
 
