@@ -213,6 +213,7 @@ def main():
 
     from config.system_config import BASELINE_FIT_END_DATE, TEST_SPLIT_START_DATE, TRAIN_SPLIT_END_DATE
     from modules.lakehouse.hdfs.hf_bronze import digest, encoded
+    from modules.lakehouse.hdfs.gold_publication import publish_gold
 
     hdfs_root = "hdfs://namenode:8020/bus-eta/v1"
     publications = hdfs_root + "/_published/history_snapshots"
@@ -247,19 +248,6 @@ def main():
 
     def read_bytes(path: str) -> bytes:
         return bytes(spark.read.format("binaryFile").load(path).first().content)
-
-    def write_atomic(path: str, content: bytes) -> None:
-        fs.mkdirs(jpath(path.rsplit("/", 1)[0]))
-        temp = path + ".tmp-" + str(uuid4())
-        stream = fs.create(jpath(temp), True)
-        try:
-            stream.write(bytearray(content))
-        finally:
-            stream.close()
-        if fs.exists(jpath(path)):
-            fs.delete(jpath(path), False)
-        if not fs.rename(jpath(temp), jpath(path)):
-            raise RuntimeError("failed to rename atomic HDFS file: " + path)
 
     try:
         pub_path = f"{publications}/{args.snapshot}.json"
@@ -354,18 +342,23 @@ def main():
         )
 
         gold_root = f"{gold_root_prefix}/snapshot={args.snapshot}"
-        gold_data_path = f"{gold_root}/data"
+        build_id = uuid4().hex
+        gold_data_path = f"{gold_root}/builds/{build_id}/data"
         gold_df = spark.createDataFrame(matrix_rdd, gold_schema)
-        gold_df.coalesce(min(4, args.partitions)).write.mode("overwrite").parquet(gold_data_path)
+        gold_df.coalesce(min(4, args.partitions)).write.mode("errorifexists").parquet(gold_data_path)
 
         written_df = spark.read.parquet(gold_data_path)
         row_count = written_df.count()
         tier_rows = written_df.groupBy("quality_tier").count().collect()
         tier_counts = {int(r["quality_tier"]): int(r["count"]) for r in tier_rows}
 
+        if sum(tier_counts.values()) != row_count or set(tier_counts).difference(range(4)):
+            raise ValueError("invalid tier counts in Gold baseline")
+
         manifest = {
             "schema_version": "gold-baseline.v1",
             "snapshot_id": args.snapshot,
+            "build_id": build_id,
             "reference_sha256": source["reference_sha256"],
             "fit_end_date": args.fit_end_date,
             "train_end_date": TRAIN_SPLIT_END_DATE,
@@ -377,7 +370,7 @@ def main():
             "elapsed_seconds": round(time.monotonic() - started, 3),
             "published_at": datetime.now(timezone.utc).isoformat(),
         }
-        write_atomic(f"{gold_root}/manifest.json", encoded(manifest))
+        publish_gold(spark, gold_root, build_id, encoded(manifest))
         print("GOLD_RESULT=" + json.dumps(manifest), flush=True)
     finally:
         spark.stop()

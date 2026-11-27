@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
-import io
+import hashlib
+import subprocess
+import tempfile
 import json
 import os
 from pathlib import Path
@@ -57,7 +59,6 @@ CREATE TABLE agg_segment_travel_times (
 
 
 def _read_gold_from_hdfs(snapshot_id: str, compose_file: Path):
-    import pyarrow as pa
     import pyarrow.parquet as pq
 
     if len(snapshot_id) != 64 or any(c not in "0123456789abcdef" for c in snapshot_id):
@@ -68,7 +69,8 @@ def _read_gold_from_hdfs(snapshot_id: str, compose_file: Path):
     if manifest.get("snapshot_id") != snapshot_id:
         raise ValueError("Gold manifest snapshot mismatch")
 
-    listing = hdfs.call("-ls", f"{gold_root}/data").decode("utf-8", errors="replace")
+    data_path = manifest.get("gold_data_path", f"{gold_root}/data")
+    listing = hdfs.call("-ls", data_path).decode("utf-8", errors="replace")
     parts = sorted(
         line.split()[-1]
         for line in listing.splitlines()
@@ -77,13 +79,14 @@ def _read_gold_from_hdfs(snapshot_id: str, compose_file: Path):
     if not parts:
         raise ValueError("no Gold Parquet parts found in HDFS: " + gold_root)
 
-    tables = [pq.read_table(io.BytesIO(hdfs.read(part))) for part in parts]
-    combined = pa.concat_tables(tables)
-    if combined.num_rows != int(manifest["row_count"]):
-        raise ValueError(
-            f"Gold row count mismatch: expected {manifest['row_count']}, got {combined.num_rows}"
-        )
-    return combined, manifest
+    def batches():
+        for part in parts:
+            with tempfile.TemporaryFile() as spool:
+                subprocess.run([*hdfs.prefix, "-cat", part], stdout=spool, check=True)
+                spool.seek(0)
+                yield from pq.ParquetFile(spool).iter_batches(columns=list(GOLD_BASELINE_COLUMNS))
+
+    return batches(), manifest
 
 
 def _read_gold_from_local(gold_dir: Path, fit_end_date: str):
@@ -91,7 +94,7 @@ def _read_gold_from_local(gold_dir: Path, fit_end_date: str):
 
     if not gold_dir.exists():
         raise FileNotFoundError(f"Gold Parquet directory not found: {gold_dir}")
-    table = ds.dataset(gold_dir, format="parquet").to_table()
+    dataset = ds.dataset(gold_dir, format="parquet")
     manifest_file = gold_dir.parent / "manifest.json"
     if manifest_file.is_file():
         manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
@@ -101,7 +104,19 @@ def _read_gold_from_local(gold_dir: Path, fit_end_date: str):
             "train_end_date": TRAIN_SPLIT_END_DATE,
             "test_start_date": TEST_SPLIT_START_DATE,
         }
-    return table, manifest
+    metadata = dataset.schema.metadata or {}
+    if len(dataset.files) == 1 and b"build_id" in metadata:
+        manifest["build_id"] = metadata[b"build_id"].decode()
+    if not manifest.get("build_id"):
+        digest = hashlib.sha256()
+        for name in sorted(dataset.files):
+            part_hash = hashlib.sha256()
+            with open(name, "rb") as part:
+                for block in iter(lambda: part.read(1024 * 1024), b""):
+                    part_hash.update(block)
+            digest.update(part_hash.digest())
+        manifest["build_id"] = digest.hexdigest()
+    return dataset.to_batches(columns=list(GOLD_BASELINE_COLUMNS)), manifest
 
 
 def sync_gold_to_serving_db(
@@ -122,13 +137,11 @@ def sync_gold_to_serving_db(
         raise FileNotFoundError(f"Source DB not found: {source_db}")
 
     if snapshot_id:
-        table, manifest = _read_gold_from_hdfs(snapshot_id, compose_file)
+        batches, manifest = _read_gold_from_hdfs(snapshot_id, compose_file)
     else:
-        table, manifest = _read_gold_from_local(Path(gold_parquet_dir).resolve(), fit_end_date)
+        batches, manifest = _read_gold_from_local(Path(gold_parquet_dir).resolve(), fit_end_date)
 
-    rows_dict = table.select(list(GOLD_BASELINE_COLUMNS)).to_pydict()
-    num_rows = table.num_rows
-    baseline_rows = list(zip(*(rows_dict[col] for col in GOLD_BASELINE_COLUMNS)))
+    num_rows = 0
 
     output_db.parent.mkdir(parents=True, exist_ok=True)
     tmp_db = output_db.with_name(f"{output_db.name}.{uuid4()}.tmp")
@@ -159,22 +172,28 @@ def sync_gold_to_serving_db(
                         dst.execute(idx_sql)
 
                 dst.execute(AGG_BASELINE_DDL)
-                if baseline_rows:
-                    placeholders = ",".join(["?"] * len(GOLD_BASELINE_COLUMNS))
+                placeholders = ",".join(["?"] * len(GOLD_BASELINE_COLUMNS))
+                for batch in batches:
+                    columns = batch.to_pydict()
                     dst.executemany(
                         f"INSERT INTO agg_segment_travel_times VALUES ({placeholders})",
-                        baseline_rows,
+                        zip(*(columns[col] for col in GOLD_BASELINE_COLUMNS)),
                     )
+                    num_rows += batch.num_rows
+                if "row_count" in manifest and num_rows != int(manifest["row_count"]):
+                    raise ValueError("Gold row count mismatch")
 
                 dst.execute(
-                    "CREATE TABLE eta_baseline_manifest(fit_end_date TEXT, train_end_date TEXT, test_start_date TEXT)"
+                    "CREATE TABLE eta_baseline_manifest(fit_end_date TEXT, train_end_date TEXT, test_start_date TEXT, "
+                    "source TEXT, snapshot_id TEXT, build_id TEXT)"
                 )
                 dst.execute(
-                    "INSERT INTO eta_baseline_manifest VALUES (?, ?, ?)",
+                    "INSERT INTO eta_baseline_manifest VALUES (?, ?, ?, ?, ?, ?)",
                     (
                         str(manifest.get("fit_end_date") or fit_end_date),
                         str(manifest.get("train_end_date") or TRAIN_SPLIT_END_DATE),
                         str(manifest.get("test_start_date") or TEST_SPLIT_START_DATE),
+                        "hdfs" if snapshot_id else "local", snapshot_id, manifest.get("build_id"),
                     ),
                 )
 

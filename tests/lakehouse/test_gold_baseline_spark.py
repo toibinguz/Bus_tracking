@@ -9,6 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -16,6 +17,7 @@ import pyarrow.parquet as pq
 from modules.lakehouse.hdfs.gold_baseline_spark import (
     aggregate_route_baseline,
     build_reference_lookup,
+    build_route_baseline_spark,
     extract_partition_samples,
 )
 from modules.eta.baseline import (
@@ -171,6 +173,12 @@ def test_gold_baseline_spark_matches_local_builder_exactly(tmp_path, monkeypatch
     assert len(spark_rows) == len(expected_rows) > 0
     assert spark_rows == expected_rows
 
+    actual = build_route_baseline_spark(
+        "02", ((r["vehicle_id"], r["direction"], r["device_epoch_s"], r["s_bus_m"], r["dt"])
+               for _, r in fit_keyed), shape_len_map, stations_map, "2026-10-31",
+    )
+    assert sorted(actual) == sorted(expected_rows)
+
 
 def test_sync_gold_to_serving_db_produces_5_tables_and_loads_in_data_access(tmp_path):
     source_db = tmp_path / "source.db"
@@ -201,8 +209,26 @@ def test_sync_gold_to_serving_db_produces_5_tables_and_loads_in_data_access(tmp_
         assert tables == set(SERVING_TABLES)
         assert conn.execute("SELECT fit_end_date FROM eta_baseline_manifest").fetchone()[0] == "2026-10-23"
 
+        source, snapshot, version = conn.execute(
+            "SELECT source, snapshot_id, build_id FROM eta_baseline_manifest"
+        ).fetchone()
+        assert source == "local" and snapshot is None and len(version) == 64
+
+    # A truncated build must leave the previously published DB readable.
+    (gold_dir.parent / "manifest.json").write_text(json.dumps({"row_count": len(rows) + 1}))
+    with pytest.raises(ValueError, match="row count mismatch"):
+        sync_gold_to_serving_db(source_db=source_db, output_db=output_db, gold_parquet_dir=gold_dir)
+
     da = DataAccess(db_path=str(output_db))
     assert "02" in da.route_idx_by_code
     assert len(da.get_routes()) == 1
     assert da.get_route_shape(2, "go") is not None
     assert da.get_route_stations(2, "go") is not None
+
+
+def test_selected_feature_route_keeps_serving_index():
+    from modules.lakehouse.hdfs.gold_features_spark import build_route_feature_metadata
+
+    reference = {"routes": {"1": "01", "2": "02"}, "stations": [], "shapes": {}}
+    meta = build_route_feature_metadata(reference, ["02"], [], ["01", "02"])
+    assert meta["route_idx_by_code"]["02"] == 1

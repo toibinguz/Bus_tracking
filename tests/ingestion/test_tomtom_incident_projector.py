@@ -82,3 +82,17 @@ def test_tomtom_projection_is_deterministic_across_input_orders():
     rows_fwd, _ = project_incidents_to_route_facts(records, route_shapes, route_stations)
     rows_rev, _ = project_incidents_to_route_facts(list(reversed(records)), route_shapes, route_stations)
     assert rows_fwd == rows_rev and len(rows_fwd) > 0
+
+    # A feature window can start after the last capture and before its expiry.
+    from types import SimpleNamespace
+    import json
+    from modules.lakehouse.hdfs.gold_features_spark import project_window_intervals
+
+    stations = {"02": {"go": [(i, i, name, dist) for i, name, dist in route_stations["02"]["go"]]}}
+    meta = {"shapes_by_code": route_shapes, "stations_by_code": stations}
+    window_start = rows_fwd[0][12]
+    def select(start):
+        source = (SimpleNamespace(raw_json=json.dumps(record)) for record in records)
+        return list(project_window_intervals(source, meta, start, start + 60))
+    assert select(window_start)
+    assert not select(window_start + 1)

@@ -22,6 +22,7 @@ import os
 import sqlite3
 import sys
 import time
+from uuid import uuid4
 from collections import defaultdict
 from datetime import datetime
 from datetime import date
@@ -31,6 +32,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.dataset as ds_pa
+import pyarrow.parquet as pq
 
 if sys.stdout.encoding != "utf-8":
     try:
@@ -83,6 +85,25 @@ GOLD_BASELINE_DIR: Optional[str] = None
 from modules.eta.temporal_contract import split_at_dates
 
 
+def _vehicle_frames(dataset):
+    # Keep all days of each vehicle together, including trips crossing midnight.
+    ids = set()
+    for batch in dataset.to_batches(columns=["vehicle_id"]):
+        ids.update(batch.column(0).unique().to_pylist())
+    has_null = None in ids
+    ids.discard(None)
+    ordered = sorted(ids)
+    field = ds_pa.field("vehicle_id")
+    filters = [field.isin(ordered[i:i + 8]) for i in range(0, len(ordered), 8)]
+    if has_null:
+        filters.append(field.is_null())
+    for predicate in filters:
+        yield dataset.to_table(
+            columns=["vehicle_id", "device_epoch", "direction", "s_bus_m", "derived_speed_kmh"],
+            filter=predicate,
+        ).to_pandas()
+
+
 def build_and_evaluate_baseline_matrix(
     fit_end_date: Optional[str] = None,
     db_path: Optional[str] = None,
@@ -130,7 +151,7 @@ def build_and_evaluate_baseline_matrix(
     for r_code, d_str, st_ord, st_id, st_name, s_m in st_rows:
         stations_map[(r_code, d_str)].append((int(st_ord), int(st_id), str(st_name), float(s_m)))
 
-    # 2 & 3. Stream Silver Parquet dataset per route_code partition to bound RAM (<300 MB)
+    # Read each route in groups of vehicles so cross-day trips remain intact.
     route_dirs = sorted(
         d
         for d in os.listdir(resolved_silver)
@@ -162,18 +183,16 @@ def build_and_evaluate_baseline_matrix(
     rejected_slow_Or_fast = 0
     unbracketed_pairs = 0
 
-    for d_name in route_dirs:
-        r_code = d_name.split("=", 1)[1]
-        r_dir = os.path.join(resolved_silver, d_name)
-        ds_route = ds_pa.dataset(r_dir, format="parquet", partitioning=dt_partitioning)
-        tbl = ds_route.to_table(
-            columns=["vehicle_id", "device_epoch", "direction", "s_bus_m", "derived_speed_kmh"]
-        )
-        if tbl.num_rows == 0:
-            del tbl
-            continue
-        df_route = tbl.to_pandas()
-        del tbl
+    def route_frames():
+        for name in route_dirs:
+            route = name.split("=", 1)[1]
+            dataset = ds_pa.dataset(os.path.join(resolved_silver, name), format="parquet", partitioning=dt_partitioning)
+            for frame in _vehicle_frames(dataset):
+                yield route, frame
+
+    for r_code, df_route in route_frames():
+        if not active_routes or active_routes[-1] != r_code:
+            active_routes.append(r_code)
         df_route["dt"] = (
             pd.to_datetime(df_route["device_epoch"], unit="s", utc=True)
             .dt.tz_convert("Asia/Ho_Chi_Minh")
@@ -187,7 +206,6 @@ def build_and_evaluate_baseline_matrix(
         total_pings += n_route
         train_pings += n_route_train
         test_pings += n_route_test
-        active_routes.append(r_code)
 
         for (vid, d_str), grp in df_route.groupby(["vehicle_id", "direction"], sort=False):
             r_len = shape_len_map.get((r_code, d_str), 0.0)
@@ -274,7 +292,6 @@ def build_and_evaluate_baseline_matrix(
                     else:
                         unbracketed_pairs += 1
 
-        del df_route
         gc.collect()
         check_memory_pressure(label=f"baseline_route={r_code}")
 
@@ -325,6 +342,7 @@ def build_and_evaluate_baseline_matrix(
             )
 
     # Save Baseline Matrix to SQLite and Gold Parquet
+    cur.execute("BEGIN")
     cur.execute("DROP TABLE IF EXISTS agg_segment_travel_times")
     cur.execute(
         """
@@ -355,20 +373,27 @@ def build_and_evaluate_baseline_matrix(
         "INSERT INTO agg_segment_travel_times VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         matrix_rows,
     )
-    cur.execute('CREATE TABLE IF NOT EXISTS eta_baseline_manifest(fit_end_date TEXT, train_end_date TEXT, test_start_date TEXT)')
-    cur.execute('DELETE FROM eta_baseline_manifest')
-    cur.execute('INSERT INTO eta_baseline_manifest VALUES (?,?,?)',(fit_end_date,TRAIN_SPLIT_END_DATE,TEST_SPLIT_START_DATE))
-    cur.commit() if hasattr(cur, "commit") else conn.commit()
-    conn.close()
+    build_id = uuid4().hex
+    cur.execute("DROP TABLE IF EXISTS eta_baseline_manifest")
+    cur.execute("CREATE TABLE eta_baseline_manifest(fit_end_date TEXT, train_end_date TEXT, "
+                "test_start_date TEXT, source TEXT, snapshot_id TEXT, build_id TEXT)")
+    cur.execute("INSERT INTO eta_baseline_manifest VALUES (?, ?, ?, 'local', NULL, ?)",
+                (fit_end_date, TRAIN_SPLIT_END_DATE, TEST_SPLIT_START_DATE, build_id))
 
     os.makedirs(resolved_gold, exist_ok=True)
     df_matrix = pd.DataFrame(matrix_rows, columns=list(GOLD_BASELINE_COLUMNS))
-    df_matrix.to_parquet(
-        os.path.join(resolved_gold, "part-00000.snappy.parquet"),
-        engine="pyarrow",
-        compression="snappy",
-        index=False,
-    )
+    table = pa.Table.from_pandas(df_matrix, preserve_index=False)
+    table = table.replace_schema_metadata({**(table.schema.metadata or {}), b"build_id": build_id.encode()})
+    part = os.path.join(resolved_gold, "part-00000.snappy.parquet")
+    temporary = os.path.join(resolved_gold, f".{build_id}.tmp")
+    try:
+        pq.write_table(table, temporary, compression="snappy")
+        os.replace(temporary, part)
+        conn.commit()
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+        conn.close()
 
     total_cells = len(matrix_rows)
     print(

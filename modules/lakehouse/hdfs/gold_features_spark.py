@@ -131,15 +131,16 @@ def build_route_feature_metadata(
     reference: Mapping[str, Any],
     route_codes: Sequence[str],
     baseline_rows: Iterable[Mapping[str, Any]],
+    baseline_codes: Sequence[str] | None = None,
 ) -> Dict[str, Any]:
     """Assemble serializable broadcast payload for Spark feature extraction executors."""
     code_to_id = {str(v): int(k) for k, v in reference["routes"].items()}
-    route_idx_by_code = {rc: i for i, rc in enumerate(sorted(route_codes))}
+    route_idx_by_code = {rc: i for i, rc in enumerate(sorted(route_codes if baseline_codes is None else baseline_codes))}
 
     shapes_by_code: Dict[str, Dict[str, list]] = defaultdict(lambda: {"go": [], "re": []})
     for rid_str, dirs in reference["shapes"].items():
         rc = reference["routes"].get(str(rid_str))
-        if rc not in route_idx_by_code:
+        if rc not in route_codes:
             continue
         for d_str, pts in dirs.items():
             shapes_by_code[rc][str(d_str)] = [(int(p[0]), float(p[1]), float(p[2]), float(p[3])) for p in pts]
@@ -147,7 +148,7 @@ def build_route_feature_metadata(
     stations_by_code: Dict[str, Dict[str, list]] = defaultdict(lambda: {"go": [], "re": []})
     for st in reference["stations"]:
         rc = str(st.get("route_code") or reference["routes"].get(str(st["route_id"]), ""))
-        if rc not in route_idx_by_code:
+        if rc not in route_codes:
             continue
         stations_by_code[rc][str(st["direction"])].append(
             (int(st["station_order"]), int(st["station_id"]), str(st["station_name"]), float(st["cum_distance_m"]))
@@ -159,7 +160,7 @@ def build_route_feature_metadata(
     baseline_by_code: Dict[str, list] = defaultdict(list)
     for row in baseline_rows:
         rc = str(row["route_code"]).strip()
-        if rc in route_idx_by_code:
+        if rc in route_codes:
             baseline_by_code[rc].append(dict(row))
 
     return {
@@ -187,11 +188,28 @@ def extract_route_causal_features_partition(
     test_epoch: float,
     cadence_sec: float,
 ) -> List[Tuple[Any, ...]]:
+    return list(_iter_route_features(
+        route_code, silver_rows, incident_intervals_by_dir, meta, fit_end_date=fit_end_date,
+        validation_epoch=validation_epoch, test_epoch=test_epoch, cadence_sec=cadence_sec,
+    ))
+
+
+def _iter_route_features(
+    route_code: str,
+    silver_rows: Iterable[Mapping[str, Any]],
+    incident_intervals_by_dir: Mapping[int, Sequence[Tuple[float, float, float, float, float]]],
+    meta: Mapping[str, Any],
+    *,
+    fit_end_date: str,
+    validation_epoch: float,
+    test_epoch: float,
+    cadence_sec: float,
+) -> Iterable[Tuple[Any, ...]]:
     """Extract labeled 40-feature causal rows for 1 route using C++17 native kernel (or Python fallback)."""
     route_id = meta["code_to_id"].get(route_code)
     route_idx = meta["route_idx_by_code"].get(route_code)
     if route_id is None or route_idx is None:
-        return []
+        return
 
     lookup = RouteReferenceLookup(
         route_code=route_code,
@@ -228,7 +246,7 @@ def extract_route_causal_features_partition(
         ]
         obs_all.sort(key=lambda item: (item[0], item[1], item[2], item[4], item[5]))
         if not obs_all:
-            return []
+            return
         veh_names = sorted({item[2] for item in obs_all})
         vmap = {name: idx for idx, name in enumerate(veh_names)}
         corridors_by_dir = {d: lookup.get_corridor_stations(route_id, ("go", "re")[d]) for d in (0, 1)}
@@ -264,7 +282,6 @@ def extract_route_causal_features_partition(
         if res is not None:
             arrs, _ = res
             n_out = len(arrs["eta_seconds"])
-            out_rows: List[Tuple[Any, ...]] = []
             feats = arrs["features"]
             vh_idx = arrs["veh_idx"]
             j_arr = arrs["journey"]
@@ -278,7 +295,7 @@ def extract_route_causal_features_partition(
             hs = arrs["history_seconds"]
             for i in range(n_out):
                 f_vals = tuple(None if np.isnan(v) else float(v) for v in feats[i])
-                out_rows.append(
+                yield (
                     f_vals
                     + (
                         route_code,
@@ -294,7 +311,7 @@ def extract_route_causal_features_partition(
                         float(hs[i]),
                     )
                 )
-            return out_rows
+            return
 
     # Pure Python fallback when native shared library is unavailable
     from itertools import groupby
@@ -351,12 +368,11 @@ def extract_route_causal_features_partition(
         for vehicle in sorted(active):
             replay.forecast_all(r_id, dir_int, vehicle, now)
 
-    out_rows = []
     for row in replay.labeled(validation_epoch, test_epoch):
         f_vals = tuple(None if row["features"][f] is None else float(row["features"][f]) for f in FEATURES)
         lbl = row["label"]
         ego5 = row["speeds"].get("ego5")
-        out_rows.append(
+        yield (
             f_vals
             + (
                 route_code,
@@ -372,7 +388,21 @@ def extract_route_causal_features_partition(
                 float(ego5["seconds"]) if ego5 else 0.0,
             )
         )
-    return out_rows
+
+
+def project_window_intervals(rows, meta, start, end):
+    import json
+
+    stations = {
+        route: {d: [(s[0], s[2], s[3]) for s in points] for d, points in dirs.items()}
+        for route, dirs in meta["stations_by_code"].items()
+    }
+    facts, _ = project_incidents_to_route_facts(
+        (json.loads(row.raw_json) for row in rows), meta["shapes_by_code"], stations
+    )
+    for fact in facts:
+        if fact[17] > 0 and fact[11] < end and fact[12] >= start:
+            yield fact[2], (int(fact[3] == "re"), (fact[8], fact[9], fact[17], fact[11], fact[12]))
 
 
 def _date_epoch(day_str: str) -> float:
@@ -385,13 +415,18 @@ def _date_epoch(day_str: str) -> float:
 def main():
     """PySpark entrypoint: HDFS Silver + Gold Baseline -> HDFS Gold Causal Features (C++17 + fallback)."""
     import argparse
-    from datetime import date, timezone
+    from datetime import date, timedelta, timezone
     import gc
     import json
     from pathlib import Path
     import sys
     import time
     from uuid import uuid4
+
+    resource = None
+    if sys.platform != "win32":
+        import resource as _resource
+        resource = _resource
 
     from pyspark.sql import SparkSession, functions as F
     from pyspark.sql.types import DoubleType, FloatType, LongType, StringType, StructField, StructType
@@ -402,6 +437,7 @@ def main():
 
     from config.system_config import BASELINE_FIT_END_DATE, TEST_SPLIT_END_DATE, TEST_SPLIT_START_DATE
     from modules.lakehouse.hdfs.hf_bronze import digest, encoded
+    from modules.lakehouse.hdfs.gold_publication import publish_gold
 
     hdfs_root = "hdfs://namenode:8020/bus-eta/v1"
     publications = hdfs_root + "/_published/history_snapshots"
@@ -434,6 +470,8 @@ def main():
     started = time.monotonic()
     spark = (
         SparkSession.builder.appName("bus-eta-gold-causal-features")
+        # HDFS DataNodes and executors live in separate containers.
+        .config("spark.locality.wait", "0s")
         .config("spark.sql.session.timeZone", "Asia/Ho_Chi_Minh")
         .config("spark.sql.sources.partitionColumnTypeInference.enabled", "false")
         .getOrCreate()
@@ -445,19 +483,6 @@ def main():
 
     def read_bytes(path: str) -> bytes:
         return bytes(spark.read.format("binaryFile").load(path).first().content)
-
-    def write_atomic(path: str, content: bytes) -> None:
-        fs.mkdirs(jpath(path.rsplit("/", 1)[0]))
-        temp = path + ".tmp-" + str(uuid4())
-        stream = fs.create(jpath(temp), True)
-        try:
-            stream.write(bytearray(content))
-        finally:
-            stream.close()
-        if fs.exists(jpath(path)):
-            fs.delete(jpath(path), False)
-        if not fs.rename(jpath(temp), jpath(path)):
-            raise RuntimeError("failed to rename atomic HDFS file: " + path)
 
     try:
         pub_path = f"{publications}/{args.snapshot}.json"
@@ -507,75 +532,73 @@ def main():
             "tt_mean_sec",
             "tt_std_sec",
         ]
+        baseline_df = spark.read.parquet(baseline_manifest.get("gold_data_path", f"{gold_baseline_root}/data"))
+        baseline_codes = sorted(r.route_code for r in baseline_df.select("route_code").distinct().collect())
         baseline_rows = [
             row.asDict()
-            for row in spark.read.parquet(f"{gold_baseline_root}/data")
+            for row in baseline_df
             .filter(F.col("route_code").isin(active_routes))
             .select(*baseline_cols)
             .toLocalIterator()
         ]
 
-        meta = build_route_feature_metadata(reference, active_routes, baseline_rows)
+        meta = build_route_feature_metadata(reference, active_routes, baseline_rows, baseline_codes)
+        # Local DataAccess derives feature indices from the complete baseline catalog.
+        if set(active_routes).difference(meta["route_idx_by_code"]):
+            raise ValueError("requested routes missing from published baseline")
         del reference, baseline_rows
         gc.collect()
 
-        incidents_by_route_dir: Dict[str, Dict[int, list]] = defaultdict(lambda: {0: [], 1: []})
-        inc_obs_path = source["snapshot_path"].rstrip("/") + "/incident_observations"
-        if source.get("incident_observations") and fs.exists(jpath(inc_obs_path)):
-            raw_inc = [
-                json.loads(r.raw_json)
-                for r in spark.read.parquet(inc_obs_path).select("raw_json").collect()
-            ]
-            if raw_inc:
-                inc_stations = {
-                    rc: {
-                        d: [(st[0], st[2], st[3]) for st in dirs.get(d, ())]
-                        for d in dirs
-                    }
-                    for rc, dirs in meta["stations_by_code"].items()
-                }
-                fact_rows, _ = project_incidents_to_route_facts(
-                    raw_inc, meta["shapes_by_code"], inc_stations
-                )
-                for fr in fact_rows:
-                    d_int = 0 if fr[3] == "go" else 1
-                    delay = float(fr[17] or 0.0)
-                    if delay > 0.0:
-                        incidents_by_route_dir[str(fr[2])][d_int].append(
-                            (
-                                float(fr[8]),
-                                float(fr[9]),
-                                delay,
-                                float(fr[11]),
-                                float(fr[12]),
-                            )
-                        )
-
         sc = spark.sparkContext
         bc_meta = sc.broadcast(meta)
-        bc_inc = sc.broadcast(dict(incidents_by_route_dir))
         cadence_sec = float(args.forecast_every)
+        telemetry = silver_df.select(
+            "route_code", "direction", "vehicle_id", "plate", "device_epoch_s", "s_bus_m", "lat", "lon"
+        ).rdd.map(lambda row: (row.route_code, row.asDict()))
 
-        grouped = (
-            silver_df.select(
-                "route_code", "direction", "vehicle_id", "plate", "device_epoch_s", "s_bus_m", "lat", "lon"
-            )
-            .rdd.map(lambda r: (str(r["route_code"]), r.asDict()))
-            .groupByKey(args.partitions)
-        )
+        inc_obs_path = source["snapshot_path"].rstrip("/") + "/incident_observations"
+        intervals = sc.emptyRDD()
+        if source.get("incident_observations") and fs.exists(jpath(inc_obs_path)):
+            from modules.ingestion.projection.tomtom_incident_projector import DEFAULT_TTL_SEC, MAX_BATCH_GAP_SEC
 
-        rows_rdd = grouped.flatMap(
-            lambda pair: extract_route_causal_features_partition(
-                pair[0],
-                pair[1],
-                bc_inc.value.get(pair[0], {0: [], 1: []}),
-                bc_meta.value,
-                fit_end_date=fit_end_date,
-                validation_epoch=validation_epoch,
-                test_epoch=test_epoch,
-                cadence_sec=cadence_sec,
+            observations = spark.read.parquet(inc_obs_path).withColumn(
+                "incident_id", F.get_json_object("raw_json", "$.incident_id")
             )
-        )
+            window_start = _date_epoch(args.from_day)
+            window_end = _date_epoch((last_day + timedelta(days=1)).isoformat())
+            earliest = datetime.fromtimestamp(
+                window_start - max(DEFAULT_TTL_SEC, MAX_BATCH_GAP_SEC), tz=TZ_HANOI
+            ).date().isoformat()
+            candidates = observations.filter(
+                F.col("dt").between(earliest, args.to_day)
+            ).select("incident_id").distinct()
+            # Keep the full history of each candidate: first geometry and successive
+            # observations determine the projected intervals across date boundaries.
+            relevant = observations.join(candidates, "incident_id", "left_semi")
+            intervals = relevant.repartition(args.partitions, "incident_id").select("raw_json").rdd.mapPartitions(
+                lambda rows: project_window_intervals(rows, bc_meta.value, window_start, window_end)
+            )
+
+        def extract(pair):
+            route, (observations, facts) = pair
+            by_direction = {0: [], 1: []}
+            for direction, interval in facts:
+                by_direction[direction].append(interval)
+            started_route = time.monotonic()
+            rows = _iter_route_features(
+                route, observations, by_direction, bc_meta.value, fit_end_date=fit_end_date,
+                validation_epoch=validation_epoch, test_epoch=test_epoch, cadence_sec=cadence_sec,
+            )
+            count = 0
+            for row in rows:
+                count += 1
+                yield row
+            print("FEATURE_ROUTE=" + json.dumps(dict(
+                route=route, rows=count, seconds=round(time.monotonic()-started_route, 3),
+                worker_peak_rss_kib=(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss if resource is not None else None),
+            )), flush=True)
+
+        rows_rdd = telemetry.cogroup(intervals, args.partitions).flatMap(extract)
 
         schema = StructType(
             [StructField(f, FloatType(), True) for f in FEATURES]
@@ -595,17 +618,25 @@ def main():
         )
 
         out_root = f"{gold_features_root_prefix}/snapshot={args.snapshot}"
-        out_data = f"{out_root}/data"
+        build_id = uuid4().hex
+        out_data = f"{out_root}/builds/{build_id}/data"
         feat_df = spark.createDataFrame(rows_rdd, schema)
-        feat_df.repartition(min(args.partitions, len(active_routes)), "route").write.mode("overwrite").partitionBy("route").parquet(out_data)
+        # cogroup already places every row of a route in one partition.
+        feat_df.write.mode("errorifexists").partitionBy("route").parquet(out_data)
 
         written = spark.read.parquet(out_data)
         total_rows = written.count()
         split_counts = {str(r["split"]): int(r["count"]) for r in written.groupBy("split").count().collect()}
 
+        if sum(split_counts.values()) != total_rows or set(split_counts).difference(SPLIT_NAMES):
+            raise ValueError("invalid split counts in Gold features")
+
         manifest = {
             "schema_version": "gold-causal-features.v1",
             "snapshot_id": args.snapshot,
+            "build_id": build_id,
+            "baseline_build_id": baseline_manifest.get("build_id"),
+            "validation_start": validation_day,
             "fit_end_date": fit_end_date,
             "from_day": args.from_day,
             "to_day": args.to_day,
@@ -615,12 +646,13 @@ def main():
             "routes": active_routes,
             "row_count": total_rows,
             "split_counts": split_counts,
+            "python_driver_peak_rss_kib": (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss if resource is not None else None),
             "columns": list(GOLD_CAUSAL_FEATURE_COLUMNS),
             "data_path": out_data,
             "elapsed_seconds": round(time.monotonic() - started, 3),
             "published_at": datetime.now(timezone.utc).isoformat(),
         }
-        write_atomic(f"{out_root}/manifest.json", encoded(manifest))
+        publish_gold(spark, out_root, build_id, encoded(manifest))
         print("GOLD_FEATURES_RESULT=" + json.dumps(manifest), flush=True)
     finally:
         spark.stop()
