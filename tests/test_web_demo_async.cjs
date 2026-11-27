@@ -26,7 +26,7 @@ function harness() {
         divIcon: x => x, marker: () => ({...layer(), bindPopup() {}})},
     fetch(url) {return new Promise((resolve, reject) => requests.push({url, resolve, reject}));},
   });
-  const source = fs.readFileSync(path.join(__dirname, '../module_3_bus_eta_prediction/step_3_5_web_demo/static/app.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, '../modules/eta/web_demo/static/app.js'), 'utf8');
   // Expose closure state only inside this VM; production has no testing exports.
   vm.runInContext(source.replace(/\}\)\(\);\s*$/, `
     globalThis.api = {pollVehicles, clearRouteLayers, fetchRouteShape, fetchRouteStations,

@@ -1,11 +1,13 @@
-"""Thin CLI entrypoint for training causal-eta.v1 from Silver Parquet."""
+"""Thin CLI wrapper for modules.eta.training.silver_replay_trainer."""
 
-import os
+from pathlib import Path
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-from module_3_bus_eta_prediction.step_3_3_machine_learning_models.silver_replay_trainer import main
+from modules.eta.training.silver_replay_trainer import main  # noqa: E402
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

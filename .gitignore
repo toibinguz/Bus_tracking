@@ -52,7 +52,7 @@ experiments/**/*.json
 .worktrees/
 
 # Generated full-history download cache, staging and import checkpoints
-/runtime/hf_full_history/
+/data/staging/
 
-# HDFS runtime
-/runtime
+# Quarantined legacy local lakehouse / runtime / DB (never tracked)
+/_quarantine_legacy/

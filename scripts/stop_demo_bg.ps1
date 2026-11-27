@@ -1,6 +1,6 @@
 $ErrorActionPreference = "SilentlyContinue"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$PidFile = Join-Path $RepoRoot "runtime\demo_server.pid"
+$PidFile = Join-Path $RepoRoot "data\staging\demo_server\demo_server.pid"
 
 if (-not (Test-Path $PidFile)) {
     Write-Host "[!] Khong tim thay file PID ($PidFile)." -ForegroundColor Yellow

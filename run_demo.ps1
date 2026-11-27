@@ -1,12 +1,11 @@
-﻿# PowerShell Launcher for Hanoi Bus Live ETA Web App Demo
+# PowerShell Launcher for Hanoi Bus Live ETA Web App Demo
 # Requires UTF-8 BOM for Windows PowerShell 5.1 compatibility
 
 param(
     [ValidateRange(1, 65535)]
     [int]$Port = 8000,
     [switch]$NoBrowser,
-    [string]$ReleasePointer,
-    [switch]$LocalData
+    [string]$DbPath
 )
 
 # 1. Force UTF-8 Encoding for Console
@@ -23,10 +22,10 @@ if ($rootDir) {
     $rootDir = Get-Location
 }
 
-if ($ReleasePointer -and $LocalData) { throw 'Choose either -ReleasePointer or -LocalData' }
-if ($LocalData) { Remove-Item Env:\ETA_RELEASE_POINTER -ErrorAction SilentlyContinue }
-if ($ReleasePointer) {
-    $env:ETA_RELEASE_POINTER = (Resolve-Path -LiteralPath $ReleasePointer -ErrorAction Stop).Path
+if ($DbPath) {
+    $env:SERVING_DB_PATH = (Resolve-Path -LiteralPath $DbPath -ErrorAction Stop).Path
+} else {
+    Remove-Item Env:\SERVING_DB_PATH -ErrorAction SilentlyContinue
 }
 
 # 3. Locate Python executable in .venv
@@ -83,4 +82,4 @@ if (-not $NoBrowser) { Start-Job -ScriptBlock {
 } -ArgumentList $targetPort | Out-Null }
 
 # Start Uvicorn
-& $pythonExe -m uvicorn module_3_bus_eta_prediction.step_3_5_web_demo.app:app --host 127.0.0.1 --port $targetPort
+& $pythonExe -m uvicorn modules.eta.web_demo.app:app --host 127.0.0.1 --port $targetPort

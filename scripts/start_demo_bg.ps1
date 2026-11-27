@@ -5,7 +5,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$RuntimeDir = Join-Path $RepoRoot "runtime"
+$RuntimeDir = Join-Path $RepoRoot "data\staging\demo_server"
 New-Item -ItemType Directory -Force -Path $RuntimeDir | Out-Null
 
 $PidFile = Join-Path $RuntimeDir "demo_server.pid"
@@ -21,7 +21,7 @@ if ($existing) {
 
 $argsList = @(
     "-m", "uvicorn",
-    "module_3_bus_eta_prediction.step_3_5_web_demo.app:app",
+    "modules.eta.web_demo.app:app",
     "--host", $BindHost,
     "--port", "$Port",
     "--workers", "1"

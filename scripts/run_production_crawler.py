@@ -1,15 +1,13 @@
-"""
-Production Crawler Entrypoint
-Thin facade delegating directly to module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.local_production_crawler.
-"""
+"""Thin CLI wrapper for modules.ingestion.crawler.local_production_crawler."""
 
-import os
+from pathlib import Path
 import sys
 
-# Ensure project root is in sys.path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.local_production_crawler import main
+from modules.ingestion.crawler.local_production_crawler import main  # noqa: E402
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -1,18 +1,13 @@
-"""
-Daily Catalog Refresh Entrypoint
-Thin facade delegating directly to module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.catalog_refresher.
-"""
+"""Thin CLI wrapper for modules.ingestion.crawler.catalog_refresher."""
 
-import os
+from pathlib import Path
 import sys
 
-# Ensure project root is in sys.path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-from module_1_data_ingestion_and_preprocessing.step_1_1_busmap_crawler_and_relay.catalog_refresher import (
-    main,
-    run_daily_catalog_refresh,
-)
+from modules.ingestion.crawler.catalog_refresher import main  # noqa: E402
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

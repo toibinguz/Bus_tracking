@@ -6,6 +6,12 @@ services:
     hostname: namenode
     ports:
       - "127.0.0.1:9870:9870"
+    environment:
+      HADOOP_HEAPSIZE_MAX: "128m"
+      HDFS_NAMENODE_OPTS: "-Xmx384m -Xms128m"
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: 1.0
     volumes:
       - namenode-data:/data/dfs/name
     networks: [hdfs-private]
@@ -23,6 +29,12 @@ services:
     depends_on:
       namenode:
         condition: service_started
+    environment:
+      HADOOP_HEAPSIZE_MAX: "128m"
+      HDFS_DATANODE_OPTS: "-Xmx256m -Xms64m"
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 0.75
     volumes:
       - datanode-1-data:/data/dfs/data
     networks: [hdfs-private]
@@ -35,99 +47,85 @@ services:
     depends_on:
       namenode:
         condition: service_started
+    environment:
+      HADOOP_HEAPSIZE_MAX: "128m"
+      HDFS_DATANODE_OPTS: "-Xmx256m -Xms64m"
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 0.75
     volumes:
       - datanode-2-data:/data/dfs/data
     networks: [hdfs-private]
 
   spark-master:
     build:
-      context: infra
-      dockerfile: spark/Dockerfile
+      context: .
+      dockerfile: infra/spark/Dockerfile
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
     hostname: spark-master
     ports:
       - "127.0.0.1:8080:8080"
       - "127.0.0.1:7077:7077"
+    environment:
+      SPARK_DAEMON_MEMORY: "192m"
+    mem_limit: 1024m
+    memswap_limit: 1024m
+    cpus: 1.0
     volumes:
       - .:/workspace:ro
     networks: [hdfs-private]
 
   spark-worker-1:
     build:
-      context: infra
-      dockerfile: spark/Dockerfile
+      context: .
+      dockerfile: infra/spark/Dockerfile
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
     depends_on: [spark-master]
+    environment:
+      SPARK_DAEMON_MEMORY: "192m"
+      SPARK_WORKER_MEMORY: "768m"
+      SPARK_WORKER_CORES: "2"
+    mem_limit: 1152m
+    memswap_limit: 1152m
+    cpus: 1.5
     networks: [hdfs-private]
     volumes:
       - .:/workspace:ro
 
   spark-worker-2:
     build:
-      context: infra
-      dockerfile: spark/Dockerfile
+      context: .
+      dockerfile: infra/spark/Dockerfile
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
     depends_on: [spark-master]
-    networks: [hdfs-private]
-    volumes:
-      - .:/workspace:ro
-
-  ingest-runner:
-    profiles: ["ingest"]
-    build:
-      context: infra
-      dockerfile: spark/Dockerfile
-    command: ["python3", "/workspace/scripts/hdfs_ingest_runner.py", "/spool"]
-    depends_on:
-      namenode:
-        condition: service_healthy
     environment:
-      HDFS_WEBHDFS_URL: http://namenode:9870
-      HDFS_WEBHDFS_USER: root
+      SPARK_DAEMON_MEMORY: "192m"
+      SPARK_WORKER_MEMORY: "768m"
+      SPARK_WORKER_CORES: "2"
+    mem_limit: 1152m
+    memswap_limit: 1152m
+    cpus: 1.5
+    networks: [hdfs-private]
     volumes:
       - .:/workspace:ro
-      - ./runtime/hdfs_spool:/spool
-    networks: [hdfs-private]
 
   history-import:
     profiles: ["import"]
     build:
-      context: infra
-      dockerfile: spark/Dockerfile
+      context: .
+      dockerfile: infra/spark/Dockerfile
     command: ["python3", "/workspace/scripts/hdfs_import_history.py", "upload", "--help"]
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
     volumes:
       - .:/workspace:ro
-      - ./runtime/hf_full_history:/import
+      - ./data/staging/hf_full_history:/import
     networks: [hdfs-private]
-
-  eta-artifacts:
-    profiles: ["eta"]
-    build:
-      context: infra
-      dockerfile: spark/Dockerfile
-    command: ["python3", "/workspace/scripts/eta_snapshot_pipeline.py", "--help"]
-    volumes:
-      - .:/workspace:ro
-      - ./runtime/eta_releases:/releases
-    networks: [hdfs-private]
-
-  history-api:
-    profiles: ["history"]
-    build:
-      context: infra
-      dockerfile: spark/Dockerfile
-    command: ["/opt/spark/bin/spark-submit", "--master", "spark://spark-master:7077", "/workspace/scripts/hdfs_history_server.py"]
-    depends_on: [namenode, spark-master]
-    ports:
-      - "127.0.0.1:8090:8090"
-    volumes:
-      - .:/workspace:ro
-    networks: [hdfs-private, history-client]
 
 networks:
   hdfs-private:
     internal: true
-  history-client:
 
 volumes:
   namenode-data:

@@ -1,17 +1,13 @@
-"""
-Scripts: Ingest Canonical BusMap Master Data
-Thin facade CLI to migrate and ingest BusMap native routes and stations
-into canonical_shape_master, canonical_station_master, and canonical_route_master.
-"""
+"""Thin CLI wrapper for modules.ingestion.gtfs.ingest_busmap_canonical."""
 
-import os
+from pathlib import Path
 import sys
 
-# Ensure project root in sys.path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-from module_1_data_ingestion_and_preprocessing.step_1_5_busmap_canonical_migration.ingest_busmap_canonical import main
+from modules.ingestion.gtfs.ingest_busmap_canonical import main  # noqa: E402
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-

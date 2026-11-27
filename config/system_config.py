@@ -20,23 +20,15 @@ INCIDENT_OUTPUT_DIR = "data/raw/incidents"
 TOMTOM_QUOTA_FILE = "data/metadata/tomtom_quota_tracker.json"
 DAILY_HEALTH_FILE = "data/metadata/daily_catalog_health.json"
 API_KEY_FILE = "config/TOMTOM_API_KEY.txt"
-LEGACY_API_KEY_FILES = [
-    "Test_tomtom/TOMTOM_API_KEY.txt",
-    "archive/legacy_tests/Test_tomtom/TOMTOM_API_KEY.txt"
-]
 HF_TOKEN_FILE = "access_token_hf.txt"
 HF_DATASET_ID = os.environ.get("HF_DATASET_ID", "Toibinguz/hust-bus-data")
 
-DEFAULT_DB_PATH = "data/hanoi_bus_system.db"
-DEFAULT_LAKEHOUSE_ROOT = "data/lakehouse"
-LEGACY_AUDIT_DB_PATH = "archive/legacy_dumps/telemetry_audit_2026_10_17_18.db"
+DEFAULT_DB_PATH = "data/serving_bus_system.db"
+LOCAL_LAKEHOUSE_ROOT = "data/lakehouse"
+
 
 def get_database_path() -> str:
-    """Lay duong dan CSDL van hanh chuan."""
-    if os.path.exists(DEFAULT_DB_PATH):
-        return DEFAULT_DB_PATH
-    if os.path.exists(LEGACY_AUDIT_DB_PATH):
-        return LEGACY_AUDIT_DB_PATH
+    """Lay duong dan CSDL phuc vu chuan."""
     return DEFAULT_DB_PATH
 
 # -------------------------------------------------------------
@@ -211,8 +203,10 @@ OPERATING_END_HOUR = 22.0
 SPEED_POLLER_START_HHMM = (4, 45)
 SPEED_POLLER_END_HHMM = (22, 30)
 
-TRAIN_SPLIT_END_DATE = "2026-10-31"          # Ngày kết thúc tập Train (21 ngày: 2026-10-08 -> 2026-10-31)
-TEST_SPLIT_START_DATE = "2026-11-01"         # Ngày bắt đầu tập Test độc lập (7 ngày: 2026-11-01 -> 2026-11-07)
+BASELINE_FIT_END_DATE = "2026-10-21"         # Ngày kết thúc tập fit Baseline (2026-10-08 -> 2026-10-21)
+TRAIN_SPLIT_END_DATE = "2026-11-12"          # Ngày kết thúc tập Train ML (2026-10-22 -> 2026-11-12)
+TEST_SPLIT_START_DATE = "2026-11-13"         # Ngày bắt đầu tập Test độc lập (2026-11-13 ->)
+TEST_SPLIT_END_DATE = "2026-11-19"           # Ngày kết thúc tập Test chuẩn (đồng bộ causal_eta_v3)
 
 BRACKET_MAX_DT_SEC = 150.0                   # Khoảng kẹp thời gian tối đa nội suy thời điểm qua trạm (s)
 BRACKET_MAX_DS_M = 1000.0                    # Khoảng kẹp không gian cơ sở nội suy thời điểm qua trạm (m)
@@ -316,16 +310,14 @@ def get_tomtom_api_key():
     if key:
         return key
 
-    candidate_files = [API_KEY_FILE] + LEGACY_API_KEY_FILES
-    for path in candidate_files:
-        if os.path.exists(path):
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    val = f.read().strip()
-                    if val:
-                        return val
-            except Exception:
-                pass
+    if os.path.exists(API_KEY_FILE):
+        try:
+            with open(API_KEY_FILE, "r", encoding="utf-8") as f:
+                val = f.read().strip()
+                if val:
+                    return val
+        except Exception:
+            pass
     return ""
 
 def get_hf_token():
@@ -381,7 +373,7 @@ REALTIME_DELAY_ALERT_SEC = 120.0
 THONG_THOANG_MAX_DELAY_SEC = 30.0
 
 # Cấu hình Hybrid Polling TimBus (5s toàn tuyến / 5s trạm cho tuyến sạch; 15s BusMap-only)
-DEFAULT_TIMBUS_DB_PATH = "experiments/timbus/timbus_hanoi.sqlite"
+DEFAULT_TIMBUS_DB_PATH = "data/metadata/timbus_hanoi.sqlite"
 TIMBUS_ETA_POLL_SEC = 5
 DEFAULT_ETA_POLL_SEC = 15
 CENTRAL_VEHICLE_RESCAN_SEC = 120.0
@@ -413,12 +405,12 @@ EGO_SPEED_WEIGHT_OBS = 0.75
 CONGESTION_PROP_MAX = 2.5
 CONGESTION_PROP_EXP = 0.5
 
-# Online feature extractor (SPEC-16 §2.6, bám feature_store_builder.py)
+# Online feature extractor (SPEC-16 §2.6, đồng bộ với causal_eta.py)
 RECENT_PROBE_WINDOW_SEC = 1800.0
 FLEET_ACTIVE_WINDOW_SEC = 300.0
 MIN_EGO_SAMPLE_ADVANCE_M = 150.0
 
-# Trộn vật lý họ (f) (feature_store_builder.py:531-539)
+# Trộn vật lý họ (f)
 PHYS_W_PROBE = 0.35
 PHYS_W_EGO = 0.20
 PHYS_DECAY_M = 2500.0
