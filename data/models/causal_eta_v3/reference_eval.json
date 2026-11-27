@@ -1,0 +1,65 @@
+{
+  "reference_model": "data\\models\\causal_eta_v1",
+  "overall": {
+    "baseline": {
+      "rows": 8306167,
+      "mae": 179.72268676757812,
+      "median_ae": 99.51090240478516,
+      "p90_ae": 425.573974609375,
+      "bias": -58.287506103515625,
+      "crossings": 683178,
+      "crossing_balanced_mae": 129.89234924316406
+    },
+    "model": {
+      "rows": 8306167,
+      "mae": 143.151611328125,
+      "median_ae": 83.07598876953125,
+      "p90_ae": 334.1946777343751,
+      "bias": -46.764442443847656,
+      "crossings": 683178,
+      "crossing_balanced_mae": 103.27259826660156
+    }
+  },
+  "by_incident": {
+    "no_incident": {
+      "baseline": {
+        "rows": 3663130,
+        "mae": 116.11410522460938,
+        "median_ae": 72.41519165039062,
+        "p90_ae": 254.1430679321289,
+        "bias": 5.357013702392578,
+        "crossings": 574761,
+        "crossing_balanced_mae": 90.9385757446289
+      },
+      "model": {
+        "rows": 3663130,
+        "mae": 96.29812622070312,
+        "median_ae": 56.10205078125,
+        "p90_ae": 220.15821533203126,
+        "bias": -25.4309139251709,
+        "crossings": 574761,
+        "crossing_balanced_mae": 71.6756820678711
+      }
+    },
+    "has_incident": {
+      "baseline": {
+        "rows": 4643037,
+        "mae": 229.90676879882812,
+        "median_ae": 135.49365234375,
+        "p90_ae": 543.8759765624999,
+        "bias": -108.49993896484375,
+        "crossings": 438207,
+        "crossing_balanced_mae": 172.6586456298828
+      },
+      "model": {
+        "rows": 4643037,
+        "mae": 180.11672973632812,
+        "median_ae": 113.9775390625,
+        "p90_ae": 410.86879882812497,
+        "bias": -63.59556198120117,
+        "crossings": 438207,
+        "crossing_balanced_mae": 139.64805603027344
+      }
+    }
+  }
+}

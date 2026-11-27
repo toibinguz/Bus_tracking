@@ -286,7 +286,7 @@ def run(args):
              args.from_day, args.to_day, validation, test, fit_day, args.forecast_every, str(feat_dir))
             for rc in route_codes
         ]
-        workers = recommend_workers(args.workers, per_worker_ram_gb=0.7, min_free_ram_gb=2.0)
+        workers = recommend_workers(args.workers, per_worker_ram_gb=0.45, min_free_ram_gb=1.5, max_cpu_frac=0.75)
         if workers == 1:
             for t in tasks:
                 rc, _, st = _export_single_route_checkpoint(t)

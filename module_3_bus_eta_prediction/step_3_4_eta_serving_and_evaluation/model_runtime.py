@@ -3,7 +3,7 @@ Step 3.4 — Runtime mô hình XGBoost causal-eta.v1 (40 feature, residual -> ab
 Module: module_3_bus_eta_prediction/step_3_4_eta_serving_and_evaluation/model_runtime.py
 
 Canonical artifact:
-  - Bundle: data/models/causal_eta_v1/ (model.json + manifest.json, max_depth=6, 1200 cây)
+  - Bundle: data/models/causal_eta_v3/ (model.json + manifest.json, max_depth=6, 3000 cây, best_iteration=2995)
 XGBoost dự báo RESIDUAL; serving dựng ETA = max(5.0, baseline_eta_p50_sec + delta).
 """
 
@@ -19,7 +19,7 @@ from module_3_bus_eta_prediction.step_3_3_machine_learning_models.causal_eta_tra
 logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-CAUSAL_MODEL_DIR = os.path.join(BASE_DIR, "data", "models", "causal_eta_v1")
+CAUSAL_MODEL_DIR = os.path.join(BASE_DIR, "data", "models", "causal_eta_v3")
 
 
 def assign_horizon_bucket(n_stations_ahead: int) -> int:

@@ -92,8 +92,15 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
     if not pings or (not shapes.get("go") and not shapes.get("re")):
         return (route_id, route_code, 0, [], time.time() - t0)
 
-    # The SQLite reader is deliberately a thin adapter around SPEC-26's single
-    # storage-independent projection policy.
+    # Prefer C++17 native kernel for batch throughput; fallback transparently to Python if DLL absent.
+    from .native.native_bridge import project_route_pings_native
+
+    native_records = project_route_pings_native(route_id, route_code, pings, shapes, st_dir)
+    if native_records is not None:
+        compute_time = time.time() - t0
+        return (route_id, route_code, len(pings), native_records, compute_time)
+
+    # Fallback: SPEC-26 Python projection policy (exact behavioral parity).
     from .projection_boundary import ProjectableEvent, project_route_events
 
     direction_hints = {0: "go", 1: "re"}
@@ -144,8 +151,11 @@ def worker_project_route(args: Tuple[str, int, str, Dict[str, list], Dict[Tuple[
 def run_parallel_projection(db_path: str = DB_PATH, num_workers: Optional[int] = None):
     """Run parallel projection for all routes using ProcessPoolExecutor."""
     set_process_below_normal_priority()
+    from .native.native_bridge import is_native_available
+
     requested = 6 if num_workers is None else int(num_workers)
-    num_workers = recommend_workers(min(requested, 6), per_worker_ram_gb=0.9, min_free_ram_gb=2.0)
+    per_worker_gb = 0.45 if is_native_available() else 0.8
+    num_workers = recommend_workers(min(requested, 6), per_worker_ram_gb=per_worker_gb, min_free_ram_gb=1.5, max_cpu_frac=0.75)
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()

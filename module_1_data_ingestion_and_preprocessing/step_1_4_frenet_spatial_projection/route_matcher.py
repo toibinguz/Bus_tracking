@@ -317,9 +317,22 @@ class Match:
 
 
 class RouteHMM:
-    def __init__(self,shape,sigma=15.,max_candidates=10,window=24,horizon=120.):
+    def __init__(
+        self,
+        shape,
+        sigma=15.,
+        max_candidates=10,
+        window=24,
+        horizon=120.,
+        allow_terminal_wrap=True,
+        backward_window_sec=60.,
+        backward_switch_margin=2.,
+    ):
         self.shape=shape;self.sigma=sigma;self.max_candidates=max_candidates
         self.window=window;self.horizon=horizon
+        self.allow_terminal_wrap=allow_terminal_wrap
+        self.backward_window_sec=backward_window_sec
+        self.backward_switch_margin=backward_switch_margin
         self.states=[];self.scores=np.array([]);self.paths=[]
         self.last=None;self.best_path=[];self.margin=None;self.reason='uninitialized'
         self.resets=0;self.rejected=0
@@ -379,13 +392,18 @@ class RouteHMM:
             scores=np.full(len(new),-np.inf);paths=[None]*len(new)
             for j,b in enumerate(new):
                 transitions=[]
-                for a in self.states:
+                for idx_a,a in enumerate(self.states):
                     ds=b.s-a.s
-                    terminal=(self.shape._total_len>1000 and a.s>=self.shape._total_len-TERMINAL_RESET_ZONE_M and b.s<=TERMINAL_RESET_ZONE_M and b.s<a.s-MAX_GPS_BACKWARD_JITTER_M)
+                    recent_floor_ref=a.s
+                    if self.backward_window_sec>0 and self.paths[idx_a]:
+                        recent_pts=[p.s for p in self.paths[idx_a] if epoch-p.epoch<=self.backward_window_sec]
+                        if recent_pts:
+                            recent_floor_ref=max(recent_pts)
+                    terminal=(self.allow_terminal_wrap and self.shape._total_len>1000 and a.s>=self.shape._total_len-TERMINAL_RESET_ZONE_M and b.s<=TERMINAL_RESET_ZONE_M and b.s<a.s-MAX_GPS_BACKWARD_JITTER_M)
                     if terminal:
                         distance=self.shape._total_len-a.s+b.s
                         penalty=4.
-                    elif ds>=-MAX_GPS_BACKWARD_JITTER_M:
+                    elif ds>=-MAX_GPS_BACKWARD_JITTER_M and b.s>=recent_floor_ref-MAX_GPS_BACKWARD_JITTER_M:
                         distance=max(0,ds);penalty=max(0,-ds)/self.sigma
                     else:
                         transitions.append(-np.inf);continue
@@ -396,7 +414,7 @@ class RouteHMM:
                 if np.isfinite(options[parent]):
                     scores[j]=options[parent]+emission[j]
                     a=self.states[parent]
-                    wrapped=(self.shape._total_len>1000 and a.s>=self.shape._total_len-TERMINAL_RESET_ZONE_M and b.s<=TERMINAL_RESET_ZONE_M and b.s<a.s-MAX_GPS_BACKWARD_JITTER_M)
+                    wrapped=(self.allow_terminal_wrap and self.shape._total_len>1000 and a.s>=self.shape._total_len-TERMINAL_RESET_ZONE_M and b.s<=TERMINAL_RESET_ZONE_M and b.s<a.s-MAX_GPS_BACKWARD_JITTER_M)
                     paths[j]=[b] if wrapped else (self.paths[parent]+[b])[-self.window:]
                     while len(paths[j])>2 and epoch-paths[j][0].epoch>self.horizon:paths[j].pop(0)
             if not np.isfinite(scores).any():
@@ -422,6 +440,21 @@ class RouteHMM:
         valid=np.isfinite(scores);self.states=[p for p,ok in zip(new,valid) if ok]
         self.paths=[p for p,ok in zip(paths,valid) if ok];self.scores=scores[valid]
         self.scores-=self.scores.max();best=int(np.argmax(self.scores))
+        prev_s=self.best_path[-1].s if self.best_path else None
+        if (
+            self.backward_switch_margin>0
+            and prev_s is not None
+            and old is not None
+            and dt<=STALE_DELTA_T_MAX_SEC
+            and self.reason!='initialized'
+            and len(self.paths[best])>1
+            and self.states[best].s<prev_s-MAX_GPS_BACKWARD_JITTER_M
+        ):
+            fwd_indices=[k for k,st in enumerate(self.states) if st.s>=prev_s-MAX_GPS_BACKWARD_JITTER_M]
+            if fwd_indices:
+                fwd_best=max(fwd_indices,key=lambda k:self.scores[k])
+                if (self.scores[best]-self.scores[fwd_best])<self.backward_switch_margin:
+                    best=fwd_best
         ordered=np.sort(self.scores);self.margin=float(ordered[-1]-ordered[-2]) if len(ordered)>1 else None
         self.best_path=self.paths[best];self.last=(epoch,lat,lng)
         if old and dt<=STALE_DELTA_T_MAX_SEC and len(self.best_path)==1 and self.reason!='initialized':

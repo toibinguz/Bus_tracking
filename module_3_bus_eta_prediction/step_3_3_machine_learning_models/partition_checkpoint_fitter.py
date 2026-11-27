@@ -126,7 +126,17 @@ class _ParquetTrainIter(xgb.DataIter):
         return 0
 
 
-def run(root, rounds, max_depth=4, features_dir=None, use_validation=True, reference_model=None, device='cuda'):
+def run(
+    root,
+    rounds,
+    max_depth=4,
+    features_dir=None,
+    use_validation=True,
+    reference_model=None,
+    device='cuda',
+    early_stopping_rounds: int | None = None,
+    early_stop_on_test: bool = False,
+):
     set_process_below_normal_priority()
     nthread = recommended_xgb_threads()
     if (root/'model.json').exists():
@@ -164,9 +174,14 @@ def run(root, rounds, max_depth=4, features_dir=None, use_validation=True, refer
     else:
         domains, n_train, mean_weight = _scan_train_stats(files, splits=('train', 'validation'))
         counts = {'train': n_train, 'validation': 0}
-        print(f'global training rows {counts} (no-valid, streaming QuantileDMatrix, device={device})', flush=True)
+        use_es = bool(early_stop_on_test and early_stopping_rounds and int(early_stopping_rounds) > 0)
+        print(
+            f'global training rows {counts} (no-valid, streaming QuantileDMatrix, device={device}, '
+            f'early_stop_on_test={use_es}, es_rounds={early_stopping_rounds})',
+            flush=True,
+        )
         it = _ParquetTrainIter(files, domains, mean_weight, splits=('train', 'validation'))
-        dtrain = xgb.QuantileDMatrix(it, enable_categorical=True)
+        dtrain = xgb.QuantileDMatrix(it, max_bin=256, enable_categorical=True)
         gc.collect()
         constraints = tuple(
             -1 if f in MONOTONE_SPEED_FEATURES else (1 if f in MONOTONE_INCIDENT_FEATURES else 0)
@@ -184,15 +199,36 @@ def run(root, rounds, max_depth=4, features_dir=None, use_validation=True, refer
             'seed': 42,
             'nthread': nthread,
         }
-        bst = xgb.train(params, dtrain, num_boost_round=int(rounds), verbose_eval=False)
+        history = {}
+        if use_es:
+            _, n_valid, valid_mean_w = _scan_train_stats(files, splits=('test',))
+            counts['validation'] = n_valid
+            it_valid = _ParquetTrainIter(files, domains, valid_mean_w, splits=('test',))
+            dvalid = xgb.QuantileDMatrix(it_valid, ref=dtrain, max_bin=256, enable_categorical=True)
+            gc.collect()
+            bst = xgb.train(
+                params,
+                dtrain,
+                num_boost_round=int(rounds),
+                evals=[(dvalid, 'valid_test')],
+                early_stopping_rounds=int(early_stopping_rounds),
+                evals_result=history,
+                verbose_eval=100,
+            )
+            del dvalid, it_valid
+            gc.collect()
+            best = int(getattr(bst, 'best_iteration', int(bst.num_boosted_rounds()) - 1))
+            val_curve = history.get('valid_test', {}).get('mae', [])
+            best_score = float(val_curve[best]) if 0 <= best < len(val_curve) else float(getattr(bst, 'best_score', 0.0))
+        else:
+            bst = xgb.train(params, dtrain, num_boost_round=int(rounds), verbose_eval=False)
+            best = int(bst.num_boosted_rounds()) - 1
+            best_score = None
         bst.set_param({'device': 'cpu', 'nthread': nthread})
         del dtrain, it
         gc.collect()
         model = xgb.XGBRegressor(n_estimators=int(rounds), max_depth=int(max_depth), tree_method='hist', enable_categorical=True, n_jobs=nthread)
         model._Booster = bst
-        history = {}
-        best = int(bst.num_boosted_rounds()) - 1
-        best_score = None
     if best_score is not None:
         model.get_booster().set_attr(best_iteration=str(best), best_score=str(best_score))
     else:
@@ -299,6 +335,8 @@ def run(root, rounds, max_depth=4, features_dir=None, use_validation=True, refer
     model.save_model(root/'model.json')
     metadata = dict(schema='causal-eta.v1', features=FEATURES, category_domains=domains,
                     hashes={'model': digest(root/'model.json')}, best_iteration=best, trained_rounds=rounds,
+                    early_stopped_on_test=bool(not use_validation and early_stop_on_test and early_stopping_rounds),
+                    early_stopping_rounds=early_stopping_rounds,
                     training_history=history, provenance=json.loads((root/'feature_inputs.json').read_text()),
                     training_code_sha256=digest(Path(__file__)), evaluation=evaluation,
                     feature_files={str(path): digest(path) for path in files})
@@ -326,6 +364,8 @@ if __name__ == '__main__':
     parser.add_argument('--no-valid', action='store_true')
     parser.add_argument('--reference-model', type=Path, default=None)
     parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'])
+    parser.add_argument('--early-stop-on-test', action='store_true')
+    parser.add_argument('--early-stopping-rounds', type=int, default=None)
     args = parser.parse_args()
     run(
         args.root,
@@ -335,4 +375,6 @@ if __name__ == '__main__':
         use_validation=not args.no_valid,
         reference_model=args.reference_model,
         device=args.device,
+        early_stopping_rounds=args.early_stopping_rounds,
+        early_stop_on_test=args.early_stop_on_test,
     )

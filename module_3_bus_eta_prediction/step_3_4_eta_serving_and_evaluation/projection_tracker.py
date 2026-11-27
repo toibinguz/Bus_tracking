@@ -62,7 +62,7 @@ class RouteProjectionTracker:
                 return cached[2]
             if cached and epoch == cached[0]:
                 return vehicle.model_copy(update=cached[1])
-            matcher = self._matchers.setdefault(key, RouteHMM(shape))
+            matcher = self._matchers.setdefault(key, RouteHMM(shape, allow_terminal_wrap=False))
             old_resets = matcher.resets
             match = matcher.update(epoch, vehicle.lat, vehicle.lng, int(epoch * 1000))
             if matcher.resets != old_resets:

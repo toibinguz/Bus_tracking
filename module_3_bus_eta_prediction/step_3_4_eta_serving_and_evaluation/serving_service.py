@@ -289,7 +289,7 @@ class BusMapServingService:
             self._da = DataAccess(db_path, timbus_db_path=timbus_db_path)
             self._runtime = ModelRuntime.load()
             if self._runtime.available and not self._runtime.validate_route_mapping(self._da.route_idx_by_code):
-                logger.error("Tắt causal_eta_v1 do route_id_idx SQLite lệch với manifest.json")
+                logger.error("Tắt causal_eta_v3 do route_id_idx SQLite lệch với manifest.json")
             self._incidents = IncidentsProvider()
             self.source_info = dict(mode='local', artifact_id=None, snapshot_id=None,
                                     baseline_routes=sorted(self._da.route_idx_by_code),

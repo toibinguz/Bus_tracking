@@ -128,7 +128,7 @@ def run_funnel() -> dict[str, Any]:
     data = DataAccess()
     runtime = ModelRuntime.load()
     if not runtime.available or runtime._residual_eta is None:
-        raise RuntimeError("ModelRuntime causal_eta_v1 not available")
+        raise RuntimeError("ModelRuntime causal_eta_v3 not available")
     residual_eta = runtime._residual_eta
 
     silver_root = ROOT / "data" / "lakehouse" / "silver" / "route_projected_telemetry"

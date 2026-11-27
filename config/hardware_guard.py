@@ -86,14 +86,14 @@ def set_process_below_normal_priority() -> None:
 def recommended_xgb_threads() -> int:
     """Cap XGBoost CPU threads to leave cores responsive for OS and background services."""
     phys = (psutil.cpu_count(logical=False) if psutil is not None else None) or os.cpu_count() or 4
-    return min(4, max(2, int(phys) // 2))
+    return min(6, max(2, int(phys * 0.75)))
 
 
 def recommend_workers(
     requested: int,
-    per_worker_ram_gb: float = 0.8,
-    min_free_ram_gb: float = 2.0,
-    max_cpu_frac: float = 0.6,
+    per_worker_ram_gb: float = 0.6,
+    min_free_ram_gb: float = 1.5,
+    max_cpu_frac: float = 0.75,
 ) -> int:
     """Compute a safe worker count bounded by physical cores and available RAM headroom."""
     req = max(1, int(requested))

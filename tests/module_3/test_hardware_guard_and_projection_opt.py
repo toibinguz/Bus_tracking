@@ -156,3 +156,116 @@ def test_causal_features_speed_handles_missing_observation_epoch():
     )
     assert CausalFeatures.speed(fake_state, 180) is None
 
+
+def test_route_hmm_blocks_cumulative_backward_drift_at_5s_heartbeat():
+    pts = [(0, 21.0000, 105.8000, 0.0), (1, 21.0000, 105.8200, 2079.8)]
+    sh = ShapeProjectionModel.build(pts)
+    hmm = RouteHMM(sh, allow_terminal_wrap=False, backward_window_sec=60.0)
+
+    def lat_lng(s_m):
+        return 21.0000, 105.8000 + s_m / sh.kx
+
+    m0 = hmm.update(1000.0, *lat_lng(1000.0), 0)
+    assert m0 is not None and abs(m0.s - 1000.0) <= 1.0
+    # Bước 1 lùi -15m (hợp lệ trong ngưỡng 20m)
+    m1 = hmm.update(1005.0, *lat_lng(985.0), 1)
+    assert m1 is not None
+    # Bước 2 lùi thêm -15m thành tổng -30m < 1000 - 20 = 980m trong < 60s -> phải bị chặn
+    m2 = hmm.update(1010.0, *lat_lng(970.0), 2)
+    assert m2 is None and hmm.reason == "no_feasible_transition"
+
+
+def test_route_hmm_hysteresis_prevents_marginal_backward_beam_switch():
+    # Hai đoạn song song lệch nhau 12m (cross_track nhỏ) tạo hairpin/overlapping s
+    pts = [
+        (0, 21.00000, 105.80000, 0.0),
+        (1, 21.00000, 105.81500, 1560.0),
+        (2, 21.00012, 105.81500, 1573.3),
+        (3, 21.00012, 105.80000, 3133.3),
+    ]
+    sh = ShapeProjectionModel.build(pts)
+    hmm = RouteHMM(sh, allow_terminal_wrap=False, backward_switch_margin=2.0)
+
+    # Khởi tạo tại s ~ 2600m (trên nhánh trên, cách nhánh dưới ~13m)
+    m0 = hmm.update(1000.0, 21.00011, 105.8051, 0)
+    assert m0 is not None and m0.s > 2000.0
+    # Ping tiếp theo tiến nhẹ 20m trên nhánh trên nhưng tọa độ hơi nghiêng về nhánh dưới
+    m1 = hmm.update(1020.0, 21.00004, 105.8049, 1)
+    assert m1 is not None
+    # Dù nhánh dưới có cross_track nhỏ hơn chút (~4m vs ~8m), chênh score < 2.0 nên không nhảy lùi về ~500m
+    assert m1.s >= m0.s - 20.0
+
+
+def test_route_hmm_serving_disables_terminal_wrap():
+    pts = [
+        (0, 21.00000, 105.80000, 0.0),
+        (1, 21.00000, 105.81000, 1040.0),
+        (2, 21.00000, 105.80020, 2060.0),
+    ]
+    sh = ShapeProjectionModel.build(pts)
+    hmm_serving = RouteHMM(sh, allow_terminal_wrap=False)
+    m0 = hmm_serving.update(1000.0, 21.00000, 105.80050, 0)  # gần đầu hoặc cuối (~2000m / ~50m)
+    assert m0 is not None
+    # Ép trạng thái ở gần cuối tuyến ~1900m rồi nhảy sang đầu tuyến ~100m
+    hmm_serving.update(1010.0, 21.00000, 105.8020, 1)
+    hmm2 = RouteHMM(sh, allow_terminal_wrap=False)
+    assert hmm2.update(1000.0, 21.00000, 105.8095, 0) is not None  # s ~ 988
+    assert hmm2.update(1040.0, 21.00000, 105.8015, 1) is not None  # s ~ 1924 (gần total_len 2060)
+    # Điểm tiếp ở s ~ 50m (cùng tọa độ gần bến): không được terminal_wrap về s <= 800m
+    wrapped_attempt = hmm2.update(1060.0, 21.00000, 105.8005, 2)
+    if wrapped_attempt is not None:
+        assert hmm2.reason != "terminal_reset"
+
+
+def test_native_bridge_projection_and_baseline_match_python():
+    from module_1_data_ingestion_and_preprocessing.step_1_4_frenet_spatial_projection.native.native_bridge import (
+        build_route_baseline_native,
+        is_native_available,
+        project_route_pings_native,
+    )
+
+    assert is_native_available() is True
+    shape_go = [
+        (0, 21.0000, 105.8000, 0.0),
+        (1, 21.0000, 105.8050, 520.0),
+        (2, 21.0000, 105.8100, 1040.0),
+    ]
+    pings = [
+        (10, 101, "29B001", "2026-10-15 08:00:00", 1792026000.0, 0, 21.0000, 105.8010, None),
+        (11, 101, "29B001", "2026-10-15 08:00:30", 1792026030.0, 0, 21.0000, 105.8040, None),
+        (12, 101, "29B001", "2026-10-15 08:01:00", 1792026060.0, 0, 21.0000, 105.8070, None),
+        (13, 101, "29B001", "2026-10-15 08:01:30", 1792026090.0, 0, 21.0000, 105.8095, None),
+    ]
+    native_recs = project_route_pings_native(1, "01", pings, {"go": shape_go, "re": []}, {})
+    assert native_recs is not None and len(native_recs) == 4
+    events = [
+        ProjectableEvent(f"legacy:{p[0]}", p[0], 1, "01", p[1], p[2], p[3], p[4], "go", p[8], p[6], p[7])
+        for p in pings
+    ]
+    py_events, _ = project_route_events(events, {"go": shape_go, "re": []}, {})
+    assert len(py_events) == 4
+    for nr, pe in zip(native_recs, py_events):
+        assert nr[0] == pe.legacy_ping_id
+        assert nr[7] == pe.direction
+        assert abs(nr[10] - pe.s_bus_m) < 1e-9
+        assert abs(nr[11] - pe.cross_track_m) < 1e-9
+        assert nr[12] == pe.derived_speed_kmh
+
+    st_full = [
+        (0, 100, "Origin", 0.0),
+        (1, 101, "Stop A", 200.0),
+        (2, 102, "Stop B", 700.0),
+        (3, 103, "Dest", 1040.0),
+    ]
+    veh_ids = np.array([101] * 6, dtype=np.int32)
+    dir_ints = np.zeros(6, dtype=np.int32)
+    epochs = np.array([1792026000.0 + i * 25.0 for i in range(6)], dtype=np.float64)
+    s_vals = np.array([50.0, 210.0, 400.0, 600.0, 760.0, 950.0], dtype=np.float64)
+    cells = build_route_baseline_native(
+        1040.0, st_full, 0.0, [], veh_ids, dir_ints, epochs, s_vals, fit_end_date="2026-10-17", train_end_date="2026-10-31"
+    )
+    assert cells is not None and len(cells) == 51
+    assert any(c["sample_count"] == 1 and c["quality_tier"] == 2 and c["tt_p50_sec"] > 0 for c in cells)
+
+
+
