@@ -1,7 +1,0 @@
-{
-  "status": "refused_before_publication",
-  "reason": "whole-vehicle event cap exceeded",
-  "error": "vehicle history exceeds configured event limit: 2/231963",
-  "log_sha256": "412d48fcdc851d69f40a43c27f558872564cd9c445cef6fca979f9ed9a88a451",
-  "resolution": "split only at gaps above canonical stale threshold; exact session parity tested"
-}
