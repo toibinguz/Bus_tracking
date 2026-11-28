@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import gc
 import json
 import sqlite3
 import sys
@@ -15,9 +14,6 @@ from itertools import groupby
 from pathlib import Path
 from urllib.parse import urlparse
 
-import numpy as np
-import pandas as pd
-import pyarrow as pa
 import pyarrow.parquet as pq
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -29,12 +25,7 @@ from config.hardware_guard import (
     set_process_below_normal_priority,
 )
 from config.system_config import DEFAULT_DB_PATH, TZ_HANOI
-from core_cpp.native_bridge import (
-    extract_route_causal_features_native,
-    is_native_available,
-)
 from modules.eta.features.causal_eta import (
-    FEATURES,
     MAX_POSITION_AGE,
     CausalFeatures,
     Observation,
@@ -185,189 +176,42 @@ def replay_silver(replay, partitions, baseline_end, cadence, incident_timeline=N
             on_day_complete(replay, last_time)
 
 
-def _checkpoint_schema():
-    fields = [pa.field(f, pa.float32()) for f in FEATURES]
-    fields.extend([
-        pa.field('route', pa.string()),
-        pa.field('vehicle', pa.string()),
-        pa.field('journey', pa.int64()),
-        pa.field('target', pa.int64()),
-        pa.field('split', pa.string()),
-        pa.field('as_of', pa.float64()),
-        pa.field('eta_seconds', pa.float64()),
-        pa.field('bracket_before', pa.float64()),
-        pa.field('bracket_after', pa.float64()),
-        pa.field('crossing_epoch', pa.float64()),
-        pa.field('history_seconds', pa.float64()),
-    ])
-    return pa.schema(fields)
-
-
 def _export_single_route_checkpoint(task):
-    """Replay 1 tuyến và flush Parquet từng ngày (ưu tiên nhân C++17 native nếu khả dụng)."""
+    from uuid import uuid4
+    from modules.lakehouse.hdfs.hf_bronze import atomic_write, encoded
+    from modules.lakehouse.local_adapter import part_rows, write_feature_part
+    from modules.lakehouse.pipeline.features import features_with_lookup
+
     set_process_below_normal_priority()
-    (route_code, silver_root, incidents_root, db_path,
-     first_day_iso, last_day_iso, validation, test, fit_day, cadence, out_dir_str) = task
-    out_dir = Path(out_dir_str)
-    pq_path = out_dir / f'{route_code}.parquet'
-    meta_path = out_dir / f'{route_code}.json'
-    if pq_path.exists() and meta_path.exists():
-        return route_code, 0, 'skipped'
-    first_day = date.fromisoformat(first_day_iso)
-    last_day = date.fromisoformat(last_day_iso)
-    partitions = select_partitions(Path(silver_root), first_day, last_day, [route_code])
+    (route, silver_root, incidents_root, db_path, first_day, last_day,
+     validation, test, fit_day, cadence, output) = task
+    path = Path(output) / f"{route}.parquet"
+    metadata = path.with_suffix(".json")
+    if path.exists() and metadata.exists():
+        return route, 0, "skipped"
+    partitions = select_partitions(Path(silver_root), date.fromisoformat(first_day), date.fromisoformat(last_day), [route])
     data = DataAccess(db_path=str(db_path))
-    inc_root = Path(incidents_root) if incidents_root else (Path(silver_root).parent / 'fact_route_tomtom_incidents')
-    inc_timeline = load_incident_timeline(inc_root, data, route_codes=[route_code])
-    schema = _checkpoint_schema()
-    tmp_pq = out_dir / f'.{route_code}.parquet.tmp'
-
-    route_id = data.resolve_route_id(route_code)
-    route_idx = data.get_route_idx(route_id) if route_id is not None else None
-    if is_native_available() and route_id is not None and route_idx is not None:
-        cutoff_ep = baseline_cutoff_epoch(fit_day)
-        split_names = ('train', 'validation', 'test')
-        obs_all = [
-            (float(obs.epoch), int(obs.direction), obs.vehicle, float(obs.s_bus_m), obs.lat, obs.lng)
-            for day in sorted(partitions)
-            for obs in silver_rows(partitions[day])
-            if obs.s_bus_m is not None
-        ]
-        obs_all.sort(key=lambda item: (item[0], item[1], item[2], item[4], item[5]))
-
-        corridors_by_dir = {d: data.get_corridor_stations(route_id, ('go', 're')[d]) for d in (0, 1)}
-        route_len_by_dir, bspd_by_dir, spac_by_dir = {}, {}, {}
-        for d in (0, 1):
-            bspd, spac, rlen = data.get_route_profile(route_id, ('go', 're')[d])
-            bspd_by_dir[d] = bspd
-            spac_by_dir[d] = spac
-            route_len_by_dir[d] = rlen
-        inc_by_dir = {
-            d: [(iv.s_min_m, iv.s_max_m, iv.delay_seconds, iv.crawled_epoch, iv.expires_epoch)
-                for iv in inc_timeline.get((route_id, d), ())]
-            for d in (0, 1)
-        }
-        veh_names = sorted({item[2] for item in obs_all})
-        vmap = {name: i for i, name in enumerate(veh_names)}
-        res = extract_route_causal_features_native(
-            route_id_idx=route_idx,
-            route_len_by_dir=route_len_by_dir,
-            route_base_speed_by_dir=bspd_by_dir,
-            route_spacing_by_dir=spac_by_dir,
-            corridors_by_dir=corridors_by_dir,
-            baseline_lookup=data,
-            route_id_for_lookup=route_id,
-            incidents_by_dir=inc_by_dir,
-            n_vehicles=len(veh_names),
-            obs_epoch=np.array([item[0] for item in obs_all], dtype=np.float64),
-            obs_dir=np.array([item[1] for item in obs_all], dtype=np.int32),
-            obs_veh_idx=np.array([vmap[item[2]] for item in obs_all], dtype=np.int32),
-            obs_s_bus=np.array([item[3] for item in obs_all], dtype=np.float64),
-            baseline_cutoff_epoch=cutoff_ep,
-            validation_epoch=validation,
-            test_epoch=test,
-            cadence_sec=cadence,
-        )
-        if res is not None:
-            arrs, combined_counts = res
-            total_rows = len(arrs['eta_seconds'])
-            writer = pq.ParquetWriter(tmp_pq, schema, compression='snappy')
-            try:
-                if total_rows > 0:
-                    feats = arrs['features']
-                    arrays = {f: pa.array(feats[:, idx], type=pa.float32()) for idx, f in enumerate(FEATURES)}
-                    arrays['route'] = pa.array([str(route_code)] * total_rows, type=pa.string())
-                    arrays['vehicle'] = pa.array([veh_names[int(vi)] for vi in arrs['veh_idx']], type=pa.string())
-                    arrays['journey'] = pa.array(arrs['journey'], type=pa.int64())
-                    arrays['target'] = pa.array(arrs['target'], type=pa.int64())
-                    arrays['split'] = pa.array([split_names[int(si)] for si in arrs['split']], type=pa.string())
-                    arrays['as_of'] = pa.array(arrs['as_of'], type=pa.float64())
-                    arrays['eta_seconds'] = pa.array(arrs['eta_seconds'], type=pa.float64())
-                    arrays['bracket_before'] = pa.array(arrs['bracket_before'], type=pa.float64())
-                    arrays['bracket_after'] = pa.array(arrs['bracket_after'], type=pa.float64())
-                    arrays['crossing_epoch'] = pa.array(arrs['crossing_epoch'], type=pa.float64())
-                    arrays['history_seconds'] = pa.array(arrs['history_seconds'], type=pa.float64())
-                    writer.write_table(pa.table(arrays, schema=schema))
-            finally:
-                writer.close()
-
-            tmp_pq.replace(pq_path)
-            meta_path.write_text(json.dumps({
-                'route_code': route_code,
-                'rows': total_rows,
-                'counts': dict(combined_counts),
-                'engine': 'cpp_native',
-            }, indent=2), encoding='utf-8')
-            del obs_all, inc_timeline, partitions
-            gc.collect()
-            return route_code, total_rows, 'written'
-
-    replay = TrainingReplay(CausalFeatures(data))
-    writer = pq.ParquetWriter(tmp_pq, schema, compression='snappy')
-    total_rows = 0
-
-    def _flush_ready(rp, cutoff_epoch):
-        nonlocal total_rows
-        if cutoff_epoch is None:
-            ready = rp.examples
-            rp.examples = []
-        else:
-            ready = [r for r in rp.examples if r['as_of'] < cutoff_epoch]
-            rp.examples = [r for r in rp.examples if r['as_of'] >= cutoff_epoch]
-        if not ready:
-            return
-        tail = rp.examples
-        rp.examples = ready
-        records = []
-        for row in rp.labeled(validation, test):
-            rec = {f: row['features'][f] for f in FEATURES}
-            rec['route'] = str(route_code)
-            rec['vehicle'] = str(row['vehicle'])
-            rec['journey'] = int(row['journey'])
-            rec['target'] = int(row['target'])
-            rec['split'] = str(row['split'])
-            rec['as_of'] = float(row['as_of'])
-            rec['eta_seconds'] = float(row['eta_seconds'])
-            lbl = row['label']
-            rec['bracket_before'] = float(lbl['before_epoch'])
-            rec['bracket_after'] = float(lbl['after_epoch'])
-            rec['crossing_epoch'] = float(lbl['epoch'])
-            ego5 = row['speeds'].get('ego5')
-            rec['history_seconds'] = float(ego5['seconds']) if ego5 else 0.0
-            records.append(rec)
-        rp.examples = tail
-        if records:
-            frame = pd.DataFrame(records)
-            for f in FEATURES:
-                frame[f] = frame[f].astype('float32')
-            table = pa.Table.from_pandas(frame, schema=schema, preserve_index=False)
-            writer.write_table(table)
-            total_rows += len(frame)
-            del frame, table
-        del ready, records
-
+    rid = data.resolve_route_id(route)
+    idx = data.get_route_idx(rid)
+    if idx is None:
+        raise ValueError("route missing from baseline: " + route)
+    inc_root = Path(incidents_root) if incidents_root else Path(silver_root).parent / "fact_route_tomtom_incidents"
+    timeline = load_incident_timeline(inc_root, data, route_codes=[route])
+    intervals = {d: [(v.s_min_m, v.s_max_m, v.delay_seconds, v.crawled_epoch, v.expires_epoch)
+                     for v in timeline.get((rid, d), ())] for d in (0, 1)}
+    engines = set()
+    rows = features_with_lookup(route, rid, idx, data,
+        part_rows(p for day in sorted(partitions) for p in partitions[day]), intervals,
+        fit_day, validation, test, cadence, engines.add)
+    temporary = path.with_name(f".{route}.{uuid4().hex}.tmp")
     try:
-        replay_silver(
-            replay,
-            partitions,
-            baseline_cutoff_epoch(fit_day),
-            cadence,
-            inc_timeline,
-            on_day_complete=lambda rp, last_t: _flush_ready(rp, last_t - 7200.0),
-        )
-        _flush_ready(replay, None)
+        counts = write_feature_part(temporary, rows)
+        temporary.replace(path)
+        total = sum(counts.values())
+        atomic_write(metadata, encoded(dict(route_code=route, rows=total, counts=dict(counts), engines=sorted(engines))))
+        return route, total, "written"
     finally:
-        writer.close()
-
-    tmp_pq.replace(pq_path)
-    meta_path.write_text(json.dumps({
-        'route_code': route_code,
-        'rows': total_rows,
-        'counts': dict(replay.counts),
-    }, indent=2), encoding='utf-8')
-    del replay, inc_timeline, partitions
-    gc.collect()
-    return route_code, total_rows, 'written'
+        temporary.unlink(missing_ok=True)
 
 
 def _hdfs_posix(uri: str) -> str:
@@ -590,7 +434,13 @@ def run(args):
             _run_with_silver(args, silver_root, inc_root, db_path, first_day, last_day, validation, test, fit_day)
     else:
         inc_root = Path(args.incidents) if args.incidents is not None else None
-        _run_with_silver(args, Path(args.silver), inc_root, db_path, first_day, last_day, validation, test, fit_day)
+        silver_root = Path(args.silver)
+        pointer = silver_root / "manifest.json"
+        if not pointer.exists() and silver_root.name == "route_projected_telemetry":
+            pointer = silver_root.parent / "manifest.json"
+        if pointer.is_file():
+            silver_root = Path(json.loads(pointer.read_text(encoding="utf-8"))["silver_path"])
+        _run_with_silver(args, silver_root, inc_root, db_path, first_day, last_day, validation, test, fit_day)
 
 
 def build_parser():

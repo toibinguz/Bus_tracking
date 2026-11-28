@@ -394,13 +394,13 @@ def ingest_stations(conn: sqlite3.Connection, shapes_cache: Dict[Tuple[int, str]
     print(f"Station Snap-to-Route Metrics: Median = {med_snap:.1f}m, P90 = {p90_snap:.1f}m")
 
 
-def main():
+def main(db_path=None):
     print("=" * 80)
     print("INGESTING BUSMAP NATIVE CANONICAL GROUND TRUTH")
     print("=" * 80)
     t0 = time.time()
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(db_path or DB_PATH)
     init_canonical_schema(conn)
 
     shapes_cache = ingest_routes_and_shapes(conn)

@@ -94,6 +94,10 @@ def _read_gold_from_local(gold_dir: Path, fit_end_date: str):
 
     if not gold_dir.exists():
         raise FileNotFoundError(f"Gold Parquet directory not found: {gold_dir}")
+    pointer = gold_dir / "manifest.json"
+    if pointer.is_file():
+        published = json.loads(pointer.read_text(encoding="utf-8"))
+        gold_dir = Path(published["gold_data_path"])
     dataset = ds.dataset(gold_dir, format="parquet")
     manifest_file = gold_dir.parent / "manifest.json"
     if manifest_file.is_file():
@@ -193,7 +197,7 @@ def sync_gold_to_serving_db(
                         str(manifest.get("fit_end_date") or fit_end_date),
                         str(manifest.get("train_end_date") or TRAIN_SPLIT_END_DATE),
                         str(manifest.get("test_start_date") or TEST_SPLIT_START_DATE),
-                        "hdfs" if snapshot_id else "local", snapshot_id, manifest.get("build_id"),
+                        "hdfs" if snapshot_id else "local", snapshot_id or manifest.get("snapshot_id"), manifest.get("build_id"),
                     ),
                 )
 

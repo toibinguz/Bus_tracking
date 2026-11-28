@@ -1,202 +1,38 @@
-"""Pure Python + NumPy PySpark helpers for HDFS Silver -> Gold Baseline."""
-
 from __future__ import annotations
 
-from collections import defaultdict
-from itertools import groupby
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
-
-import numpy as np
-
-from config.system_config import TRAIN_SPLIT_END_DATE
-from core_cpp.native_bridge import (
-    build_route_baseline_native,
-    is_native_available,
-)
-from modules.eta.baseline.baseline_core import (
+from modules.lakehouse.pipeline.baseline import (
     GOLD_BASELINE_COLUMNS,
-    SampleTuple,
-    StationTuple,
-    build_route_baseline_rows,
-    extract_fit_segment_samples,
+    build_reference_lookup,
+    compute_route_baseline,
+    aggregate_route_baseline,
+    extract_partition_samples,
 )
 
-__all__ = [
-    "GOLD_BASELINE_COLUMNS",
-    "aggregate_route_baseline",
-    "build_reference_lookup",
-    "build_route_baseline_spark",
-    "extract_partition_samples",
-]
+build_route_baseline_spark = compute_route_baseline
 
 
-def build_reference_lookup(
-    reference: Mapping[str, Any],
-) -> Tuple[Dict[Tuple[str, str], float], Dict[Tuple[str, str], List[StationTuple]]]:
-    """Build (shape_len_map, stations_map) keyed by (route_code, direction) from reference.json."""
-    routes: Dict[str, str] = {str(k): str(v) for k, v in reference["routes"].items()}
-    shape_len_map: Dict[Tuple[str, str], float] = {}
-    for route_id_str, dirs in reference["shapes"].items():
-        r_code = routes.get(str(route_id_str))
-        if not r_code:
-            continue
-        for direction, points in dirs.items():
-            shape_len_map[(r_code, str(direction))] = max(
-                (float(pt[3]) for pt in points), default=0.0
-            )
-
-    raw_stations: Dict[Tuple[str, str], List[StationTuple]] = defaultdict(list)
-    for st in reference["stations"]:
-        r_code = str(st.get("route_code") or routes.get(str(st["route_id"]), ""))
-        if not r_code:
-            continue
-        raw_stations[(r_code, str(st["direction"]))].append(
-            (
-                int(st["station_order"]),
-                int(st["station_id"]),
-                str(st["station_name"]),
-                float(st["cum_distance_m"]),
-            )
-        )
-    stations_map = {
-        key: sorted(items, key=lambda item: item[0])
-        for key, items in raw_stations.items()
-    }
-    return shape_len_map, stations_map
-
-
-def extract_partition_samples(
-    sorted_rows: Iterable[Tuple[Tuple[str, str, int, float], Mapping[str, Any]]],
-    shape_len_map: Mapping[Tuple[str, str], float],
-    stations_map: Mapping[Tuple[str, str], List[StationTuple]],
-    fit_end_date: str,
-) -> Iterable[Tuple[str, Tuple[Any, ...]]]:
-    """Run SSOT trip segmentation & bracketed crossing on sorted (route_code, direction, vehicle_id) groups."""
-    for (route_code, direction, _vehicle_id), group in groupby(
-        sorted_rows, key=lambda pair: pair[0][:3]
-    ):
-        full_st_list = stations_map.get((route_code, direction), [])
-        if not full_st_list:
-            continue
-        shape_len_m = float(shape_len_map.get((route_code, direction), 0.0))
-        pings_tuples = [
-            (
-                str(row["dt"]),
-                float(row["device_epoch_s"]),
-                float(row["s_bus_m"]),
-                row.get("derived_speed_kmh"),
-            )
-            for _, row in group
-        ]
-        samples = extract_fit_segment_samples(
-            pings_tuples, shape_len_m, full_st_list, fit_end_date
-        )
-        for ord_a, ord_b, day_type, hr_slot, tt, seg_dist in samples:
-            yield (
-                route_code,
-                (direction, ord_a, ord_b, day_type, hr_slot, tt, seg_dist),
-            )
-
-
-def aggregate_route_baseline(
-    route_code: str,
-    sample_iter: Iterable[Optional[Tuple[Any, ...]]],
-    stations_map: Mapping[Tuple[str, str], List[StationTuple]],
-) -> List[Tuple[Any, ...]]:
-    """Group executor samples by direction and emit 4-tier Gold baseline matrix rows."""
-    samples_by_dir: Dict[str, List[SampleTuple]] = defaultdict(list)
-    for item in sample_iter:
-        if item is None:
-            continue
-        d_str, ord_a, ord_b, day_type, hr_slot, tt, seg_dist = item
-        samples_by_dir[str(d_str)].append(
-            (int(ord_a), int(ord_b), int(day_type), int(hr_slot), float(tt), float(seg_dist))
-        )
-    stations_by_dir = {
-        d_str: stations_map.get((route_code, d_str), [])
-        for d_str in ("go", "re")
-    }
-    rows, _ = build_route_baseline_rows(route_code, stations_by_dir, samples_by_dir)
-    return rows
-
-
-def build_route_baseline_spark(
-    route_code: str,
-    rows_iter: Iterable[Tuple[int, str, float, float, str]],
-    shape_len_map: Mapping[Tuple[str, str], float],
-    stations_map: Mapping[Tuple[str, str], List[StationTuple]],
-    fit_end_date: str,
-) -> List[Tuple[Any, ...]]:
-    """Compute Gold baseline rows for 1 route using C++17 native kernel with Python SSOT fallback."""
-    raw_rows = list(rows_iter)
-    st_go = stations_map.get((route_code, "go"), [])
-    st_re = stations_map.get((route_code, "re"), [])
-    if is_native_available() and raw_rows:
-        raw_rows.sort(key=lambda x: (x[0], 0 if x[1] == "go" else 1, x[2]))
-        v_ids = np.array([r[0] for r in raw_rows], dtype=np.int32)
-        d_ints = np.array([0 if r[1] == "go" else 1 for r in raw_rows], dtype=np.int32)
-        epochs = np.array([r[2] for r in raw_rows], dtype=np.float64)
-        s_vals = np.array([r[3] for r in raw_rows], dtype=np.float64)
-        cells = build_route_baseline_native(
-            float(shape_len_map.get((route_code, "go"), 0.0)),
-            st_go,
-            float(shape_len_map.get((route_code, "re"), 0.0)),
-            st_re,
-            v_ids,
-            d_ints,
-            epochs,
-            s_vals,
-            fit_end_date=fit_end_date,
-            train_end_date=TRAIN_SPLIT_END_DATE,
-        )
-        if cells is not None:
-            return [
-                (
-                    route_code,
-                    c["direction"],
-                    c["from_station_order"],
-                    c["to_station_order"],
-                    c["from_station_id"],
-                    c["to_station_id"],
-                    c["from_station_name"],
-                    c["to_station_name"],
-                    c["segment_length_m"],
-                    c["day_type"],
-                    c["hour_slot"],
-                    c["sample_count"],
-                    c["quality_tier"],
-                    c["tt_p10_sec"],
-                    c["tt_p50_sec"],
-                    c["tt_p90_sec"],
-                    c["tt_mean_sec"],
-                    c["tt_std_sec"],
-                )
-                for c in cells
-            ]
-
-    samples_by_dir: Dict[str, List[SampleTuple]] = defaultdict(list)
-    by_vd: Dict[Tuple[int, str], List[Tuple[str, float, float, None]]] = defaultdict(list)
-    for vid, d_str, ep, s_m, dt_str in raw_rows:
-        by_vd[(int(vid), str(d_str))].append((str(dt_str), float(ep), float(s_m), None))
-    for (_vid, d_str), pings in by_vd.items():
-        pings.sort(key=lambda p: p[1])
-        full_st = stations_map.get((route_code, d_str), [])
-        if not full_st:
-            continue
-        samples_by_dir[d_str].extend(
-            extract_fit_segment_samples(
-                pings, float(shape_len_map.get((route_code, d_str), 0.0)), full_st, fit_end_date
-            )
-        )
-    rows, _ = build_route_baseline_rows(
-        route_code, {"go": st_go, "re": st_re}, samples_by_dir
-    )
-    return rows
+from modules.lakehouse.pipeline.spec import (
+    FEATURE_START, FORECAST_SECONDS, MAX_SESSION_EVENTS, logic_version, run_pipeline, stage_manifest, validate_counts,
+)
+from modules.lakehouse.hdfs.spark_adapter import SparkAdapter, cli_spec
+from config.system_config import BASELINE_FIT_END_DATE, TEST_SPLIT_START_DATE, TEST_SPLIT_END_DATE
 
 
 def main():
-    """PySpark entrypoint: HDFS Silver Parquet -> HDFS Gold Baseline Matrix."""
     import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--snapshot", required=True, help="Published 64-hex Silver snapshot ID")
+    parser.add_argument("--fit-end-date", default=BASELINE_FIT_END_DATE)
+    parser.add_argument("--routes", nargs="+", help="Optional subset of route_code values")
+    parser.add_argument("--partitions", type=int, default=16)
+    parser.add_argument("--all-routes", action="store_true")
+    args = parser.parse_args()
+    stages = ("baseline",)
+    return run_pipeline(cli_spec(args, stages), SparkAdapter(args))
+
+
+def execute(spec, args, source):
+    """PySpark entrypoint: HDFS Silver Parquet -> HDFS Gold Baseline Matrix."""
     from datetime import date, datetime, timezone
     import json
     from pathlib import Path
@@ -205,7 +41,8 @@ def main():
     from uuid import uuid4
 
     from pyspark.sql import SparkSession, functions as F
-    from pyspark.sql.types import DoubleType, IntegerType, StringType, StructField, StructType
+    from modules.lakehouse.hdfs.spark_schema import spark_schema
+    from modules.lakehouse.pipeline.schema import BASELINE
 
     root = Path(__file__).resolve().parents[3]
     if str(root) not in sys.path:
@@ -219,20 +56,14 @@ def main():
     publications = hdfs_root + "/_published/history_snapshots"
     gold_root_prefix = hdfs_root + "/gold/agg_segment_travel_times"
 
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--snapshot", required=True, help="Published 64-hex Silver snapshot ID")
-    parser.add_argument("--fit-end-date", default=BASELINE_FIT_END_DATE)
-    parser.add_argument("--routes", nargs="+", help="Optional subset of route_code values")
-    parser.add_argument("--partitions", type=int, default=16)
-    args = parser.parse_args()
 
     if len(args.snapshot) != 64 or any(c not in "0123456789abcdef" for c in args.snapshot):
-        parser.error("invalid snapshot ID")
+        raise ValueError("invalid snapshot ID")
     date.fromisoformat(args.fit_end_date)
     if args.fit_end_date > TRAIN_SPLIT_END_DATE:
-        parser.error("fit-end-date must not extend past TRAIN_SPLIT_END_DATE")
+        raise ValueError("fit-end-date must not extend past TRAIN_SPLIT_END_DATE")
     if args.partitions < 1:
-        parser.error("partitions must be positive")
+        raise ValueError("partitions must be positive")
 
     started = time.monotonic()
     spark = (
@@ -250,12 +81,6 @@ def main():
         return bytes(spark.read.format("binaryFile").load(path).first().content)
 
     try:
-        pub_path = f"{publications}/{args.snapshot}.json"
-        if not fs.exists(jpath(pub_path)):
-            raise ValueError("published snapshot not found: " + pub_path)
-        source = json.loads(read_bytes(pub_path))
-        if source.get("snapshot_id") != args.snapshot:
-            raise ValueError("snapshot ID mismatch in publication metadata")
         ref_raw = read_bytes(source["reference_path"])
         if digest(ref_raw) != source["reference_sha256"]:
             raise ValueError("reference content hash mismatch")
@@ -263,8 +88,8 @@ def main():
         shape_len_map, stations_map = build_reference_lookup(reference)
 
         silver_df = spark.read.parquet(source["silver_path"])
-        if args.routes:
-            silver_df = silver_df.filter(F.col("route_code").isin(args.routes))
+        if spec.routes is not None:
+            silver_df = silver_df.filter(F.col("route_code").isin(list(spec.routes)))
 
         active_routes = sorted(
             r.route_code
@@ -274,7 +99,7 @@ def main():
         if not active_routes:
             raise ValueError("no active routes in Silver selection")
 
-        fit_df = silver_df.filter(F.col("dt") <= args.fit_end_date).select(
+        fit_df = silver_df.filter(spec.includes_fit(F.col("dt"))).select(
             "route_code",
             "direction",
             "vehicle_id",
@@ -285,6 +110,7 @@ def main():
         )
 
         sc = spark.sparkContext
+        engines = {name: sc.accumulator(0) for name in ("cpp_native", "python")}
         bc_shapes = sc.broadcast(shape_len_map)
         bc_stations = sc.broadcast(stations_map)
         fit_end = args.fit_end_date
@@ -313,33 +139,12 @@ def main():
                     (x for x in pair[1] if x is not None),
                     bc_shapes.value,
                     bc_stations.value,
-                    fit_end,
+                    fit_end, lambda name: engines[name].add(1),
                 )
             )
         )
 
-        gold_schema = StructType(
-            [
-                StructField("route_code", StringType(), False),
-                StructField("direction", StringType(), False),
-                StructField("from_station_order", IntegerType(), False),
-                StructField("to_station_order", IntegerType(), False),
-                StructField("from_station_id", IntegerType(), False),
-                StructField("to_station_id", IntegerType(), False),
-                StructField("from_station_name", StringType(), True),
-                StructField("to_station_name", StringType(), True),
-                StructField("segment_length_m", DoubleType(), False),
-                StructField("day_type", IntegerType(), False),
-                StructField("hour_slot", IntegerType(), False),
-                StructField("sample_count", IntegerType(), False),
-                StructField("quality_tier", IntegerType(), False),
-                StructField("tt_p10_sec", DoubleType(), False),
-                StructField("tt_p50_sec", DoubleType(), False),
-                StructField("tt_p90_sec", DoubleType(), False),
-                StructField("tt_mean_sec", DoubleType(), False),
-                StructField("tt_std_sec", DoubleType(), False),
-            ]
-        )
+        gold_schema = spark_schema(BASELINE)
 
         gold_root = f"{gold_root_prefix}/snapshot={args.snapshot}"
         build_id = uuid4().hex
@@ -352,8 +157,7 @@ def main():
         tier_rows = written_df.groupBy("quality_tier").count().collect()
         tier_counts = {int(r["quality_tier"]): int(r["count"]) for r in tier_rows}
 
-        if sum(tier_counts.values()) != row_count or set(tier_counts).difference(range(4)):
-            raise ValueError("invalid tier counts in Gold baseline")
+        validate_counts(tier_counts, row_count, range(4))
 
         manifest = {
             "schema_version": "gold-baseline.v1",
@@ -370,8 +174,10 @@ def main():
             "elapsed_seconds": round(time.monotonic() - started, 3),
             "published_at": datetime.now(timezone.utc).isoformat(),
         }
+        manifest = stage_manifest("baseline", spec, [k for k, counter in engines.items() if counter.value], **manifest)
         publish_gold(spark, gold_root, build_id, encoded(manifest))
         print("GOLD_RESULT=" + json.dumps(manifest), flush=True)
+        return manifest
     finally:
         spark.stop()
 

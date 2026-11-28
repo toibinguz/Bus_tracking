@@ -1,6 +1,6 @@
 """Pinned HF raw batches, immutable HDFS objects and retryable receive ledger."""
 from datetime import datetime, timezone
-import hashlib
+from modules.lakehouse.pipeline.spec import batch_identity, digest, encoded
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -10,14 +10,6 @@ from uuid import uuid4
 
 RAW_ROOT = '/bus-eta/v1/bronze/hf_raw'
 LEDGER_ROOT = '/bus-eta/v1/_received/hf_batch'
-
-
-def encoded(value):
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
-
-
-def digest(content):
-    return hashlib.sha256(content).hexdigest()
 
 
 def atomic_write(path, content):
@@ -40,7 +32,7 @@ def descriptor(dataset, revision, path, content):
     datetime.strptime(parts[1], '%Y-%m-%d')
     identity = dict(dataset=dataset, path=path, content_sha256=digest(content))
     return dict(identity, schema_version='hf-batch.v1', revision=revision,
-                batch_id=digest(encoded(identity)), category=parts[2], bytes=len(content),
+                batch_id=batch_identity(**identity), category=parts[2], bytes=len(content),
                 hdfs_raw_path=f'{RAW_ROOT}/category={parts[2]}/sha256={digest(content)}/batch.jsonl')
 
 

@@ -377,7 +377,9 @@ class CausalFeatures:
                  speed3.kmh if speed3 else None, speed5.kmh if speed5 else None, *baseline,
                  profile_speed, spacing, lead_dist, follow_dist, count, ahead,
                  lead.kmh if lead else None, follow.kmh if follow else None, lead_ratio, *inc_features)
-        fields = dict(zip(FEATURES, items, strict=True))
+        if len(FEATURES) != len(items):
+            raise ValueError("feature count mismatch")
+        fields = dict(zip(FEATURES, items))
         speeds = {'ego3': speed3, 'ego5': speed5, 'lead3': lead, 'follow3': follow}
         return fields, state.journey, state.last, speeds
 
@@ -477,7 +479,9 @@ class CausalFeatures:
                      speed3_kmh, speed5_kmh, *baseline,
                      profile_speed, spacing, lead_dist, follow_dist, count, ahead,
                      lead_kmh, follow_kmh, lead_ratio, *inc_features)
-            fields = dict(zip(FEATURES, items, strict=True))
+            if len(FEATURES) != len(items):
+                raise ValueError("feature count mismatch")
+            fields = dict(zip(FEATURES, items))
             results.append((target_order, fields, state.journey, state.last, speeds))
         return results
 

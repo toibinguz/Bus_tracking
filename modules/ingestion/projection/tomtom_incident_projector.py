@@ -323,7 +323,7 @@ def project_incidents_to_route_facts(raw_records, route_shapes, route_stations):
         parsed_records.append((epoch, str(inc_id), delay, length_m, raw_mag, cat, str(ts), desc, coords))
 
     # Deterministic order guarantees identical geometry & episodes regardless of JSONL vs HDFS Parquet read order.
-    parsed_records.sort(key=lambda item: (item[0], item[1], item[2], item[3]))
+    parsed_records.sort(key=lambda item: (item[0], item[1], item[2], item[3], json.dumps(item[4:], sort_keys=True)))
 
     raw_by_incident = defaultdict(list)
     geom_by_incident = {}
