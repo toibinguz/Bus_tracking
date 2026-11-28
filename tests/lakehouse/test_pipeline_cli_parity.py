@@ -51,9 +51,12 @@ def sample(tmp_path_factory):
             with (raw / stamp[:10] / "bus" / "part.jsonl").open("ab") as f:
                 f.write(encoded(record) + b"\n")
         if rc == "02":
+            inc_pts = selected[8:18]
             incident = dict(incident_id="cross-midnight", timestamp="2026-10-21T23:59:55+07:00",
-                            coordinates=[[p[2], p[1]] for p in selected[2:15]],
-                            length_meters=1200, delay_seconds=200, magnitude_of_delay=2)
+                            geometry_type="LineString",
+                            coordinates=[[p[2], p[1]] for p in inc_pts],
+                            length_meters=round(inc_pts[-1][3] - inc_pts[0][3], 1),
+                            delay_seconds=200, magnitude_of_delay=2)
             (raw / "2026-10-21/incidents/capture.jsonl").write_bytes(encoded(incident) + b"\n")
     (raw / "2026-10-22/bus/retry.jsonl").write_bytes(encoded(records[0]) + b"\n{}\n")
     return root, raw, reference
@@ -191,3 +194,51 @@ def test_docker_pipeline_matches_local(sample, local):
         assert actual["engines"] == expected["engines"]
         assert actual["logic_version"] == expected["logic_version"]
         compare_rows(expected[path_key], get(actual[path_key], label), keys)
+
+
+def test_new_pipeline_features_match_canonical_lakehouse_route02():
+    from modules.ingestion.projection.tomtom_incident_projector import SILVER_INCIDENT_COLUMNS
+    from modules.lakehouse.local_adapter import part_rows
+    from modules.lakehouse.pipeline import features as pf, spec as pspec
+
+    root = Path(__file__).resolve().parents[2]
+    lake = root / "data" / "lakehouse"
+    db_path = root / "data" / "serving_bus_system.db"
+    orig_pq = lake / "gold" / "causal_features" / "features" / "02.parquet"
+    silver_parts = [
+        lake / "silver" / "route_projected_telemetry" / "route_code=02" / "dt=2026-11-12" / "part-2026-11-12.snappy.parquet",
+        lake / "silver" / "route_projected_telemetry" / "route_code=02" / "dt=2026-11-13" / "part-2026-11-13.snappy.parquet",
+    ]
+    if not orig_pq.is_file() or not db_path.is_file() or not all(p.is_file() for p in silver_parts):
+        pytest.skip("canonical real data/lakehouse + serving_bus_system.db not present")
+
+    ref = load_reference(db_path)
+    base_rows = list(part_rows(sorted((lake / "gold" / "agg_segment_travel_times").glob("*.parquet"))))
+    catalog = sorted({r["route_code"] for r in base_rows})
+    meta = pf.build_route_feature_metadata(ref, ["02"], base_rows, catalog)
+    _, start, end = pf.incident_window("2026-11-12", "2026-11-13")
+    by_dir = {0: [], 1: []}
+    for rec in part_rows(sorted((lake / "silver" / "fact_route_tomtom_incidents" / "route_code=02").glob("*.parquet"))):
+        rec["route_code"] = "02"
+        fact = tuple(rec[c] for c in SILVER_INCIDENT_COLUMNS)
+        for _, (d_int, iv) in pf.window_interval(fact, start, end):
+            by_dir[d_int].append(iv)
+
+    new_rows = list(pf.compute_route_features(
+        "02", part_rows(silver_parts), by_dir, meta, fit_end_date="2026-10-21",
+        validation_epoch=pspec.split_epoch("2026-11-13"), test_epoch=pspec.split_epoch("2026-11-13"), cadence_sec=120.0,
+    ))
+    cols = list(pf.GOLD_CAUSAL_FEATURE_COLUMNS)
+    eta_idx = cols.index("eta_seconds")
+    inc_idx = cols.index("inc_ahead_total_delay_sec")
+    key_idx = (cols.index("vehicle"), cols.index("target"), cols.index("as_of"), cols.index("direction_id"))
+    new_map = {tuple(r[k] for k in key_idx): r for r in new_rows}
+
+    orig_table = pq.ParquetFile(orig_pq).read()
+    orig_rows = [r for r in orig_table.to_pylist() if start <= r["as_of"] < end]
+    assert len(new_rows) == len(orig_rows) > 1000
+    assert sum(1 for r in new_rows if (r[inc_idx] or 0.0) > 0.0) == sum(1 for r in orig_rows if (r["inc_ahead_total_delay_sec"] or 0.0) > 0.0)
+    for o in orig_rows:
+        n = new_map[(o["vehicle"], o["target"], o["as_of"], o["direction_id"])]
+        assert n[eta_idx] == pytest.approx(o["eta_seconds"], abs=1e-6, rel=0)
+        assert n[inc_idx] == pytest.approx(o["inc_ahead_total_delay_sec"], abs=1e-6, rel=0)

@@ -16,7 +16,7 @@ import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 
-from config.hardware_guard import recommend_workers
+from config.hardware_guard import check_memory_pressure, recommend_workers, set_process_below_normal_priority
 from modules.ingestion.projection.tomtom_incident_projector import SILVER_INCIDENT_COLUMNS, _silver_incident_arrow_schema
 from modules.lakehouse.hdfs.hf_bronze import atomic_write
 from modules.lakehouse.pipeline import baseline, features, schema, silver
@@ -81,7 +81,8 @@ class LocalAdapter:
         if max_route_events is not None and max_route_events < 1:
             raise ValueError("max_route_events must be positive")
         self.max_route_events = max_route_events
-        self.workers = recommend_workers(workers, per_worker_ram_gb=0.5, min_free_ram_gb=1.5, max_cpu_frac=0.75)
+        set_process_below_normal_priority()
+        self.workers = recommend_workers(workers, per_worker_ram_gb=0.6, min_free_ram_gb=1.5, max_cpu_frac=0.75)
 
     def pin(self, product, inputs):
         if product == "silver" and "baseline" in inputs:
@@ -152,7 +153,36 @@ class LocalAdapter:
                             yield silver.ordered_event(row)
 
                     def projected_rows():
-                        for session in silver.project_vehicles(unique_events(), self.reference, MAX_SESSION_EVENTS, spec):
+                        from itertools import groupby
+                        from config.system_config import STALE_DELTA_T_MAX_SEC
+
+                        def iter_sessions():
+                            for _, group in groupby(unique_events(), key=lambda pair: pair[0][:2]):
+                                batch = []
+                                for pair in group:
+                                    if batch and pair[1]["observed_ms"] - batch[-1][1]["observed_ms"] > STALE_DELTA_T_MAX_SEC * 1000:
+                                        yield batch
+                                        batch = []
+                                    if len(batch) >= MAX_SESSION_EVENTS:
+                                        raise ValueError("continuous vehicle session exceeds configured event limit: %s/%s" % pair[0][:2])
+                                    batch.append(pair)
+                                if batch:
+                                    yield batch
+
+                        def project_one(session_pairs):
+                            return list(silver.project_vehicles(session_pairs, self.reference, MAX_SESSION_EVENTS, spec))
+
+                        def iter_projected():
+                            if self.workers > 1:
+                                silver._get_reference_cache(self.reference)
+                                with ThreadPoolExecutor(self.workers) as pool:
+                                    for session_chunk in chunks(iter_sessions(), max(self.workers * 16, 64)):
+                                        for projected_list in pool.map(project_one, session_chunk):
+                                            yield from projected_list
+                            else:
+                                yield from silver.project_vehicles(unique_events(), self.reference, MAX_SESSION_EVENTS, spec)
+
+                        for session in iter_projected():
                             sessions.write(encoded({k: session[k] for k in ("route_id", "vehicle_id", "session_start_ms",
                                                                             "session_end_ms", "input_events")}) + b"\n")
                             engines.add(session["engine"])
@@ -163,6 +193,7 @@ class LocalAdapter:
 
                     fields = arrow_schema(schema.SILVER + (("dt", "string", True),))
                     for index, rows in enumerate(chunks(projected_rows(), 65536)):
+                        check_memory_pressure(label="local_silver")
                         table = pa.Table.from_pylist(rows, schema=fields)
                         ds.write_dataset(table, output, format="parquet", partitioning=["route_code", "dt"],
                                          partitioning_flavor="hive", basename_template=f"part-{index}-{{i}}.parquet",
@@ -241,6 +272,7 @@ class LocalAdapter:
         tiers, engines = Counter(), set()
         with ThreadPoolExecutor(self.workers) as pool:
             for counts, used in pool.map(write_route, routes):
+                check_memory_pressure(label="local_baseline")
                 tiers.update(counts)
                 engines.update(used)
         total = parquet_count(data)
@@ -267,7 +299,8 @@ class LocalAdapter:
         _, start, end = features.incident_window(spec.from_day, spec.to_day)
         facts_root = Path(source["incident_facts_path"])
         splits, engines = Counter(), set()
-        for route in routes:
+
+        def process_route(route):
             route_parts = [p for p in parts if p.parent.parent.name == "route_code=" + route]
             self.check_route_size(route_parts)
             by_dir = {0: [], 1: []}
@@ -276,12 +309,26 @@ class LocalAdapter:
                 fact = tuple(record[c] for c in SILVER_INCIDENT_COLUMNS)
                 for _, (direction, interval) in features.window_interval(fact, start, end):
                     by_dir[direction].append(interval)
+            route_engines = set()
             rows = features.compute_route_features(route, part_rows(route_parts), by_dir, meta,
                 fit_end_date=spec.fit_end_date, validation_epoch=spec.validation_epoch, test_epoch=spec.test_epoch,
-                cadence_sec=spec.forecast_every, record_engine=engines.add)
+                cadence_sec=spec.forecast_every, record_engine=route_engines.add)
             counts = write_feature_part(data / f"{route}.parquet", rows)
-            splits.update(counts)
             atomic_write(data / f"{route}.json", encoded(dict(route_code=route, rows=sum(counts.values()))))
+            return counts, route_engines
+
+        if self.workers > 1 and len(routes) > 1:
+            with ThreadPoolExecutor(self.workers) as pool:
+                for counts, used in pool.map(process_route, routes):
+                    check_memory_pressure(label="local_features")
+                    splits.update(counts)
+                    engines.update(used)
+        else:
+            for route in routes:
+                check_memory_pressure(label="local_features")
+                counts, used = process_route(route)
+                splits.update(counts)
+                engines.update(used)
         total = parquet_count(data)
         validate_counts(splits, total, features.SPLIT_NAMES)
         atomic_write(build / "feature_inputs.json", encoded(dict(input_mode="busmap_silver",
