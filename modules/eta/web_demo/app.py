@@ -38,7 +38,7 @@ async def lifespan(_app: FastAPI):
     try:
         yield
     finally:
-        speed_poller.stop()
+        speed_poller.stop(timeout=0.5)
 
 
 app = FastAPI(
@@ -84,6 +84,8 @@ async def correlate_request(request, call_next):
     try:
         response = await call_next(request)
         response.headers['X-Request-ID'] = value
+        if request.url.path in ('/', '/debug') or request.url.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
         return response
     finally:
         request_id.reset(token)

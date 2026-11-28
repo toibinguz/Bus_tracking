@@ -1,2 +1,0 @@
-@echo off
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0stop_demo_bg.ps1" %*

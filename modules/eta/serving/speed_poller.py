@@ -126,16 +126,27 @@ class SpeedLayerPoller:
             self._status = "starting"
             self._thread = threading.Thread(target=self._run_loop, name="SpeedLayerPoller", daemon=True)
             self._thread.start()
+            now_str = datetime.fromtimestamp(self._now_fn(), tz=TZ_HANOI).strftime("%H:%M:%S")
+        print(
+            f"[SpeedLayer {now_str}] Started (interval={int(self.poll_interval_sec)}s, "
+            f"operating_hours={SPEED_POLLER_START_HHMM[0]:02d}:{SPEED_POLLER_START_HHMM[1]:02d}-"
+            f"{SPEED_POLLER_END_HHMM[0]:02d}:{SPEED_POLLER_END_HHMM[1]:02d})",
+            flush=True,
+        )
 
     def stop(self, timeout: float = 5.0) -> None:
         """Dừng thread nền sạch sẽ."""
         self._stop_event.set()
         thread = self._thread
+        was_running = thread is not None
         if thread is not None and thread.is_alive():
             thread.join(timeout=timeout)
         with self._state_lock:
             self._status = "stopped"
             self._thread = None
+        if was_running:
+            now_str = datetime.fromtimestamp(self._now_fn(), tz=TZ_HANOI).strftime("%H:%M:%S")
+            print(f"[SpeedLayer {now_str}] Stopped.", flush=True)
 
     def get_health_snapshot(self) -> Dict[str, Any]:
         """Trả snapshot giám sát cho `/api/health`."""
@@ -172,11 +183,15 @@ class SpeedLayerPoller:
             now_epoch = self._now_fn()
             if not is_operating_hours(now_epoch):
                 with self._state_lock:
+                    became_off_hours = self._status != "off_hours"
                     self._status = "off_hours"
                     self._prev_active.clear()
                     expired = [k for k, exp in self._cooldowns.items() if exp <= now_epoch]
                     for k in expired:
                         self._cooldowns.pop(k, None)
+                if became_off_hours:
+                    now_str = datetime.fromtimestamp(now_epoch, tz=TZ_HANOI).strftime("%H:%M:%S")
+                    print(f"[SpeedLayer {now_str}] Off-hours (sleep mode)", flush=True)
                 self._stop_event.wait(OFF_HOURS_SLEEP_SEC)
                 continue
 
@@ -271,6 +286,19 @@ class SpeedLayerPoller:
             self._counts["busmap_error"] += busmap_err
             circuit_open = self._circuit_open_until > now_ts
             self._status = "degraded" if (circuit_open or (busmap_err > 0 and busmap_ok == 0)) else "running"
+            cycle_num = self._cycle_count
+            status_val = self._status
+            inc_display = "ERR" if self._incident_error else str(self._incident_count)
+
+        now_str = datetime.fromtimestamp(end_ts, tz=TZ_HANOI).strftime("%H:%M:%S")
+        print(
+            f"[SpeedLayer {now_str}] Cycle #{cycle_num} | status={status_val} | "
+            f"busmap={busmap_ok}/{busmap_ok + busmap_err} | "
+            f"timbus_rec={tb_stats.get('recovered_live', 0)} parked={tb_stats.get('parked_skip', 0)} "
+            f"gap={tb_stats.get('on_corridor_gap', 0)} err={tb_stats.get('upstream_error', 0)} | "
+            f"incidents={inc_display} | {duration:.2f}s",
+            flush=True,
+        )
 
         return {
             "busmap_ok": busmap_ok,

@@ -420,21 +420,10 @@
       } else {
         liveStatusPill.classList.remove('is-error');
         vehicleCountEl.textContent = `${latestVehicles.length} xe`;
-        const incList = data.incidents || [];
         const tbWarn = (data.timbus_status === 'upstream_error' || data.timbus_status === 'partial_error')
           ? 'TimBus đang gián đoạn (tạm dùng BusMap).'
           : '';
-        if (incList.length > 0) {
-          const top = incList[0];
-          const delaySec = Number(top.delay_seconds || 0);
-          const delayText = delaySec > 0 ? ` (~+${Math.max(1, Math.round(delaySec / 60))} phút)` : '';
-          const incMsg = `Cảnh báo giao thông (${incList.length}): ${top.description || 'Ùn tắc trên tuyến'}${delayText}.`;
-          showAlert(tbWarn ? `${incMsg} | ${tbWarn}` : incMsg, false);
-        } else if (tbWarn) {
-          showAlert(tbWarn, false);
-        } else {
-          showAlert('', false);
-        }
+        showAlert(tbWarn, false);
       }
 
       renderBusMarkers(latestVehicles);
