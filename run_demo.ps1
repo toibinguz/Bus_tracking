@@ -4,7 +4,9 @@ param(
     [ValidateRange(1, 65535)]
     [int]$Port = 8000,
     [switch]$NoBrowser,
-    [string]$DbPath
+    [string]$DbPath,
+    [string]$ViewDbPath,
+    [switch]$EmbeddedSpeedLayer
 )
 
 # 1. Force UTF-8 Encoding for Console & Python subprocess without emitting BOM
@@ -29,6 +31,12 @@ if ($DbPath) {
 } else {
     Remove-Item Env:\SERVING_DB_PATH -ErrorAction SilentlyContinue
 }
+if ($ViewDbPath) {
+    $env:SPEED_VIEW_DB_PATH = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ViewDbPath)
+} else {
+    Remove-Item Env:\SPEED_VIEW_DB_PATH -ErrorAction SilentlyContinue
+}
+$env:SPEED_LAYER_MODE = if ($EmbeddedSpeedLayer) { "embedded" } else { "external" }
 
 # 3. Locate Python executable in .venv
 $pythonExe = Join-Path $rootDir ".venv\Scripts\python.exe"
@@ -69,7 +77,10 @@ if ($tcpConn) {
     }
 }
 
-Write-Host "[*] Dang khoi dong may chu FastAPI & Uvicorn..." -ForegroundColor Green
+Write-Host "[*] Dang khoi dong may chu Serving Layer (SPEED_LAYER_MODE=$($env:SPEED_LAYER_MODE))..." -ForegroundColor Green
+if ($env:SPEED_LAYER_MODE -eq "external") {
+    Write-Host "[*] Hay chay run_speed_layer.bat o terminal rieng de cap nhat Real-time View 45s." -ForegroundColor Cyan
+}
 Write-Host "[*] Giao dien Nguoi dung (Web App) : http://127.0.0.1:$targetPort" -ForegroundColor Cyan
 Write-Host "[*] Giao dien Giam sat (Debug)     : http://127.0.0.1:$targetPort/debug" -ForegroundColor Cyan
 Write-Host "[*] Tai lieu API (Swagger UI)     : http://127.0.0.1:$targetPort/docs" -ForegroundColor Cyan
@@ -77,7 +88,7 @@ Write-Host ""
 if (-not $NoBrowser) {
     Write-Host "[*] Trinh duyet se tu mo ngay khi may chu san sang..." -ForegroundColor DarkGray
 }
-Write-Host "[!] Nhan Ctrl+C de dung may chu bat ky luc nao." -ForegroundColor DarkGray
+Write-Host "[!] Nhan Ctrl+C 1 lan de dung may chu bat ky luc nao." -ForegroundColor DarkGray
 Write-Host "--------------------------------------------------------------------------" -ForegroundColor DarkGray
 
 # Launch lightweight in-process Runspace (zero PowerShell child process overhead) to open browser on readiness

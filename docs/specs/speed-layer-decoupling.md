@@ -1,7 +1,7 @@
 # Spec: Tách Speed Layer thành tiến trình độc lập (Hướng 3 — Lambda Architecture)
 
 - **Ngày lập:** 2026-11-28
-- **Trạng thái:** Đề xuất kỹ thuật (chờ review / validate độc lập trước khi triển khai)
+- **Trạng thái:** Đã triển khai & kiểm toán DoD-1..8
 - **Phạm vi:** Tầng Speed Layer & Serving Layer (`modules/eta/serving/`, `modules/eta/web_demo/`, `scripts/`, `run_demo.*`, `run_speed_layer.*`)
 
 ---
@@ -199,3 +199,18 @@ CREATE TABLE IF NOT EXISTS poller_health (
 3. **Test Timestamp Merge (5s Serving vs 45s Speed):** Serving có hit TimBus tại `t = 1030`, sau đó replay một batch Speed chứa hit TimBus của cùng xe tại `t = 1010` → `_tb_last_valid` vẫn giữ bản ghi `t = 1030`.
 4. **Test Anti-Cold-Start Bootstrap & Session Reset:** Speed Worker ghi 2 chu kỳ, khởi tạo mới `BusMapServingService` (mô phỏng restart Web App) → `MacroSpeedTracker` và `CausalFeatures` khôi phục đúng số quan sát trong TTL; nếu Speed Worker khởi động lại với `writer_session_id` mới (hoặc DB bị recreate), Serving tự reset watermark về `0` và sync lại không lỗi.
 5. **Test Graceful Degradation:** Chạy FastAPI với `SPEED_LAYER_MODE=external` khi chưa có `speed_view.db` → `/api/health`, `/api/live-vehicles`, `/api/station-eta` hoạt động bình thường không lỗi 500.
+
+---
+
+## 8. Definition of Done (DoD) & Anti-Bypass Audit
+
+Bản triển khai chỉ được coi là hoàn thành khi đạt **tất cả** 8 tiêu chí sau (không chấp nhận mock giả lập xuyên suốt, skip assertion, hay hardcode kết quả):
+
+- **DoD-1 (Process Decoupling thật):** `modules/eta/serving/speed_worker.py` và `scripts/run_speed_layer.py` khởi chạy `SpeedLayerPoller` mà **không** import `fastapi` hay `uvicorn` (kiểm chứng bằng `sys.modules` trong subprocess sạch). `run_speed_layer.ps1` chạy `scripts/run_speed_layer.py`, không khởi động Uvicorn hay kiểm tra cổng `8000`.
+- **DoD-2 (SQLite WAL 4 bảng thật):** `SpeedViewStore` dùng đúng SQLite `WAL` (`PRAGMA journal_mode=WAL; busy_timeout=3000; synchronous=NORMAL;`) với đủ 4 bảng (`speed_batches`, `recent_timbus_focus`, `live_incidents_snapshot`, `poller_health`) và các index theo Mục 5; TTL `3600s` + `wal_checkpoint(PASSIVE)` thực sự chạy sau chu kỳ Speed Layer.
+- **DoD-3 (TimBus Politeness xuyên tiến trình thật):** Trong `external` mode, hit TimBus 5s trên `BusMapServingService` ghi thật vào bảng `recent_timbus_focus`; `SpeedLayerPoller` đọc thật bảng đó khi chạy `run_once()` và bỏ qua các biển số `< 45s`, hết `>= 45s` mới query lại nếu xe trễ. Không có bất kỳ nhánh nào quét TimBus 5s toàn mạng.
+- **DoD-4 (Timestamp Merge Guard thật):** Trong `ingest_speed_layer_timbus_hit`, bản ghi có `tb_ts` cũ hơn **không** ghi đè bản ghi tươi hơn đang nằm trong `_tb_last_valid`.
+- **DoD-5 (Anti-Cold-Start Bootstrap & `writer_session_id` Reset thật):** `BusMapServingService` mới khởi tạo nạp lại toàn bộ batch còn TTL từ `speed_view.db` qua đúng `ingest_speed_layer_vehicles` / `ingest_speed_layer_timbus_hit` / `ingest_live_incidents` (không sao chép công thức tính feature sang chỗ khác), và reset watermark về `0` khi `writer_session_id` thay đổi hoặc DB bị xóa/tạo mới.
+- **DoD-6 (Graceful Degradation & Health thật):** Khi `SPEED_LAYER_MODE=external` mà chưa có `speed_view.db`, FastAPI vẫn khởi động và `/api/health` trả `200` (`poller.mode="external"`, `poller.status="waiting_external"`). Khi heartbeat quá `120s` trong giờ vận hành, `load_health()` trả `status="stale"`.
+- **DoD-7 (Tương thích ngược & 1x Ctrl+C):** Toàn bộ test hiện có trong `tests/eta/` tiếp tục pass không cần sửa hay nới lỏng assertion; cả `run_demo.ps1` lẫn `run_speed_layer.ps1` thuần ASCII, parse không lỗi, và thoát sạch bằng 1 lần `Ctrl+C`.
+- **DoD-8 (Kiểm toán chống gượng ép / anti-bypass audit):** Sau khi các test pass, thực hiện rà soát độc lập (white-box audit) đối chiếu từng dòng diff trong mã nguồn và test để xác nhận không có nhánh tắt/mock che lấp logic thật, không swallow exception bất thường, không duplicate thuật toán ETA/CausalFeatures.

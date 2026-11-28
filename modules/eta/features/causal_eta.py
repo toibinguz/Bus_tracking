@@ -295,7 +295,11 @@ class CausalFeatures:
 
     def observe_snapshot(self, route_id, direction, received, vehicles, valid=True):
         with self._lock:
-            self._snapshots[(route_id, direction)] = (received, frozenset(vehicles), valid)
+            key = (route_id, direction)
+            prev = self._snapshots.get(key)
+            if prev is not None and received < prev[0]:
+                return
+            self._snapshots[key] = (received, frozenset(vehicles), valid)
 
     @staticmethod
     def speed(state, seconds):

@@ -212,36 +212,51 @@ def merge_bus(left, right):
     return dict(selected, batch_ids=sorted(set(left['batch_ids']) | set(right['batch_ids'])))
 
 
-def project_vehicles(sorted_rows, reference, max_session_events, spec=None):
-    """Split only at a gap beyond the canonical stale threshold, never at midnight."""
-    import socket
+def iter_vehicle_sessions(sorted_rows, max_session_events):
+    """Yield (route_id, vehicle_id, rows) split only at a gap beyond the canonical stale threshold, never at midnight."""
     from config.system_config import STALE_DELTA_T_MAX_SEC
-    if sys.platform != 'win32':
-        import resource
-    def project(route_id,vehicle_id,rows):
-        result = project_group((route_id, rows), reference)
-        if spec is not None:
-            from config.system_config import TZ_HANOI
-            accepted = []
-            for row in result["rows"]:
-                day = datetime.fromtimestamp(row["device_epoch_s"], TZ_HANOI).date().isoformat()
-                if spec.includes_silver(row["route_code"], day):
-                    accepted.append(dict(row, dt=day))
-                else:
-                    result["rejected"].append(dict(reason="outside_silver_scope", event_id=row["event_id"]))
-            result["rows"] = accepted
-        result.update(vehicle_id=vehicle_id, input_events=len(rows), executor_host=socket.gethostname(),
-                      session_start_ms=rows[0]['observed_ms'],session_end_ms=rows[-1]['observed_ms'],
-                      worker_peak_rss_kib=(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss if sys.platform != 'win32' else None))
-        return result
+
     for (route_id, vehicle_id), group in groupby(sorted_rows, key=lambda pair: pair[0][:2]):
         rows = []
         for _, row in group:
-            if rows and row['observed_ms']-rows[-1]['observed_ms']>STALE_DELTA_T_MAX_SEC*1000:
-                yield project(route_id,vehicle_id,rows)
-                rows=[]
+            if rows and row['observed_ms'] - rows[-1]['observed_ms'] > STALE_DELTA_T_MAX_SEC * 1000:
+                yield route_id, vehicle_id, rows
+                rows = []
             if len(rows) >= max_session_events:
                 raise ValueError('continuous vehicle session exceeds configured event limit: %s/%s' % (route_id, vehicle_id))
             rows.append(row)
         if rows:
-            yield project(route_id,vehicle_id,rows)
+            yield route_id, vehicle_id, rows
+
+
+def project_vehicle_session(route_id, vehicle_id, rows, reference, spec=None):
+    """Project one continuous vehicle session and apply optional Silver scope filter."""
+    import socket
+    if sys.platform != 'win32':
+        import resource
+    result = project_group((route_id, rows), reference)
+    if spec is not None:
+        from config.system_config import TZ_HANOI
+        accepted = []
+        for row in result["rows"]:
+            day = datetime.fromtimestamp(row["device_epoch_s"], TZ_HANOI).date().isoformat()
+            if spec.includes_silver(row["route_code"], day):
+                accepted.append(dict(row, dt=day))
+            else:
+                result["rejected"].append(dict(reason="outside_silver_scope", event_id=row["event_id"]))
+        result["rows"] = accepted
+    result.update(
+        vehicle_id=vehicle_id,
+        input_events=len(rows),
+        executor_host=socket.gethostname(),
+        session_start_ms=rows[0]['observed_ms'],
+        session_end_ms=rows[-1]['observed_ms'],
+        worker_peak_rss_kib=(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss if sys.platform != 'win32' else None),
+    )
+    return result
+
+
+def project_vehicles(sorted_rows, reference, max_session_events, spec=None):
+    """Split only at a gap beyond the canonical stale threshold, never at midnight."""
+    for route_id, vehicle_id, rows in iter_vehicle_sessions(sorted_rows, max_session_events):
+        yield project_vehicle_session(route_id, vehicle_id, rows, reference, spec=spec)

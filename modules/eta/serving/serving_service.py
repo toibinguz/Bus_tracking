@@ -10,9 +10,11 @@ from contextvars import copy_context
 import logging
 import math
 import threading
+import time
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple, Union
+from types import SimpleNamespace
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from config.system_config import (
     CONGESTION_SPEED_THRESHOLD_KMPH,
@@ -273,11 +275,20 @@ class MacroSpeedTracker:
 class BusMapServingService:
     """Service phục vụ danh mục tuyến, vị trí xe trực tiếp và dự báo ETA trạm (ML + baseline)."""
 
-    def __init__(self, db_path: Optional[str] = None, timbus_db_path: Optional[str] = None):
+    def __init__(
+        self,
+        db_path: Optional[str] = None,
+        timbus_db_path: Optional[str] = None,
+        load_model: bool = True,
+        speed_view_store: Optional[Any] = None,
+    ):
         self._da = DataAccess(db_path, timbus_db_path=timbus_db_path)
-        self._runtime = ModelRuntime.load()
-        if self._runtime.available and not self._runtime.validate_route_mapping(self._da.route_idx_by_code):
-            logger.error("Tắt causal_eta_v3 do route_id_idx SQLite lệch với manifest.json")
+        if load_model:
+            self._runtime = ModelRuntime.load()
+            if self._runtime.available and not self._runtime.validate_route_mapping(self._da.route_idx_by_code):
+                logger.error("Tắt causal_eta_v3 do route_id_idx SQLite lệch với manifest.json")
+        else:
+            self._runtime = SimpleNamespace(available=False, identity=None)
         self.source_info = dict(
             mode="local",
             db_path=self._da._db_path,
@@ -303,6 +314,12 @@ class BusMapServingService:
         self._live_incidents_fetched_at: Optional[str] = None
         self._live_incidents_epoch: float = 0.0
         self._live_incidents_by_route: Dict[Tuple[int, int], List[RouteIncidentDTO]] = {}
+        self._speed_view_store = speed_view_store
+        self._speed_view_last_seq = 0
+        self._speed_view_session_id: Optional[str] = None
+        self._speed_view_db_id: Optional[str] = None
+        self._speed_view_incidents_epoch = 0.0
+        self._speed_view_sync_lock = threading.Lock()
 
     def _prepare_vehicle(self,route_id,dir_int,vehicle,now_epoch):
         vehicle=self._extractor.project_vehicle(route_id,dir_int,vehicle,now_epoch)
@@ -649,6 +666,7 @@ class BusMapServingService:
                     self._last_timbus_status = {}
                 self._last_timbus_status[(route_id, dir_int)] = (tb_status, tb_err)
 
+            focus_hits: List[Tuple[str, float]] = []
             for p_norm in plates_to_query:
                 bm_entry = bm_proj.get(p_norm)
                 if bm_entry is None:
@@ -695,6 +713,7 @@ class BusMapServingService:
 
                         if not bm_ahead_newer:
                             tb_valid_by_plate[p_norm] = tb_dto
+                            focus_hits.append((p_norm, tb_ts))
                         continue
 
                 # Tầng 2 (missing_tb) + Monotonicity Guard khi gói BusMap 15s làm mới: không kéo lùi xe vừa có TimBus tươi
@@ -705,6 +724,8 @@ class BusMapServingService:
                     within_limit = (now_epoch - last_ts) <= TIMBUS_HOLD_FRESH_SEC
                     if within_limit and s_bm < last_s_tb:
                         tb_valid_by_plate[p_norm] = last_dto
+            if focus_hits and getattr(self, "_speed_view_store", None) is not None:
+                self._speed_view_store.record_focus_timbus_hits(route_id, dir_int, focus_hits)
         else:
             with self._tb_lock:
                 if not hasattr(self, "_last_timbus_status"):
@@ -775,6 +796,35 @@ class BusMapServingService:
                 return False
             return True
 
+    def _observe_macro_speed(
+        self,
+        route_id: int,
+        dir_int: int,
+        p_norm: str,
+        v: BusVehicleDTO,
+        now_epoch: float,
+        bm_speed_kmh: float,
+        route_base_spd: float,
+    ) -> Tuple[float, float]:
+        """Cập nhật MacroSpeedTracker từ lịch sử chiếu RouteHMM của một xe (dùng chung cho live & replay)."""
+        s_cur, _, _ = v.matched_projection
+        self._speed_tracker.revise_positions(
+            route_id, dir_int, p_norm, self._extractor.projection_history(route_id, dir_int, v.id)
+        )
+        t_sample, _ = parse_ping_epoch(v.updated_at, now_epoch)
+        t_sample = min(now_epoch, t_sample)
+        raw_spd = float(v.raw_speed_kmh if v.raw_speed_kmh is not None else v.speed_kmh)
+        return self._speed_tracker.observe_and_estimate(
+            route_id=route_id,
+            dir_int=dir_int,
+            plate_norm=p_norm,
+            t_sample=t_sample,
+            s_bus=s_cur,
+            raw_speed_kmh=raw_spd,
+            bm_speed_kmh=bm_speed_kmh,
+            route_base_spd_kmh=route_base_spd,
+        )
+
     def _apply_macro_speeds(
         self,
         route_id: int,
@@ -795,27 +845,22 @@ class BusMapServingService:
             if not p_norm:
                 stabilized.append(v)
                 continue
-            s_cur, _, _ = v.matched_projection
             if v.telemetry_source=='timbus':
                 # TimBus has no measured heading. Keep its inferred map arrow
                 # consistent with the selected branch, including cached DTOs.
                 ux,uy=shape_model.segment_unit_tangent(v.matched_projection[2])
                 v=v.model_copy(update={'deg':math.degrees(math.atan2(ux,uy))%360.})
-            self._speed_tracker.revise_positions(route_id,dir_int,p_norm,self._extractor.projection_history(route_id,dir_int,v.id))
-            t_sample, _ = parse_ping_epoch(v.updated_at, now_epoch)
-            t_sample=min(now_epoch,t_sample)
             raw_spd = float(v.raw_speed_kmh if v.raw_speed_kmh is not None else v.speed_kmh)
             bm_entry = bm_proj.get(p_norm)
             bm_spd = float(bm_entry[0].speed_kmh) if bm_entry is not None else raw_spd
-            smooth_spd, win_sec = self._speed_tracker.observe_and_estimate(
+            smooth_spd, win_sec = self._observe_macro_speed(
                 route_id=route_id,
                 dir_int=dir_int,
-                plate_norm=p_norm,
-                t_sample=t_sample,
-                s_bus=s_cur,
-                raw_speed_kmh=raw_spd,
+                p_norm=p_norm,
+                v=v,
+                now_epoch=now_epoch,
                 bm_speed_kmh=bm_spd,
-                route_base_spd_kmh=route_base_spd,
+                route_base_spd=route_base_spd,
             )
             stabilized.append(
                 v.model_copy(
@@ -1251,6 +1296,15 @@ class BusMapServingService:
         prepared = [v for v in prepared if v.matched_projection is not None]
         if prepared:
             self._extractor.update_observation(route_id, dir_int, prepared, now_epoch)
+            dir_str = "go" if dir_int == 0 else "re"
+            route_base_spd = self._da.get_route_profile(route_id, dir_str)[0]
+            for v in prepared:
+                p_norm = TimBusClient.normalize_plate(v.plate)
+                if p_norm:
+                    raw_spd = float(v.raw_speed_kmh if v.raw_speed_kmh is not None else v.speed_kmh)
+                    self._observe_macro_speed(
+                        route_id, dir_int, p_norm, v, now_epoch, raw_spd, route_base_spd
+                    )
             self._observe_causal_snapshot(route_id, dir_int, prepared, now_epoch)
         return prepared
 
@@ -1293,8 +1347,15 @@ class BusMapServingService:
         p_norm = TimBusClient.normalize_plate(tb_dto.plate)
         if p_norm:
             with self._tb_lock:
-                self._tb_last_valid[(route_id, dir_int, p_norm)] = (tb_ts, s_tb, tb_dto)
+                existing = self._tb_last_valid.get((route_id, dir_int, p_norm))
+                if existing is None or tb_ts >= existing[0]:
+                    self._tb_last_valid[(route_id, dir_int, p_norm)] = (tb_ts, s_tb, tb_dto)
         self._extractor.update_observation(route_id, dir_int, [tb_dto], now_epoch)
+        if p_norm:
+            route_base_spd = self._da.get_route_profile(route_id, dir_str)[0]
+            self._observe_macro_speed(
+                route_id, dir_int, p_norm, tb_dto, now_epoch, float(bm_v.speed_kmh), route_base_spd
+            )
         with self._get_causal_lock(route_id):
             self._causal.observe(
                 Observation(
@@ -1311,6 +1372,63 @@ class BusMapServingService:
                 )
             )
         return tb_dto
+
+    def sync_from_speed_view(self, now_epoch: Optional[float] = None) -> int:
+        """Đồng bộ bootstrap & incremental từ SpeedViewStore (chỉ chạy ở SPEED_LAYER_MODE=external)."""
+        store = getattr(self, "_speed_view_store", None)
+        if store is None:
+            return 0
+        now_ts = time.time() if now_epoch is None else float(now_epoch)
+        replayed = 0
+        with self._speed_view_sync_lock:
+            batches, new_seq, sess_id, db_id, session_reset = store.fetch_batches_since(
+                self._speed_view_last_seq,
+                self._speed_view_session_id,
+                min_epoch=now_ts - 3600.0,
+                known_db_id=self._speed_view_db_id,
+            )
+            if session_reset:
+                self._speed_view_last_seq = 0
+                self._speed_view_incidents_epoch = 0.0
+            for batch in batches:
+                kind = batch["kind"]
+                route_id = batch["route_id"]
+                dir_int = batch["dir_int"]
+                obs_epoch = batch["observed_epoch"]
+                payload = batch["payload"]
+                if kind == "busmap_route":
+                    vehicles = [BusVehicleDTO.model_validate(item) for item in payload]
+                    self.ingest_speed_layer_vehicles(route_id, dir_int, vehicles, obs_epoch)
+                    replayed += 1
+                elif kind == "timbus_hit":
+                    bm_v = BusVehicleDTO.model_validate(payload["bm_v"])
+                    tb_rec = SimpleNamespace(**payload["tb_rec"])
+                    self.ingest_speed_layer_timbus_hit(route_id, dir_int, bm_v, tb_rec, obs_epoch)
+                    replayed += 1
+            if new_seq > self._speed_view_last_seq or session_reset:
+                self._speed_view_last_seq = new_seq
+            if sess_id is not None:
+                self._speed_view_session_id = sess_id
+            if db_id is not None:
+                self._speed_view_db_id = db_id
+
+            inc_snapshot = store.load_incidents()
+            if inc_snapshot is not None:
+                inc_payload, inc_epoch = inc_snapshot
+                if session_reset or inc_epoch > self._speed_view_incidents_epoch:
+                    self.ingest_live_incidents(inc_payload, now_epoch=inc_epoch)
+                    self._speed_view_incidents_epoch = inc_epoch
+            elif session_reset:
+                lock = getattr(self, "_incident_lock", None)
+                if lock is None:
+                    lock = self._incident_lock = threading.Lock()
+                with lock:
+                    self._live_incidents_raw = []
+                    self._live_incidents_fetched_at = None
+                    self._live_incidents_epoch = 0.0
+                    self._live_incidents_gen = getattr(self, "_live_incidents_gen", 0) + 1
+                    self._live_incidents_by_route = {}
+        return replayed
 
     def _get_live_incidents_epoch(self) -> float:
         lock = getattr(self, "_incident_lock", None)

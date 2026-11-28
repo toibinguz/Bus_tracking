@@ -14,9 +14,11 @@ Nhiệm vụ:
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 import logging
+import os
 import threading
 import time
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from uuid import uuid4
 
 from config.system_config import (
     MAX_CORRIDOR_CROSS_TRACK_M,
@@ -74,6 +76,8 @@ class SpeedLayerPoller:
         incident_fetcher: Optional[Callable[[], Tuple[Optional[dict], Optional[str]]]] = None,
         incident_sync_interval_sec: float = 120.0,
         now_fn: Optional[Callable[[], float]] = None,
+        view_store: Optional[Any] = None,
+        writer_session_id: Optional[str] = None,
     ):
         self._service = service
         self.poll_interval_sec = float(poll_interval_sec)
@@ -86,6 +90,8 @@ class SpeedLayerPoller:
         self._incident_fetcher = incident_fetcher or fetch_latest_incidents_from_hf
         self.incident_sync_interval_sec = float(incident_sync_interval_sec)
         self._now_fn = now_fn or time.time
+        self._view_store = view_store
+        self._writer_session_id = writer_session_id or (uuid4().hex if view_store is not None else "")
 
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
@@ -127,6 +133,16 @@ class SpeedLayerPoller:
             self._thread = threading.Thread(target=self._run_loop, name="SpeedLayerPoller", daemon=True)
             self._thread.start()
             now_str = datetime.fromtimestamp(self._now_fn(), tz=TZ_HANOI).strftime("%H:%M:%S")
+        if self._view_store is not None:
+            try:
+                self._view_store.save_health(
+                    self._writer_session_id,
+                    os.getpid(),
+                    self.get_health_snapshot(),
+                    self._now_fn(),
+                )
+            except Exception as exc:
+                logger.warning("Không ghi được health khởi tạo xuống speed_view: %s", exc)
         print(
             f"[SpeedLayer {now_str}] Started (interval={int(self.poll_interval_sec)}s, "
             f"operating_hours={SPEED_POLLER_START_HHMM[0]:02d}:{SPEED_POLLER_START_HHMM[1]:02d}-"
@@ -192,6 +208,16 @@ class SpeedLayerPoller:
                 if became_off_hours:
                     now_str = datetime.fromtimestamp(now_epoch, tz=TZ_HANOI).strftime("%H:%M:%S")
                     print(f"[SpeedLayer {now_str}] Off-hours (sleep mode)", flush=True)
+                if self._view_store is not None:
+                    try:
+                        self._view_store.save_health(
+                            self._writer_session_id,
+                            os.getpid(),
+                            self.get_health_snapshot(),
+                            now_epoch,
+                        )
+                    except Exception as exc:
+                        logger.warning("Không cập nhật được off-hours health xuống speed_view: %s", exc)
                 self._stop_event.wait(OFF_HOURS_SLEEP_SEC)
                 continue
 
@@ -232,6 +258,10 @@ class SpeedLayerPoller:
                 prepared = self._service.ingest_speed_layer_vehicles(
                     route_id, dir_int, list(getattr(resp, "vehicles", []) or []), now_ts
                 )
+                if prepared and self._view_store is not None:
+                    self._view_store.append_busmap_batch(
+                        self._writer_session_id, route_id, dir_int, now_ts, prepared
+                    )
                 curr_by_plate: Dict[str, BusVehicleDTO] = {}
                 for v in prepared:
                     p_norm = TimBusClient.normalize_plate(v.plate)
@@ -244,6 +274,10 @@ class SpeedLayerPoller:
                     recent_tb: Set[str] = self._service.get_recent_timbus_plates(
                         route_id, dir_int, now_ts, max_age_sec=self.poll_interval_sec
                     )
+                    if self._view_store is not None:
+                        recent_tb = recent_tb | self._view_store.get_recent_focus_plates(
+                            route_id, dir_int, now_ts, max_age_sec=self.poll_interval_sec
+                        )
                     prev_by_plate = self._prev_active.get((route_id, dir_int), {})
                     for p_norm, v in curr_by_plate.items():
                         if p_norm in recent_tb:
@@ -290,6 +324,15 @@ class SpeedLayerPoller:
             status_val = self._status
             inc_display = "ERR" if self._incident_error else str(self._incident_count)
 
+        if self._view_store is not None:
+            self._view_store.save_health(
+                self._writer_session_id,
+                os.getpid(),
+                self.get_health_snapshot(),
+                end_ts,
+            )
+            self._view_store.prune_expired(end_ts, ttl_sec=3600.0)
+
         now_str = datetime.fromtimestamp(end_ts, tz=TZ_HANOI).strftime("%H:%M:%S")
         print(
             f"[SpeedLayer {now_str}] Cycle #{cycle_num} | status={status_val} | "
@@ -325,6 +368,8 @@ class SpeedLayerPoller:
             return
         ingester = getattr(self._service, "ingest_live_incidents", None)
         cnt = ingester(payload, now_ts) if callable(ingester) else len(payload.get("incidents") or [])
+        if self._view_store is not None:
+            self._view_store.save_incidents(payload, now_ts)
         with self._state_lock:
             self._last_incident_sync_epoch = now_ts
             self._incident_fetched_at = payload.get("fetched_at")
@@ -362,7 +407,11 @@ class SpeedLayerPoller:
         key = (route_id, dir_int, p_norm)
 
         if tb_rec is not None:
-            self._service.ingest_speed_layer_timbus_hit(route_id, dir_int, bm_v, tb_rec, now_ts)
+            tb_dto = self._service.ingest_speed_layer_timbus_hit(route_id, dir_int, bm_v, tb_rec, now_ts)
+            if tb_dto is not None and self._view_store is not None:
+                self._view_store.append_timbus_hit(
+                    self._writer_session_id, route_id, dir_int, bm_v, tb_rec, now_ts
+                )
             with self._state_lock:
                 self._cooldowns.pop(key, None)
                 self._error_streak = 0

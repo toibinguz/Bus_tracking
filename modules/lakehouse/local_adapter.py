@@ -153,34 +153,20 @@ class LocalAdapter:
                             yield silver.ordered_event(row)
 
                     def projected_rows():
-                        from itertools import groupby
-                        from config.system_config import STALE_DELTA_T_MAX_SEC
-
-                        def iter_sessions():
-                            for _, group in groupby(unique_events(), key=lambda pair: pair[0][:2]):
-                                batch = []
-                                for pair in group:
-                                    if batch and pair[1]["observed_ms"] - batch[-1][1]["observed_ms"] > STALE_DELTA_T_MAX_SEC * 1000:
-                                        yield batch
-                                        batch = []
-                                    if len(batch) >= MAX_SESSION_EVENTS:
-                                        raise ValueError("continuous vehicle session exceeds configured event limit: %s/%s" % pair[0][:2])
-                                    batch.append(pair)
-                                if batch:
-                                    yield batch
-
-                        def project_one(session_pairs):
-                            return list(silver.project_vehicles(session_pairs, self.reference, MAX_SESSION_EVENTS, spec))
+                        def project_one(session_args):
+                            route_id, vehicle_id, rows = session_args
+                            return silver.project_vehicle_session(route_id, vehicle_id, rows, self.reference, spec=spec)
 
                         def iter_projected():
+                            sessions_iter = silver.iter_vehicle_sessions(unique_events(), MAX_SESSION_EVENTS)
                             if self.workers > 1:
                                 silver._get_reference_cache(self.reference)
                                 with ThreadPoolExecutor(self.workers) as pool:
-                                    for session_chunk in chunks(iter_sessions(), max(self.workers * 16, 64)):
-                                        for projected_list in pool.map(project_one, session_chunk):
-                                            yield from projected_list
+                                    for session_chunk in chunks(sessions_iter, max(self.workers * 16, 64)):
+                                        yield from pool.map(project_one, session_chunk)
                             else:
-                                yield from silver.project_vehicles(unique_events(), self.reference, MAX_SESSION_EVENTS, spec)
+                                for route_id, vehicle_id, rows in sessions_iter:
+                                    yield silver.project_vehicle_session(route_id, vehicle_id, rows, self.reference, spec=spec)
 
                         for session in iter_projected():
                             sessions.write(encoded({k: session[k] for k in ("route_id", "vehicle_id", "session_start_ms",

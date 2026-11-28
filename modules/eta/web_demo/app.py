@@ -8,6 +8,7 @@ FastAPI server combining BusMap/TimBus live GPS with local ETA serving data.
 from contextlib import asynccontextmanager
 from pathlib import Path
 import os
+import time
 from uuid import uuid4
 from typing import Optional, List, Union
 from fastapi import FastAPI, Query, HTTPException
@@ -25,20 +26,53 @@ from modules.eta.serving import (
     normalize_direction,
 )
 from modules.eta.serving.speed_poller import SpeedLayerPoller
+from modules.eta.serving.speed_view_store import (
+    SpeedViewStore,
+    SpeedViewSyncer,
+    default_speed_view_db_path,
+)
 
-# Initialize service singleton + Speed Layer poller
-service = BusMapServingService(db_path=os.environ.get("SERVING_DB_PATH") or None)
+
+def _resolve_speed_layer_mode() -> str:
+    if os.environ.get("DISABLE_SPEED_POLLER") == "1":
+        return "disabled"
+    mode = (os.environ.get("SPEED_LAYER_MODE") or "embedded").strip().lower()
+    if mode not in ("external", "embedded", "disabled"):
+        return "embedded"
+    return mode
+
+
+# Initialize service singleton + Speed Layer wiring
+_SERVING_DB_PATH = os.environ.get("SERVING_DB_PATH") or None
+_SPEED_LAYER_MODE = _resolve_speed_layer_mode()
+speed_view_store = (
+    SpeedViewStore(default_speed_view_db_path(_SERVING_DB_PATH), create_if_missing=False)
+    if _SPEED_LAYER_MODE == "external"
+    else None
+)
+service = BusMapServingService(db_path=_SERVING_DB_PATH, speed_view_store=speed_view_store)
 speed_poller = SpeedLayerPoller(service)
+speed_view_syncer = (
+    SpeedViewSyncer(service, speed_view_store)
+    if speed_view_store is not None
+    else None
+)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    if os.environ.get("DISABLE_SPEED_POLLER") != "1" and hasattr(service, "get_poller_route_ids"):
+    if _SPEED_LAYER_MODE == "external" and speed_view_syncer is not None:
+        speed_view_syncer.start()
+    elif _SPEED_LAYER_MODE == "embedded" and hasattr(service, "get_poller_route_ids"):
         speed_poller.start()
     try:
         yield
     finally:
+        if speed_view_syncer is not None:
+            speed_view_syncer.stop(timeout=0.5)
         speed_poller.stop(timeout=0.5)
+        if speed_view_store is not None:
+            speed_view_store.close()
 
 
 app = FastAPI(
@@ -122,7 +156,10 @@ def get_debug():
 @app.get("/api/v1/health")
 def get_health():
     """Process health, pinned local data identity, and Speed Layer poller status."""
-    poller_snap = speed_poller.get_health_snapshot()
+    if _SPEED_LAYER_MODE == "external" and speed_view_store is not None:
+        poller_snap = speed_view_store.load_health(time.time())
+    else:
+        poller_snap = dict(speed_poller.get_health_snapshot(), mode=_SPEED_LAYER_MODE)
     model_ok = bool(getattr(service, "_runtime", None) and service._runtime.available)
     degraded = (
         poller_snap.get("status") == "degraded"
